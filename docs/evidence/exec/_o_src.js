@@ -1,6 +1,9 @@
+// 取证脚本存档。原始版本写死了开发机上的绝对路径，这里改成相对本文件
+// 定位，便于在任何位置重跑。原路径记录在下方注释里。
+// 原始：D:/Projects/Task Manager Pro/
 const fs=require('fs');
 const path=require('path');
-const root='D:/Projects/Task Manager Pro';
+const root=path.join(__dirname,'../..');
 const files=[...fs.readdirSync(root+'/src').filter(f=>f.endsWith('.cpp')).map(f=>'src/'+f),
              ...fs.readdirSync(root+'/include').filter(f=>f.endsWith('.h')).map(f=>'include/'+f)];
 const out=[];

@@ -1,5 +1,8 @@
+# 取证脚本存档。原始版本写死了开发机上的绝对路径，这里改成相对脚本自身
+# 目录定位，便于在任何位置重跑。原路径记录在下方注释里。
+# 原始：D:\Projects\Task Manager Pro\
 Add-Type -AssemblyName System.Drawing
-$img = [System.Drawing.Bitmap]::FromFile("D:\Projects\Task Manager Pro\shots\reference\original_win10.png")
+$img = [System.Drawing.Bitmap]::FromFile("$PSScriptRoot\..\..\shots\reference\original_win10.png")
 function Hex($c){ return ("#{0:X2}{1:X2}{2:X2}" -f $c.R,$c.G,$c.B) }
 Write-Output "--- group header row1 y=136..175 : vertical boundaries ---"
 Write-Output "--- find group row1 start/end by scanning x=380 for #FFF9E4-ish vs white ---"

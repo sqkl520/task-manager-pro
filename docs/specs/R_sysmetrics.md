@@ -204,7 +204,7 @@ DirectUI 的 `rp` 是「相对像素」，以 96 DPI 为基准，1 rp 在 96 DPI
 
 ### 3.3 主题/个性化里的 shell 字体设置
 
-- `HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\CurrentTheme` = `C:\Users\Administrator\AppData\Local\Microsoft\Windows\Themes\Custom.theme`
+- `HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\CurrentTheme` = `C:\Users\<user>\AppData\Local\Microsoft\Windows\Themes\Custom.theme`
 - `Themes\Personalize`：`AppsUseLightTheme = 0`、`SystemUsesLightTheme = 0`、`EnableTransparency = 1`、`ColorPrevalence = 0`
 - 没有发现独立的「shell 字体」注册表项；shell 字体就是由 `WindowMetrics` 的 `MessageFont` 等驱动的。
 

@@ -1,5 +1,8 @@
+# 取证脚本存档。原始版本写死了开发机上的绝对路径，这里改成相对脚本自身
+# 目录定位，便于在任何位置重跑。原路径记录在下方注释里。
+# 原始：D:\Projects\Task Manager Pro\
 Add-Type -AssemblyName System.Drawing
-$path = 'D:\Projects\Task Manager Pro\shots\reference\original_win10.png'
+$path = '$PSScriptRoot\..\..\shots\reference\original_win10.png'
 $b = [System.Drawing.Bitmap]::FromFile($path)
 Write-Output ("size={0}x{1}" -f $b.Width, $b.Height)
 

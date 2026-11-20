@@ -1,3 +1,6 @@
+# 取证脚本存档。原始版本写死了开发机上的绝对路径，这里改成相对脚本自身
+# 目录定位，便于在任何位置重跑。原路径记录在下方注释里。
+# 原始：D:\Projects\Task Manager Pro\
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 
@@ -165,4 +168,4 @@ foreach ($t in $targets) {
     Write-Output ("{0}({1},{2})`t{3}`n   colors: {4}`n   px: {5}`n   edge: {6}" -f $cls,$p,$s,$lbl,$colors,$px,$scan)
     $out.Add(("{0}`t{1}`t{2}`t{3}`t{4}`t{5}`t{6}" -f $cls,$p,$s,$lbl,$colors,$px,$scan))
 }
-[System.IO.File]::WriteAllLines('D:\Projects\Task Manager Pro\_probe\exec\U_rendered2.tsv', $out, (New-Object System.Text.UTF8Encoding($false)))
+[System.IO.File]::WriteAllLines('$PSScriptRoot\..\..\_probe\exec\U_rendered2.tsv', $out, (New-Object System.Text.UTF8Encoding($false)))

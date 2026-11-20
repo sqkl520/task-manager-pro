@@ -28,6 +28,19 @@ PerfCollector* g_perf = nullptr;
 uint64_t g_uiSeq = 0;
 uint64_t g_perfSeq = 0;
 
+// 诊断输出的落盘位置：exe 同目录。不要写死绝对路径 —— 换台机器就失效，
+// 而那些 --gdileak / --paintstats 之类的开关恰恰是在排查时才用的。
+std::wstring ExeDirFile(const wchar_t* name) {
+    wchar_t path[MAX_PATH];
+    DWORD n = GetModuleFileNameW(nullptr, path, MAX_PATH);
+    std::wstring out(path, n ? n : 0);
+    size_t sl = out.find_last_of(L'\\');
+    if (sl != std::wstring::npos) out.resize(sl + 1);
+    else out.clear();
+    out += name;
+    return out;
+}
+
 // ============ 后台自测模式 ============
 //
 // --selftest 时不显示窗口、不抢焦点、不动鼠标指针。
@@ -374,7 +387,8 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, LPWSTR lpCmdLine, int) {
                        before, after, static_cast<long>(after) - static_cast<long>(before), n);
             OutputDebugStringW(msg);
             FILE* gf = nullptr;
-            if (_wfopen_s(&gf, L"D:\\Projects\\Task Manager Pro\\shots\\audit\\gdi_leak.txt", L"w") == 0) {
+            const std::wstring gdiPath = ExeDirFile(L"gdi_leak.txt");
+            if (_wfopen_s(&gf, gdiPath.c_str(), L"w") == 0) {
                 fwprintf(gf, L"%s", msg);
                 fclose(gf);
             }
@@ -425,7 +439,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, LPWSTR lpCmdLine, int) {
 
         {
             bool ok = g_win->SaveOffscreen(shotPath.c_str());
-            std::wstring dbgPath = L"D:\\Projects\\Task Manager Pro\\shots\\audit\\shot_debug.txt";
+            std::wstring dbgPath = ExeDirFile(L"shot_debug.txt");
             FILE* df = nullptr;
             _wfopen_s(&df, dbgPath.c_str(), L"w");
             if (df) {
@@ -468,8 +482,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, LPWSTR lpCmdLine, int) {
             // --paintstats 的收尾：写盘 + 退出。
             KillTimer(g_main, 99);
             if (g_win) {
-                g_win->DumpPaintStats(
-                    L"D:\\Projects\\Task Manager Pro\\shots\\audit\\paintstats.txt");
+                g_win->DumpPaintStats(ExeDirFile(L"paintstats.txt").c_str());
             }
             DestroyWindow(g_main);
             break;

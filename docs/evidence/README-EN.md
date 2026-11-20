@@ -1,6 +1,6 @@
-# Evidence
-
 [简体中文](README.md) | English
+
+# Evidence
 
 First-hand measurements taken on the development machine while reconstructing
 Windows 10 Task Manager: UI layout reverse-engineering, MUI string extraction,
@@ -61,3 +61,20 @@ Xeon 服务器级 CPU (10C/20T) / 32 GB. Absolute numbers will differ on other
 hardware, but the **order-of-magnitude relationships** — which data path is
 cheap and which is catastrophic — are this project's core finding and do not
 change with the machine.
+
+## About the probe sources here
+
+The `.cpp` and `.ps1` files under `docs/evidence/` are **archived as they were
+during measurement**, not tools you can run today. Two caveats:
+
+- **Paths**: the originals contain absolute paths from the development machine.
+  Most have been changed to locate themselves relative to the script; a few keep
+  the original and note it in a header comment — that is the record of *where it
+  ran*
+- **Compilability**: some probes depend on the Windows SDK of that era and will
+  not build against a current one (for example `gpuinfo_probe14.cpp` relies on
+  `d3dkmthk.h` layouts that have since changed). They record **how that
+  measurement was taken**, not "run this now"
+
+To take a new measurement, write a fresh probe following the archived approach
+rather than compiling these files directly.

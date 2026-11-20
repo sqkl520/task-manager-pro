@@ -635,7 +635,7 @@ MUI 里就有一句 `无可用数据`，说明原版自己也有这个状态。
 
 | 文件 | 内容 |
 |---|---|
-| `tools/pagetest.cpp` → `docs/evidence/pagetest.txt` | 四页数据源总测（启动 3.14ms / 用户 8.59ms / 服务 44.53ms / SRUM 探测） |
+| `tools/pagetest.cpp`（运行输出含本机启动项清单，未随仓库分发） | 四页数据源总测（启动 3.14ms / 用户 8.59ms / 服务 44.53ms / SRUM 探测） |
 | `tools/srumprobe2.cpp` → `docs/evidence/srum_probe2.txt` | srumapi.dll 的完整 PE 导出表（15 个函数，不是猜的） |
 | `tools/srumtest.cpp` → `docs/evidence/srum_test.txt` | SruQueryStatsEx 调用实测（segfault，签名未知） |
 | `tools/exports.cpp` | PE 导出表解析器（可复用于其他 DLL） |

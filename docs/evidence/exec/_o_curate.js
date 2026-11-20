@@ -1,5 +1,9 @@
+// 取证脚本存档。原始版本写死了开发机上的绝对路径，这里改成相对本文件
+// 定位，便于在任何位置重跑。原路径记录在下方注释里。
+// 原始：D:/Projects/Task Manager Pro/
 const fs=require('fs');
-const root='D:/Projects/Task Manager Pro';
+const path=require('path');
+const root=path.join(__dirname,'../..');
 const lits=JSON.parse(fs.readFileSync(root+'/_probe/exec/_o_src_lits.json','utf8'));
 const R=JSON.parse(fs.readFileSync(root+'/_probe/exec/_o_raw.json','utf8'));
 const S=new Map(R.strings.map(r=>[r.id,r.s]));

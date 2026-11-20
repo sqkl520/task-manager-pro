@@ -1,6 +1,6 @@
-# Documentation
-
 [简体中文](README.md) | English
+
+# Documentation
 
 Task Manager Pro's documentation is in four parts. Pick the one that matches why
 you are here.

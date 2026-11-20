@@ -1,8 +1,11 @@
+// 取证脚本存档。原始版本写死了开发机上的绝对路径，这里改成相对本文件
+// 定位，便于在任何位置重跑。原路径记录在下方注释里。
+// 原始：D:/Projects/Task Manager Pro/
 // fn.js <hexRVA> [...]  — print the disassembly of the function containing each RVA
 const fs = require('fs');
 const path = __dirname + '/fns.json';
 const fns = JSON.parse(fs.readFileSync(path, 'utf8'));
-const lines = fs.readFileSync('D:/Projects/Task Manager Pro/_probe/tm/disasm.txt', 'latin1').split(/\r?\n/);
+const lines = fs.readFileSync('REPO/_probe/tm/disasm.txt', 'latin1').split(/\r?\n/);
 // index: RVA -> line index of the instruction (first line only)
 const idx = new Map();
 let cur = null;

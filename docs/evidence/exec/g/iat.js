@@ -1,6 +1,9 @@
+// 取证脚本存档。原始版本写死了开发机上的绝对路径，这里改成相对本文件
+// 定位，便于在任何位置重跑。原路径记录在下方注释里。
+// 原始：D:/Projects/Task Manager Pro/
 // iat.js — resolve IAT slot VA -> "dll!name"
 const fs = require('fs');
-const raw = JSON.parse(fs.readFileSync('D:/Projects/Task Manager Pro/_probe/tm/iatfull.json', 'utf8'));
+const raw = JSON.parse(fs.readFileSync('REPO/_probe/tm/iatfull.json', 'utf8'));
 const M = new Map();
 for (const k in raw) M.set(BigInt('0x' + k), raw[k]);
 function resolve(va) {

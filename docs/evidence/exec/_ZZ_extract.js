@@ -1,3 +1,6 @@
+// 取证脚本存档。原始版本写死了开发机上的绝对路径，这里改成相对本文件
+// 定位，便于在任何位置重跑。原路径记录在下方注释里。
+// 原始：D:/Projects/Task Manager Pro/
 // Independent PE resource extractor for Taskmgr.exe.mun (read-only)
 const fs = require('fs');
 const P = 'C:/Windows/SystemResources/Taskmgr.exe.mun';
@@ -75,7 +78,7 @@ for (const t of typeDir) {
     }
   }
 }
-fs.writeFileSync('D:/Projects/Task Manager Pro/_probe/exec/_audit_enum.json', JSON.stringify(out, null, 1));
+fs.writeFileSync('REPO/_probe/exec/_audit_enum.json', JSON.stringify(out, null, 1));
 console.log('\n=== UIFILE entries ===');
 for (const k of Object.keys(out)) if (/UIFILE|3000|3002/i.test(k)) console.log(k, JSON.stringify(out[k]));
 console.log('total leaves', Object.keys(out).length);
@@ -86,6 +89,6 @@ for (const [id, dest] of [['30001', 'ZZ_audit_30001.duib'], ['30024', 'ZZ_audit_
   if (!hit) { console.log('MISSING', id); continue; }
   const e = out[hit];
   const bytes = b.slice(e.off, e.off + e.size);
-  fs.writeFileSync('D:/Projects/Task Manager Pro/_probe/exec/' + dest, bytes);
+  fs.writeFileSync('REPO/_probe/exec/' + dest, bytes);
   console.log('wrote', dest, bytes.length, 'first8', bytes.slice(0, 8).toString('latin1'), bytes.slice(0, 8).toString('hex'));
 }

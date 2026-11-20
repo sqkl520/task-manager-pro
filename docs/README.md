@@ -1,6 +1,6 @@
-# 文档总览
-
 [English](README-EN.md) | 简体中文
+
+# 文档总览
 
 Task Manager Pro 的文档分四块。按你来的目的选一块。
 
