@@ -548,11 +548,6 @@ void TmWindow::RebuildAppAggregates() {
     appAgg_.clear();
     if (!snap_) return;
 
-    // 建 pid -> entry 索引，避免 O(n²)
-    std::unordered_map<uint32_t, const ProcessEntry*> byPid;
-    byPid.reserve(snap_->processes.size() * 2);
-    for (const auto& e : snap_->processes) byPid[e.pid] = &e;
-
     for (const auto& e : snap_->processes) {
         if (e.pid == 0) continue;
         // 找到这个进程归属的应用根
@@ -783,6 +778,17 @@ void TmWindow::RebuildRows() {
         return sortDesc_ ? (a->pid > b->pid) : (a->pid < b->pid);
     };
 
+    // 【索引 · 一次建好】pid -> entry。本函数三处按 pid 反查：
+    // 改动 1 的孤儿守卫、appendKids、分组视图子进程插入。
+    // 原来只有后两处各自 `if (byPid_.empty())` 惰性构建，都藏在「应用行已展开」
+    // 的分支里 —— 默认全部折叠时这张表在 RebuildRows 里从不被建。
+    // ⚠ 改动 1 的孤儿守卫**依赖这张表非空**；删掉这段会让子进程重新变成
+    // 顶层行，缺陷静默复现（没有任何断言会报错）。
+    if (byPid_.empty()) {
+        byPid_.reserve(snap_->processes.size() * 2);
+        for (const auto& ce : snap_->processes) byPid_[ce.pid] = &ce;
+    }
+
     // 【性能】「每个应用根有几个子进程」只算一次，O(N)。
     // 原来在平铺分支和分组分支里各有 1~2 处 `for (kv : cls_.appRootOf)` 内层循环，
     // 每个应用行都扫一遍全表 → O(A×N)。而 RebuildRows 会被拖动滚动条的
@@ -886,28 +892,50 @@ void TmWindow::RebuildRows() {
         }
         std::sort(all.begin(), all.end(), cmp);
 
-        // 【必须先算出哪些 pid 会被嵌套显示，再决定顶层行】
-        // 原实现把**全部**进程当顶层行 push 一遍，然后在展开的应用行后面
-        // 又把同一批子进程作为 indentLevel=1 再 push 一次 → **子进程出现两遍**，
-        // 行号、选中、计数全乱。修法：先定下每个应用根「已展开」时它的子进程集合，
-        // 顶层循环跳过这些 pid，只由 appendKids 输出一次。
-        std::unordered_set<uint32_t> nestedPids;
-        for (const auto* e : all) {
-            if (!cls_.appRoots.count(e->pid)) continue;
-            if (!IsAppExpanded(e->pid)) continue;
-            for (const auto& kv : cls_.appRootOf) {
-                if (kv.second == e->pid && kv.first != e->pid) nestedPids.insert(kv.first);
-            }
-        }
+        // 【缺陷 A 修复 · 2026-11-21】
+        //
+        // 原来这里多一行 `if (!IsAppExpanded(e->pid)) continue;`，于是：
+        //   展开的根 → 子进程在 nestedPids → 跳过顶层行，由 appendKids 输出  ✓
+        //   折叠的根 → 子进程不在 nestedPids → 又被当顶层行输出一遍          ✗
+        // 而折叠根行显示的已是整棵树的聚合值，于是同一批内存被显示两次：
+        // Claude (106) 5.9 GB 正下方紧跟 Claude 1.2 GB、Claude Code 445.2 MB …
+        // 实测（--sortcol=3）：屏幕前 18 行内存列之和 13.54 GB = 物理内存的
+        // 42.4%，而整机实际只用了 55%（17.57 GB）。
+        //
+        // 原版实测（docs/reference/orig2_full.png，逐像素）：24 行文字起点
+        // 全部 x=53/54，无一行缩进到 70 以上 → 折叠时子进程一行都不显示。
+        // 折叠根只占一行、显示聚合值。[确证]
+        //
+        // 正确语义：一个进程只可能在两处之一出现 ——
+        //   (1) 归属某应用根 → 仅在父行展开时由 appendKids 输出一次，折叠时不出现
+        //   (2) 其余 → 作为顶层行
+        // 与父行是否展开无关。判据查 cls_.appRootOf，每进程 O(1)。
+        //
+        // 【孤儿守卫 · 成因已更正】
+        //
+        // 早先这里写的是「EnumWindows 与快照有毫秒级时差」，那是错的：
+        // appRootOf 完全由 snap_ 自己的表构建，根要成为 root，必须出现在某个
+        // 进程的 parentPid 链上，压根不读 EnumWindows 的当下结果。
+        //
+        // 真实成因是【陈旧 parentPid + pid 复用】：
+        //   父进程早已退出，子进程的 parentPid 仍指着那个 pid；而那个 pid 被
+        //   一个**新启动的、有可见窗口的**进程复用 → 该 pid 命中 appRoots →
+        //   appRootOf[child] = 复用后的 pid，但新进程不在本轮快照里 →
+        //   byPid_ 查不到 → 子进程成了「查得到根、却找不到父行」的孤儿。
+        //   若照样跳过，它会连同行一起从列表消失（内存值凭空蒸发），
+        //   比重复展示更糟。
+        //
+        // 所以只有确认父行确实存在（byPid_ 查得到），才允许隐藏。
+        // 这只是遮住症状：BuildAppTree 目前没有 CreateTime 校验（classifier.cpp:161），
+        // 复用的 pid 仍会被当成同一个父进程。根治要单独提交。
+        //
+        // 已知不一致（本次不修，仅记录）：hasKids 用的 kidsCount 没有孤儿守卫，
+        // 于是孤儿父行的情况可能画出展开三角、展开却是空。老问题，低危。
 
         // 展开应用行时，把子进程插到它下面。与分组视图一致：只展开一层，
         // 子进程自身按同一比较器排序。
         auto appendKids = [&](const ProcessEntry* root) {
             std::vector<const ProcessEntry*> kids;
-            if (byPid_.empty()) {
-                byPid_.reserve(snap_->processes.size() * 2);
-                for (const auto& ce : snap_->processes) byPid_[ce.pid] = &ce;
-            }
             for (const auto& kv : cls_.appRootOf) {
                 if (kv.second != root->pid || kv.first == root->pid) continue;
                 auto itK = byPid_.find(kv.first);
@@ -929,9 +957,18 @@ void TmWindow::RebuildRows() {
             }
         };
 
+        // 归属某应用根 → 只在父行展开时由 appendKids 输出，不作顶层行。
+        // 但父行必须确实存在（byPid_ 查得到），否则该进程会从列表彻底消失。
+        auto isNestedChild = [this](const ProcessEntry* e) {
+            auto itR = cls_.appRootOf.find(e->pid);
+            if (itR == cls_.appRootOf.end()) return false;      // 不归属任何应用根
+            if (itR->second == e->pid) return false;            // 自映射 = 应用根自己
+            return byPid_.find(itR->second) != byPid_.end();    // 父行确实存在才隐藏
+        };
+
         for (const auto* e : all) {
             // 已被父行嵌套输出的子进程，不再作为顶层行输出
-            if (nestedPids.count(e->pid)) continue;
+            if (isNestedChild(e)) continue;
 
             ViewRow r;
             r.kind = ViewRow::ProcessRow;
@@ -1010,12 +1047,9 @@ void TmWindow::RebuildRows() {
             // snap_->processes，是 O(appCount × procCount)。拖滚动条时
             // WM_MOUSEMOVE 每像素触发一次 RebuildRows，会明显卡顿。
             // 改用一次遍历建 pid->entry 索引。
+            // （byPid_ 已在 RebuildRows 开头无条件建好，这里不再惰性构建。）
             if (r.expanded) {
                 std::vector<const ProcessEntry*> kids;
-                if (byPid_.empty()) {
-                    byPid_.reserve(snap_->processes.size() * 2);
-                    for (const auto& ce : snap_->processes) byPid_[ce.pid] = &ce;
-                }
                 for (const auto& kv : cls_.appRootOf) {
                     if (kv.second != e->pid || kv.first == e->pid) continue;
                     auto itK = byPid_.find(kv.first);
