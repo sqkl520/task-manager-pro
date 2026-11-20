@@ -1,0 +1,95 @@
+name: Bug report
+description: Something is wrong with the build, the UI, or the numbers it shows
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is a Win32 rewrite of the Windows 10 Task Manager. The most common
+        source of "wrong number" reports is a real difference in how a metric is
+        computed, so please fill in the measurement section even when it looks
+        irrelevant.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: The commit hash you built from, or the release tag.
+      placeholder: e.g. 0f3c2a1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: page
+    attributes:
+      label: Which page
+      options:
+        - Processes
+        - Performance
+        - App history
+        - Startup
+        - Users
+        - Details
+        - Services
+        - Not page-specific (build, crash, startup)
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: The observed behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+      description: |
+        If the stock Windows 10 Task Manager does it differently, say so and
+        include a screenshot of the stock one. That is the strongest evidence
+        this project can get — the UI is reconstructed from observable specs,
+        and a screenshot is one.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Launch build\TaskManagerPro.exe
+        2. Click the Processes tab
+        3. Sort by ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: |
+        Include CPU model and core count, RAM, display scaling, process and
+        thread counts if relevant, and whether running elevated. This project
+        exists because the stock Task Manager fails on large machines, so scale
+        matters more here than in most projects.
+      placeholder: |
+        Windows 10 Pro 22H2 22H2
+        Xeon 服务器级 CPU, 10C/20T, 32 GB
+        100% display scaling, not elevated
+        ~490 processes, ~8,450 threads
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Self-monitoring numbers
+    description: |
+      The status bar at the bottom shows collection cost, paint cost, visible
+      rows and the generation number. If the problem is slowness, these numbers
+      are the fastest way to locate it.
+    validations:
+      required: false

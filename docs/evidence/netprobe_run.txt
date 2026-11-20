@@ -1,0 +1,129 @@
+========== 每进程网络采集可行性探针 ==========
+
+=== 0. 环境 ===
+  OS: 10.0 build 19045
+  elevated=YES  in-Admins=YES  in-PerfLogUsers=NO  pid=43160
+  用户: Administrator
+
+=== 1. StartTraceW（realtime session "tmp-netprobe-session"）===
+  (预清理残留会话 ret=4201 GLE=4201 — 4201=没有该服务，正常)
+  StartTraceW ret=0  GetLastError=0  session=0x14
+  → SUCCESS
+
+=== 2. EnableTraceEx2(Microsoft-Windows-Kernel-Network) ===
+  EnableTraceEx2(level=4, keyword=ANY) ret=0 GLE=0 OK
+
+=== 3. OpenTraceW + ProcessTrace (realtime consumer) ===
+  OpenTraceW → 0x41  GLE=0
+  consumer 线程 tid=31756 句柄=OK
+  高精度计数器: QueryProcessCycleTime=OK QueryThreadCycleTime=OK
+
+  [阶段 A] 空载 6 秒（只看本机后台网络，不主动造流量）...
+    t=1s events=0 net=0
+    t=2s events=2712 net=516
+    t=3s events=4944 net=549
+    t=4s events=6928 net=562
+    t=5s events=8608 net=581
+    t=6s events=17251 net=6013
+    空载 6.04s: 事件 17251 条 | 进程CPU 0.000000s | consumer线程CPU 0.000000s
+    → 进程占单核 = 0.000%   consumer 线程占单核 = 0.000%   (事件率 2855 条/秒)
+    周期计数: 进程 Δ=8301702 cycles, consumer 线程 Δ=6740004 cycles（3GHz ≈ ÷3e9 得秒）
+
+  [阶段 B] 回环 TCP 双向流量（sink 子进程 + gen 子进程，各 64MB）...
+    sink pid=49124, gen pid=55012，双向各 64MB
+    阶段B 累计 3.90s: 探针进程CPU 0.031250s (0.800% 单核) | consumer线程 0.000000s (0.000% 单核)
+    周期计数: 进程 Δ=71925189 cycles, consumer 线程 Δ=3165561 cycles
+    → 探针进程在阶段B 只做 ETW 消费，没有任何 socket 收发
+
+=== 4. 停止会话 ===
+  ControlTraceW(STOP) ret=0
+  [consumer 线程] ProcessTrace 返回 0
+  CloseTrace 完成，consumer 线程退出
+
+=== 5. 捕获结果 ===
+  总事件 = 29342
+  网络事件(10/11) = 9428
+  其他事件 = 19914
+  畸形(长度不足) = 0
+  按事件 ID 计数:
+    id=10  ver=0 : 5184 条
+    id=11  ver=0 : 4244 条
+    id=12  ver=0 : 4 条
+    id=13  ver=0 : 14 条
+    id=15  ver=0 : 2 条
+    id=16  ver=0 : 19 条
+    id=18  ver=0 : 58 条
+    id=26  ver=0 : 37 条
+    id=27  ver=0 : 798 条
+    id=28  ver=0 : 6 条
+    id=29  ver=0 : 14 条
+    id=30  ver=0 : 1 条
+    id=32  ver=0 : 14 条
+    id=34  ver=0 : 798 条
+    id=42  ver=0 : 1901 条
+    id=43  ver=0 : 16185 条
+    id=58  ver=0 : 32 条
+    id=59  ver=0 : 31 条
+
+  前 8 条网络事件原始 payload:
+    [0] id=11 ver=0 pid=17088  size=65495    len=28 raw=C0 42 00 00 D7 FF 00 00 7F 00 00 01 7F 00 00 01 0A EA 3D 69 00 00 00 00 00 00 00 00 
+    [1] id=11 ver=0 pid=17088  size=65495    len=28 raw=C0 42 00 00 D7 FF 00 00 7F 00 00 01 7F 00 00 01 0A EA 3D 69 00 00 00 00 00 00 00 00 
+    [2] id=11 ver=0 pid=17088  size=0        len=28 raw=C0 42 00 00 00 00 00 00 7F 00 00 01 7F 00 00 01 0A EA 3D 69 00 00 00 00 00 00 00 00 
+    [3] id=11 ver=0 pid=17088  size=65495    len=28 raw=C0 42 00 00 D7 FF 00 00 7F 00 00 01 7F 00 00 01 0A EA 3D 69 00 00 00 00 00 00 00 00 
+    [4] id=11 ver=0 pid=17088  size=327803   len=28 raw=C0 42 00 00 7B 00 05 00 7F 00 00 01 7F 00 00 01 0A EA 3D 69 00 00 00 00 00 00 00 00 
+    [5] id=10 ver=0 pid=28464  size=524288   len=36 raw=30 6F 00 00 00 00 08 00 7F 00 00 01 7F 00 00 01 3D 69 0A EA 43 4F 27 00 43 4F 27 00 00 00 00 00 00 00 00 00 
+    [6] id=11 ver=0 pid=17088  size=65495    len=28 raw=C0 42 00 00 D7 FF 00 00 7F 00 00 01 7F 00 00 01 0A EA 3D 69 00 00 00 00 00 00 00 00 
+    [7] id=11 ver=0 pid=17088  size=65495    len=28 raw=C0 42 00 00 D7 FF 00 00 7F 00 00 01 7F 00 00 01 0A EA 3D 69 00 00 00 00 00 00 00 00 
+
+  按 PID 汇总（前 20，按总量降序）:
+    pid      recvBytes      sendBytes      recvEv   sendEv  
+    49124    67108864       67108864       1025     118     
+    55012    67108864       67108864       1024     1178    
+    17088    416013         9483439        3056     48      
+    28464    6352911        68438          2        519     
+    38116    2494393        0              2        0       
+    46044    636135         63064          2        393     
+    43292    0              284511         0        1891    
+    26740    16859          21009          18       35      
+    26596    20442          16193          17       15      
+    6496     18731          10040          12       18      
+    3528     567            666            3        3       
+    4628     276            264            2        2       
+    24484    190            220            10       10      
+    6488     36             32             1        1       
+    5504     45             16             3        4       
+    27640    19             22             1        1       
+    11092    16             16             2        4       
+    28312    10             10             2        2       
+    37088    6              2              1        1       
+    26320    2              6              1        1       
+    ... 共 20 个 PID 有网络事件；合计 recv=144174379 send=144165676
+
+    ★ gen 子进程 pid=55012 归属验证（唯一变量：它只做了 socket 收发）:
+      ETW send=67108864  实际发出=67108864  误差=0.000000%
+      ETW recv=67108864  实际收到=67108864
+    ★ sink 子进程 pid=49124: recv=67108864 send=67108864（回声端）
+
+    系统级 GetIpStatisticsEx dwInReceives: 6692029 → 6708454 (Δ=16425 包)
+
+=== 6. CPU 开销汇总 ===
+  阶段A 空载 6.04s: 进程 0.0000% 单核 | consumer 线程 0.0000% 单核 (事件 2855/s)
+  阶段B 流量 3.90s: 进程 0.8003% 单核 | consumer 线程 0.0000% 单核
+  整机折算（20 逻辑核）: 空载 0.00000%  含流量 0.04001%
+  绝对 CPU 时间: 空载 0.0000 ms/s, 流量期 8.0027 ms/s
+
+  [周期计数器交叉验证, 按 3.0GHz 折算 — 精度高于 15.6ms 的时钟 tick]
+    阶段A 空载 6.04s: 进程周期 0.0028s → 0.0458% 单核 (0.4579 ms/s)
+    阶段B 全段 3.90s: 进程周期 0.0240s → 0.6140% 单核 (6.1397 ms/s)
+    阶段B 纯流量窗口 0.56s（gen 子进程存活期间，探针只消费 ETW）:
+      进程周期 0.0097s → 1.7205% 单核 (17.2055 ms/s)
+      期间累计事件 29342 条
+
+=== 4. 路径 2: GetPerTcpConnectionEStats ===
+  回环连接建立 ok (recv=5)
+  GetExtendedTcpTable rc=0 rows=413
+  在 TCP 表里找到本进程连接: 是
+  SetPerTcpConnectionEStats(Data, enable) rc=1168 FAIL
+  GetPerTcpConnectionEStats(Data, ROD) rc=1168 FAIL
+
+========== 探针结束 ==========

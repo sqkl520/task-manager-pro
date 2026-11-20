@@ -1,0 +1,445 @@
+themeName: file='C:\Windows\resources\themes\Aero\Aero.msstyles' color='NormalColor' size='NormalSize'
+
+### class=TaskManager handle=65536
+  p=1 s=0  fill=#E2E7FE  border=#B4B4B4  grad5=#FFFFFF
+  p=1 s=1  fill=#E2E7FE  border=#B4B4B4  grad5=#FFFFFF
+  p=1 s=2  fill=#E2E7FE  border=#B4B4B4  grad5=#FFFFFF
+  p=1 s=3  fill=#E2E7FE  border=#B4B4B4  grad5=#FFFFFF
+  p=1 s=4  fill=#E2E7FE  border=#B4B4B4  grad5=#FFFFFF
+  p=2 s=0  fill=#EAD5A0  border=#B4B4B4  grad5=#FFFFFF
+  p=2 s=1  fill=#EAD5A0  border=#B4B4B4  grad5=#FFFFFF
+  p=2 s=2  fill=#EAD5A0  border=#B4B4B4  grad5=#FFFFFF
+  p=2 s=3  fill=#EAD5A0  border=#B4B4B4  grad5=#FFFFFF
+  p=2 s=4  fill=#EAD5A0  border=#B4B4B4  grad5=#FFFFFF
+  p=3 s=0  border=#B4B4B4  grad5=#FFFFFF
+  p=3 s=1  fill=#FFF9E4  border=#B4B4B4  grad5=#FFFFFF
+  p=3 s=2  border=#B4B4B4  grad5=#FFFFFF
+  p=3 s=3  border=#B4B4B4  grad5=#FFFFFF
+  p=3 s=4  border=#B4B4B4  grad5=#FFFFFF
+  p=4 s=0  border=#B4B4B4  grad5=#FFFFFF
+  p=4 s=1  fill=#FFF4C4  border=#B4B4B4  grad5=#FFFFFF
+  p=4 s=2  border=#B4B4B4  grad5=#FFFFFF
+  p=4 s=3  border=#B4B4B4  grad5=#FFFFFF
+  p=4 s=4  border=#B4B4B4  grad5=#FFFFFF
+  p=5 s=0  border=#B4B4B4  grad5=#FFFFFF
+  p=5 s=1  fill=#F9ECA8  border=#B4B4B4  grad5=#FFFFFF
+  p=5 s=2  border=#B4B4B4  grad5=#FFFFFF
+  p=5 s=3  border=#B4B4B4  grad5=#FFFFFF
+  p=5 s=4  border=#B4B4B4  grad5=#FFFFFF
+  p=6 s=0  border=#B4B4B4  grad5=#FFFFFF
+  p=6 s=1  fill=#FFE487  border=#B4B4B4  grad5=#FFFFFF
+  p=6 s=2  border=#B4B4B4  grad5=#FFFFFF
+  p=6 s=3  border=#B4B4B4  grad5=#FFFFFF
+  p=6 s=4  border=#B4B4B4  grad5=#FFFFFF
+  p=7 s=0  border=#B4B4B4  grad5=#FFFFFF
+  p=7 s=1  fill=#FFD264  border=#B4B4B4  grad5=#FFFFFF
+  p=7 s=2  border=#B4B4B4  grad5=#FFFFFF
+  p=7 s=3  border=#B4B4B4  grad5=#FFFFFF
+  p=7 s=4  border=#B4B4B4  grad5=#FFFFFF
+  p=8 s=0  border=#B4B4B4  grad5=#FFFFFF
+  p=8 s=1  fill=#FFC63D  border=#B4B4B4  grad5=#FFFFFF
+  p=8 s=2  border=#B4B4B4  grad5=#FFFFFF
+  p=8 s=3  border=#B4B4B4  grad5=#FFFFFF
+  p=8 s=4  border=#B4B4B4  grad5=#FFFFFF
+  p=9 s=0  border=#B4B4B4  grad5=#FFFFFF
+  p=9 s=1  fill=#FCB816  border=#B4B4B4  grad5=#FFFFFF
+  p=9 s=2  border=#B4B4B4  grad5=#FFFFFF
+  p=9 s=3  border=#B4B4B4  grad5=#FFFFFF
+  p=9 s=4  border=#B4B4B4  grad5=#FFFFFF
+  p=10 s=0  border=#B4B4B4  grad5=#FFFFFF
+  p=10 s=1  fill=#FCA71D  border=#B4B4B4  grad5=#FFFFFF
+  p=10 s=2  border=#B4B4B4  grad5=#FFFFFF
+  p=10 s=3  border=#B4B4B4  grad5=#FFFFFF
+  p=10 s=4  border=#B4B4B4  grad5=#FFFFFF
+  p=11 s=0  border=#B4B4B4  grad5=#FFFFFF
+  p=11 s=1  fill=#FC682A  border=#B4B4B4  grad5=#FFFFFF
+  p=11 s=2  border=#B4B4B4  grad5=#FFFFFF
+  p=11 s=3  border=#B4B4B4  grad5=#FFFFFF
+  p=11 s=4  border=#B4B4B4  grad5=#FFFFFF
+  p=12 s=0  border=#B4B4B4  grad5=#FFFFFF
+  p=12 s=1  fill=#FC682A  border=#B4B4B4  grad5=#FFFFFF
+  p=12 s=2  border=#B4B4B4  grad5=#FFFFFF
+  p=12 s=3  border=#B4B4B4  grad5=#FFFFFF
+  p=12 s=4  border=#B4B4B4  grad5=#FFFFFF
+  p=13 s=0  text=#DB6B3A  border=#B4B4B4  grad5=#FFFFFF
+  p=13 s=1  text=#DB6B3A  border=#B4B4B4  grad5=#FFFFFF
+  p=13 s=2  text=#DB6B3A  border=#B4B4B4  grad5=#FFFFFF
+  p=13 s=3  text=#DB6B3A  border=#B4B4B4  grad5=#FFFFFF
+  p=13 s=4  text=#DB6B3A  border=#B4B4B4  grad5=#FFFFFF
+  p=14 s=0  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=14 s=1  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=14 s=2  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=14 s=3  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=14 s=4  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=15 s=0  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=15 s=1  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=15 s=2  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=15 s=3  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=15 s=4  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=16 s=0  text=#1F59C3  border=#B4B4B4  grad5=#FFFFFF
+  p=16 s=1  text=#1F59C3  border=#B4B4B4  grad5=#FFFFFF
+  p=16 s=2  text=#1F59C3  border=#B4B4B4  grad5=#FFFFFF
+  p=16 s=3  text=#1F59C3  border=#B4B4B4  grad5=#FFFFFF
+  p=16 s=4  text=#1F59C3  border=#B4B4B4  grad5=#FFFFFF
+  p=17 s=0  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=17 s=1  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=17 s=2  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=17 s=3  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=17 s=4  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=18 s=0  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=18 s=1  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=18 s=2  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=18 s=3  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=18 s=4  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=19 s=0  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=19 s=1  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=19 s=2  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=19 s=3  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=19 s=4  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=20 s=0  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=20 s=1  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=20 s=2  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=20 s=3  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=20 s=4  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=21 s=0  fill=#F4F2F4  border=#B4B4B4  grad5=#FFFFFF
+  p=21 s=1  fill=#F4F2F4  border=#B4B4B4  grad5=#FFFFFF
+  p=21 s=2  fill=#F4F2F4  border=#B4B4B4  grad5=#FFFFFF
+  p=21 s=3  fill=#F4F2F4  border=#B4B4B4  grad5=#FFFFFF
+  p=21 s=4  fill=#F4F2F4  border=#B4B4B4  grad5=#FFFFFF
+  p=22 s=0  fill=#EEE6F1  border=#B4B4B4  grad5=#FFFFFF
+  p=22 s=1  fill=#EEE6F1  border=#B4B4B4  grad5=#FFFFFF
+  p=22 s=2  fill=#EEE6F1  border=#B4B4B4  grad5=#FFFFFF
+  p=22 s=3  fill=#EEE6F1  border=#B4B4B4  grad5=#FFFFFF
+  p=22 s=4  fill=#EEE6F1  border=#B4B4B4  grad5=#FFFFFF
+  p=23 s=0  fill=#CEB0D7  border=#B4B4B4  grad5=#FFFFFF
+  p=23 s=1  fill=#CEB0D7  border=#B4B4B4  grad5=#FFFFFF
+  p=23 s=2  fill=#CEB0D7  border=#B4B4B4  grad5=#FFFFFF
+  p=23 s=3  fill=#CEB0D7  border=#B4B4B4  grad5=#FFFFFF
+  p=23 s=4  fill=#CEB0D7  border=#B4B4B4  grad5=#FFFFFF
+  p=24 s=0  border=#B4B4B4  grad5=#FFFFFF
+  p=24 s=1  text=#4C607A  border=#B4B4B4  grad5=#FFFFFF
+  p=24 s=2  border=#B4B4B4  grad5=#FFFFFF
+  p=24 s=3  border=#B4B4B4  grad5=#FFFFFF
+  p=24 s=4  border=#B4B4B4  grad5=#FFFFFF
+  p=25 s=0  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=25 s=1  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=25 s=2  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=25 s=3  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=25 s=4  text=#000000  border=#B4B4B4  grad5=#FFFFFF
+  p=26 s=0  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=26 s=1  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=26 s=2  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=26 s=3  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=26 s=4  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=27 s=0  fill=#E0F0FF  border=#B4B4B4  grad5=#FFFFFF
+  p=27 s=1  fill=#E0F0FF  border=#B4B4B4  grad5=#FFFFFF
+  p=27 s=2  fill=#E0F0FF  border=#B4B4B4  grad5=#FFFFFF
+  p=27 s=3  fill=#E0F0FF  border=#B4B4B4  grad5=#FFFFFF
+  p=27 s=4  fill=#E0F0FF  border=#B4B4B4  grad5=#FFFFFF
+  p=28 s=0  fill=#CDE9FF  border=#B4B4B4  grad5=#FFFFFF
+  p=28 s=1  fill=#CDE9FF  border=#B4B4B4  grad5=#FFFFFF
+  p=28 s=2  fill=#CDE9FF  border=#B4B4B4  grad5=#FFFFFF
+  p=28 s=3  fill=#CDE9FF  border=#B4B4B4  grad5=#FFFFFF
+  p=28 s=4  fill=#CDE9FF  border=#B4B4B4  grad5=#FFFFFF
+  p=29 s=0  fill=#B4DEFF  border=#B4B4B4  grad5=#FFFFFF
+  p=29 s=1  fill=#B4DEFF  border=#B4B4B4  grad5=#FFFFFF
+  p=29 s=2  fill=#B4DEFF  border=#B4B4B4  grad5=#FFFFFF
+  p=29 s=3  fill=#B4DEFF  border=#B4B4B4  grad5=#FFFFFF
+  p=29 s=4  fill=#B4DEFF  border=#B4B4B4  grad5=#FFFFFF
+  p=30 s=0  fill=#7EC6FF  border=#B4B4B4  grad5=#FFFFFF
+  p=30 s=1  fill=#7EC6FF  border=#B4B4B4  grad5=#FFFFFF
+  p=30 s=2  fill=#7EC6FF  border=#B4B4B4  grad5=#FFFFFF
+  p=30 s=3  fill=#7EC6FF  border=#B4B4B4  grad5=#FFFFFF
+  p=30 s=4  fill=#7EC6FF  border=#B4B4B4  grad5=#FFFFFF
+  p=31 s=0  fill=#43A9E4  border=#B4B4B4  grad5=#FFFFFF
+  p=31 s=1  fill=#43A9E4  border=#B4B4B4  grad5=#FFFFFF
+  p=31 s=2  fill=#43A9E4  border=#B4B4B4  grad5=#FFFFFF
+  p=31 s=3  fill=#43A9E4  border=#B4B4B4  grad5=#FFFFFF
+  p=31 s=4  fill=#43A9E4  border=#B4B4B4  grad5=#FFFFFF
+  p=32 s=0  fill=#3782AD  border=#B4B4B4  grad5=#FFFFFF
+  p=32 s=1  fill=#3782AD  border=#B4B4B4  grad5=#FFFFFF
+  p=32 s=2  fill=#3782AD  border=#B4B4B4  grad5=#FFFFFF
+  p=32 s=3  fill=#3782AD  border=#B4B4B4  grad5=#FFFFFF
+  p=32 s=4  fill=#3782AD  border=#B4B4B4  grad5=#FFFFFF
+  p=33 s=0  fill=#2477A7  border=#B4B4B4  grad5=#FFFFFF
+  p=33 s=1  fill=#2477A7  border=#B4B4B4  grad5=#FFFFFF
+  p=33 s=2  fill=#2477A7  border=#B4B4B4  grad5=#FFFFFF
+  p=33 s=3  fill=#2477A7  border=#B4B4B4  grad5=#FFFFFF
+  p=33 s=4  fill=#2477A7  border=#B4B4B4  grad5=#FFFFFF
+  p=34 s=0  fill=#1F71A1  border=#B4B4B4  grad5=#FFFFFF
+  p=34 s=1  fill=#1F71A1  border=#B4B4B4  grad5=#FFFFFF
+  p=34 s=2  fill=#1F71A1  border=#B4B4B4  grad5=#FFFFFF
+  p=34 s=3  fill=#1F71A1  border=#B4B4B4  grad5=#FFFFFF
+  p=34 s=4  fill=#1F71A1  border=#B4B4B4  grad5=#FFFFFF
+  p=35 s=0  fill=#186A99  border=#B4B4B4  grad5=#FFFFFF
+  p=35 s=1  fill=#186A99  border=#B4B4B4  grad5=#FFFFFF
+  p=35 s=2  fill=#186A99  border=#B4B4B4  grad5=#FFFFFF
+  p=35 s=3  fill=#186A99  border=#B4B4B4  grad5=#FFFFFF
+  p=35 s=4  fill=#186A99  border=#B4B4B4  grad5=#FFFFFF
+  p=36 s=0  fill=#14587F  border=#B4B4B4  grad5=#FFFFFF
+  p=36 s=1  fill=#14587F  border=#B4B4B4  grad5=#FFFFFF
+  p=36 s=2  fill=#14587F  border=#B4B4B4  grad5=#FFFFFF
+  p=36 s=3  fill=#14587F  border=#B4B4B4  grad5=#FFFFFF
+  p=36 s=4  fill=#14587F  border=#B4B4B4  grad5=#FFFFFF
+  p=37 s=0  fill=#0E405D  border=#B4B4B4  grad5=#FFFFFF
+  p=37 s=1  fill=#0E405D  border=#B4B4B4  grad5=#FFFFFF
+  p=37 s=2  fill=#0E405D  border=#B4B4B4  grad5=#FFFFFF
+  p=37 s=3  fill=#0E405D  border=#B4B4B4  grad5=#FFFFFF
+  p=37 s=4  fill=#0E405D  border=#B4B4B4  grad5=#FFFFFF
+  p=38 s=0  fill=#117DBB  border=#B4B4B4  grad5=#FFFFFF
+  p=38 s=1  fill=#117DBB  border=#B4B4B4  grad5=#FFFFFF
+  p=38 s=2  fill=#117DBB  border=#B4B4B4  grad5=#FFFFFF
+  p=38 s=3  fill=#117DBB  border=#B4B4B4  grad5=#FFFFFF
+  p=38 s=4  fill=#117DBB  border=#B4B4B4  grad5=#FFFFFF
+  p=39 s=0  fill=#DFE7EB  border=#B4B4B4  grad5=#FFFFFF
+  p=39 s=1  fill=#DFE7EB  border=#B4B4B4  grad5=#FFFFFF
+  p=39 s=2  fill=#DFE7EB  border=#B4B4B4  grad5=#FFFFFF
+  p=39 s=3  fill=#DFE7EB  border=#B4B4B4  grad5=#FFFFFF
+  p=39 s=4  fill=#DFE7EB  border=#B4B4B4  grad5=#FFFFFF
+  p=40 s=0  fill=#BFCFDF  border=#B4B4B4  grad5=#FFFFFF
+  p=40 s=1  fill=#BFCFDF  border=#B4B4B4  grad5=#FFFFFF
+  p=40 s=2  fill=#BFCFDF  border=#B4B4B4  grad5=#FFFFFF
+  p=40 s=3  fill=#BFCFDF  border=#B4B4B4  grad5=#FFFFFF
+  p=40 s=4  fill=#BFCFDF  border=#B4B4B4  grad5=#FFFFFF
+  p=41 s=0  fill=#BABABA  border=#B4B4B4  grad5=#FFFFFF
+  p=41 s=1  fill=#BABABA  border=#B4B4B4  grad5=#FFFFFF
+  p=41 s=2  fill=#BABABA  border=#B4B4B4  grad5=#FFFFFF
+  p=41 s=3  fill=#BABABA  border=#B4B4B4  grad5=#FFFFFF
+  p=41 s=4  fill=#BABABA  border=#B4B4B4  grad5=#FFFFFF
+  p=42 s=0  fill=#E8E8E8  border=#B4B4B4  grad5=#FFFFFF
+  p=42 s=1  fill=#E8E8E8  border=#B4B4B4  grad5=#FFFFFF
+  p=42 s=2  fill=#E8E8E8  border=#B4B4B4  grad5=#FFFFFF
+  p=42 s=3  fill=#E8E8E8  border=#B4B4B4  grad5=#FFFFFF
+  p=42 s=4  fill=#E8E8E8  border=#B4B4B4  grad5=#FFFFFF
+  p=43 s=0  border=#B4B4B4  grad5=#FFFFFF
+  p=43 s=1  border=#B4B4B4  grad5=#FFFFFF
+  p=43 s=2  border=#B4B4B4  grad5=#FFFFFF
+  p=43 s=3  border=#B4B4B4  grad5=#FFFFFF
+  p=43 s=4  border=#B4B4B4  grad5=#FFFFFF
+  p=44 s=0  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=44 s=1  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=44 s=2  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=44 s=3  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=44 s=4  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=45 s=0  fill=#DAE2E3  border=#B4B4B4  grad5=#FFFFFF
+  p=45 s=1  fill=#DAE2E3  border=#B4B4B4  grad5=#FFFFFF
+  p=45 s=2  fill=#DAE2E3  border=#B4B4B4  grad5=#FFFFFF
+  p=45 s=3  fill=#DAE2E3  border=#B4B4B4  grad5=#FFFFFF
+  p=45 s=4  fill=#DAE2E3  border=#B4B4B4  grad5=#FFFFFF
+  p=46 s=0  fill=#EDE4CC  border=#B4B4B4  grad5=#FFFFFF
+  p=46 s=1  fill=#EDE4CC  border=#B4B4B4  grad5=#FFFFFF
+  p=46 s=2  fill=#EDE4CC  border=#B4B4B4  grad5=#FFFFFF
+  p=46 s=3  fill=#EDE4CC  border=#B4B4B4  grad5=#FFFFFF
+  p=46 s=4  fill=#EDE4CC  border=#B4B4B4  grad5=#FFFFFF
+
+### class=ChartView handle=131072
+  p=1 s=0  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=1 s=1  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=1 s=2  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=1 s=3  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=1 s=4  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=2 s=0  fill=#117DBB  border=#B4B4B4  grad5=#FFFFFF
+  p=2 s=1  fill=#117DBB  border=#B4B4B4  grad5=#FFFFFF
+  p=2 s=2  fill=#117DBB  border=#B4B4B4  grad5=#FFFFFF
+  p=2 s=3  fill=#117DBB  border=#B4B4B4  grad5=#FFFFFF
+  p=2 s=4  fill=#117DBB  border=#B4B4B4  grad5=#FFFFFF
+  p=3 s=0  fill=#D9EAF4  border=#B4B4B4  grad5=#FFFFFF
+  p=3 s=1  fill=#D9EAF4  border=#B4B4B4  grad5=#FFFFFF
+  p=3 s=2  fill=#D9EAF4  border=#B4B4B4  grad5=#FFFFFF
+  p=3 s=3  fill=#D9EAF4  border=#B4B4B4  grad5=#FFFFFF
+  p=3 s=4  fill=#D9EAF4  border=#B4B4B4  grad5=#FFFFFF
+  p=4 s=0  fill=#117DBB  border=#B4B4B4  grad5=#FFFFFF
+  p=4 s=1  fill=#117DBB  border=#B4B4B4  grad5=#FFFFFF
+  p=4 s=2  fill=#117DBB  border=#B4B4B4  grad5=#FFFFFF
+  p=4 s=3  fill=#117DBB  border=#B4B4B4  grad5=#FFFFFF
+  p=4 s=4  fill=#117DBB  border=#B4B4B4  grad5=#FFFFFF
+  p=5 s=0  fill=#3386B5  border=#B4B4B4  grad5=#FFFFFF
+  p=5 s=1  fill=#3386B5  border=#B4B4B4  grad5=#FFFFFF
+  p=5 s=2  fill=#3386B5  border=#B4B4B4  grad5=#FFFFFF
+  p=5 s=3  fill=#3386B5  border=#B4B4B4  grad5=#FFFFFF
+  p=5 s=4  fill=#3386B5  border=#B4B4B4  grad5=#FFFFFF
+  p=6 s=0  fill=#81B3D2  border=#B4B4B4  grad5=#FFFFFF
+  p=6 s=1  fill=#81B3D2  border=#B4B4B4  grad5=#FFFFFF
+  p=6 s=2  fill=#81B3D2  border=#B4B4B4  grad5=#FFFFFF
+  p=6 s=3  fill=#81B3D2  border=#B4B4B4  grad5=#FFFFFF
+  p=6 s=4  fill=#81B3D2  border=#B4B4B4  grad5=#FFFFFF
+  p=7 s=0  fill=#3386B5  border=#B4B4B4  grad5=#FFFFFF
+  p=7 s=1  fill=#3386B5  border=#B4B4B4  grad5=#FFFFFF
+  p=7 s=2  fill=#3386B5  border=#B4B4B4  grad5=#FFFFFF
+  p=7 s=3  fill=#3386B5  border=#B4B4B4  grad5=#FFFFFF
+  p=7 s=4  fill=#3386B5  border=#B4B4B4  grad5=#FFFFFF
+  p=8 s=0  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=8 s=1  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=8 s=2  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=8 s=3  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=8 s=4  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=9 s=0  fill=#8B12AE  border=#B4B4B4  grad5=#FFFFFF
+  p=9 s=1  fill=#8B12AE  border=#B4B4B4  grad5=#FFFFFF
+  p=9 s=2  fill=#8B12AE  border=#B4B4B4  grad5=#FFFFFF
+  p=9 s=3  fill=#8B12AE  border=#B4B4B4  grad5=#FFFFFF
+  p=9 s=4  fill=#8B12AE  border=#B4B4B4  grad5=#FFFFFF
+  p=10 s=0  fill=#ECDEF0  border=#B4B4B4  grad5=#FFFFFF
+  p=10 s=1  fill=#ECDEF0  border=#B4B4B4  grad5=#FFFFFF
+  p=10 s=2  fill=#ECDEF0  border=#B4B4B4  grad5=#FFFFFF
+  p=10 s=3  fill=#ECDEF0  border=#B4B4B4  grad5=#FFFFFF
+  p=10 s=4  fill=#ECDEF0  border=#B4B4B4  grad5=#FFFFFF
+  p=11 s=0  fill=#9528B4  border=#B4B4B4  grad5=#FFFFFF
+  p=11 s=1  fill=#9528B4  border=#B4B4B4  grad5=#FFFFFF
+  p=11 s=2  fill=#9528B4  border=#B4B4B4  grad5=#FFFFFF
+  p=11 s=3  fill=#9528B4  border=#B4B4B4  grad5=#FFFFFF
+  p=11 s=4  fill=#9528B4  border=#B4B4B4  grad5=#FFFFFF
+  p=12 s=0  fill=#817285  border=#B4B4B4  grad5=#FFFFFF
+  p=12 s=1  fill=#817285  border=#B4B4B4  grad5=#FFFFFF
+  p=12 s=2  fill=#817285  border=#B4B4B4  grad5=#FFFFFF
+  p=12 s=3  fill=#817285  border=#B4B4B4  grad5=#FFFFFF
+  p=12 s=4  fill=#817285  border=#B4B4B4  grad5=#FFFFFF
+  p=13 s=0  fill=#9528B4  border=#B4B4B4  grad5=#FFFFFF
+  p=13 s=1  fill=#9528B4  border=#B4B4B4  grad5=#FFFFFF
+  p=13 s=2  fill=#9528B4  border=#B4B4B4  grad5=#FFFFFF
+  p=13 s=3  fill=#9528B4  border=#B4B4B4  grad5=#FFFFFF
+  p=13 s=4  fill=#9528B4  border=#B4B4B4  grad5=#FFFFFF
+  p=14 s=0  fill=#817285  border=#B4B4B4  grad5=#FFFFFF
+  p=14 s=1  fill=#817285  border=#B4B4B4  grad5=#FFFFFF
+  p=14 s=2  fill=#817285  border=#B4B4B4  grad5=#FFFFFF
+  p=14 s=3  fill=#817285  border=#B4B4B4  grad5=#FFFFFF
+  p=14 s=4  fill=#817285  border=#B4B4B4  grad5=#FFFFFF
+  p=15 s=0  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=15 s=1  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=15 s=2  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=15 s=3  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=15 s=4  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=16 s=0  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=16 s=1  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=16 s=2  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=16 s=3  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=16 s=4  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=17 s=0  fill=#DBEDCE  border=#B4B4B4  grad5=#FFFFFF
+  p=17 s=1  fill=#DBEDCE  border=#B4B4B4  grad5=#FFFFFF
+  p=17 s=2  fill=#DBEDCE  border=#B4B4B4  grad5=#FFFFFF
+  p=17 s=3  fill=#DBEDCE  border=#B4B4B4  grad5=#FFFFFF
+  p=17 s=4  fill=#DBEDCE  border=#B4B4B4  grad5=#FFFFFF
+  p=18 s=0  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=18 s=1  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=18 s=2  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=18 s=3  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=18 s=4  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=19 s=0  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=19 s=1  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=19 s=2  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=19 s=3  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=19 s=4  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=20 s=0  fill=#79D50D  border=#B4B4B4  grad5=#FFFFFF
+  p=20 s=1  fill=#79D50D  border=#B4B4B4  grad5=#FFFFFF
+  p=20 s=2  fill=#79D50D  border=#B4B4B4  grad5=#FFFFFF
+  p=20 s=3  fill=#79D50D  border=#B4B4B4  grad5=#FFFFFF
+  p=20 s=4  fill=#79D50D  border=#B4B4B4  grad5=#FFFFFF
+  p=21 s=0  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=21 s=1  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=21 s=2  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=21 s=3  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=21 s=4  fill=#4DA60C  border=#B4B4B4  grad5=#FFFFFF
+  p=22 s=0  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=22 s=1  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=22 s=2  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=22 s=3  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=22 s=4  fill=#FFFFFF  border=#B4B4B4  grad5=#FFFFFF
+  p=23 s=0  fill=#A74F01  border=#B4B4B4  grad5=#FFFFFF
+  p=23 s=1  fill=#A74F01  border=#B4B4B4  grad5=#FFFFFF
+  p=23 s=2  fill=#A74F01  border=#B4B4B4  grad5=#FFFFFF
+  p=23 s=3  fill=#A74F01  border=#B4B4B4  grad5=#FFFFFF
+  p=23 s=4  fill=#A74F01  border=#B4B4B4  grad5=#FFFFFF
+  p=24 s=0  fill=#EEDECF  border=#B4B4B4  grad5=#FFFFFF
+  p=24 s=1  fill=#EEDECF  border=#B4B4B4  grad5=#FFFFFF
+  p=24 s=2  fill=#EEDECF  border=#B4B4B4  grad5=#FFFFFF
+  p=24 s=3  fill=#EEDECF  border=#B4B4B4  grad5=#FFFFFF
+  p=24 s=4  fill=#EEDECF  border=#B4B4B4  grad5=#FFFFFF
+  p=25 s=0  fill=#A74F01  border=#B4B4B4  grad5=#FFFFFF
+  p=25 s=1  fill=#A74F01  border=#B4B4B4  grad5=#FFFFFF
+  p=25 s=2  fill=#A74F01  border=#B4B4B4  grad5=#FFFFFF
+  p=25 s=3  fill=#A74F01  border=#B4B4B4  grad5=#FFFFFF
+  p=25 s=4  fill=#A74F01  border=#B4B4B4  grad5=#FFFFFF
+  p=26 s=0  fill=#E0822F  border=#B4B4B4  grad5=#FFFFFF
+  p=26 s=1  fill=#E0822F  border=#B4B4B4  grad5=#FFFFFF
+  p=26 s=2  fill=#E0822F  border=#B4B4B4  grad5=#FFFFFF
+  p=26 s=3  fill=#E0822F  border=#B4B4B4  grad5=#FFFFFF
+  p=26 s=4  fill=#E0822F  border=#B4B4B4  grad5=#FFFFFF
+  p=27 s=0  fill=#DF672C  border=#B4B4B4  grad5=#FFFFFF
+  p=27 s=1  fill=#DF672C  border=#B4B4B4  grad5=#FFFFFF
+  p=27 s=2  fill=#DF672C  border=#B4B4B4  grad5=#FFFFFF
+  p=27 s=3  fill=#DF672C  border=#B4B4B4  grad5=#FFFFFF
+  p=27 s=4  fill=#DF672C  border=#B4B4B4  grad5=#FFFFFF
+  p=28 s=0  fill=#E0822F  border=#B4B4B4  grad5=#FFFFFF
+  p=28 s=1  fill=#E0822F  border=#B4B4B4  grad5=#FFFFFF
+  p=28 s=2  fill=#E0822F  border=#B4B4B4  grad5=#FFFFFF
+  p=28 s=3  fill=#E0822F  border=#B4B4B4  grad5=#FFFFFF
+  p=28 s=4  fill=#E0822F  border=#B4B4B4  grad5=#FFFFFF
+  p=29 s=0  border=#B4B4B4  grad5=#FFFFFF
+  p=29 s=1  fill=#06B025  border=#B4B4B4  grad5=#FFFFFF
+  p=29 s=2  fill=#B09800  border=#B4B4B4  grad5=#FFFFFF
+  p=29 s=3  fill=#C73F36  border=#B4B4B4  grad5=#FFFFFF
+  p=29 s=4  border=#B4B4B4  grad5=#FFFFFF
+  p=30 s=0  border=#B4B4B4  grad5=#FFFFFF
+  p=30 s=1  fill=#06B025  border=#B4B4B4  grad5=#FFFFFF
+  p=30 s=2  fill=#B09800  border=#B4B4B4  grad5=#FFFFFF
+  p=30 s=3  fill=#C73F36  border=#B4B4B4  grad5=#FFFFFF
+  p=30 s=4  border=#B4B4B4  grad5=#FFFFFF
+  p=31 s=0  border=#B4B4B4  grad5=#FFFFFF
+  p=31 s=1  fill=#06B025  border=#B4B4B4  grad5=#FFFFFF
+  p=31 s=2  fill=#B09800  border=#B4B4B4  grad5=#FFFFFF
+  p=31 s=3  fill=#C73F36  border=#B4B4B4  grad5=#FFFFFF
+  p=31 s=4  border=#B4B4B4  grad5=#FFFFFF
+  p=32 s=0  border=#B4B4B4  grad5=#FFFFFF
+  p=32 s=1  fill=#06B025  border=#B4B4B4  grad5=#FFFFFF
+  p=32 s=2  fill=#B09800  border=#B4B4B4  grad5=#FFFFFF
+  p=32 s=3  fill=#C73F36  border=#B4B4B4  grad5=#FFFFFF
+  p=32 s=4  border=#B4B4B4  grad5=#FFFFFF
+  p=33 s=0  border=#B4B4B4  grad5=#FFFFFF
+  p=33 s=1  fill=#4ECB22  border=#B4B4B4  grad5=#FFFFFF
+  p=33 s=2  fill=#E8DB51  border=#B4B4B4  grad5=#FFFFFF
+  p=33 s=3  fill=#C73F36  border=#B4B4B4  grad5=#FFFFFF
+  p=33 s=4  border=#B4B4B4  grad5=#FFFFFF
+  p=34 s=0  border=#B4B4B4  grad5=#FFFFFF
+  p=34 s=1  fill=#4ECB22  border=#B4B4B4  grad5=#FFFFFF
+  p=34 s=2  fill=#E8DB51  border=#B4B4B4  grad5=#FFFFFF
+  p=34 s=3  fill=#C73F36  border=#B4B4B4  grad5=#FFFFFF
+  p=34 s=4  border=#B4B4B4  grad5=#FFFFFF
+  p=35 s=0  fill=#A4DE9A  border=#B4B4B4  grad5=#FFFFFF
+  p=35 s=1  fill=#A4DE9A  border=#B4B4B4  grad5=#FFFFFF
+  p=35 s=2  fill=#A4DE9A  border=#B4B4B4  grad5=#FFFFFF
+  p=35 s=3  fill=#A4DE9A  border=#B4B4B4  grad5=#FFFFFF
+  p=35 s=4  fill=#A4DE9A  border=#B4B4B4  grad5=#FFFFFF
+  p=36 s=0  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=36 s=1  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=36 s=2  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=36 s=3  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=36 s=4  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=37 s=0  fill=#A4DE9A  border=#B4B4B4  grad5=#FFFFFF
+  p=37 s=1  fill=#A4DE9A  border=#B4B4B4  grad5=#FFFFFF
+  p=37 s=2  fill=#A4DE9A  border=#B4B4B4  grad5=#FFFFFF
+  p=37 s=3  fill=#A4DE9A  border=#B4B4B4  grad5=#FFFFFF
+  p=37 s=4  fill=#A4DE9A  border=#B4B4B4  grad5=#FFFFFF
+  p=38 s=0  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=38 s=1  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=38 s=2  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=38 s=3  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=38 s=4  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=39 s=0  fill=#A4DE9A  border=#B4B4B4  grad5=#FFFFFF
+  p=39 s=1  fill=#A4DE9A  border=#B4B4B4  grad5=#FFFFFF
+  p=39 s=2  fill=#A4DE9A  border=#B4B4B4  grad5=#FFFFFF
+  p=39 s=3  fill=#A4DE9A  border=#B4B4B4  grad5=#FFFFFF
+  p=39 s=4  fill=#A4DE9A  border=#B4B4B4  grad5=#FFFFFF
+  p=40 s=0  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=40 s=1  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=40 s=2  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=40 s=3  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=40 s=4  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=41 s=0  fill=#D2A883  border=#B4B4B4  grad5=#FFFFFF
+  p=41 s=1  fill=#D2A883  border=#B4B4B4  grad5=#FFFFFF
+  p=41 s=2  fill=#D2A883  border=#B4B4B4  grad5=#FFFFFF
+  p=41 s=3  fill=#D2A883  border=#B4B4B4  grad5=#FFFFFF
+  p=41 s=4  fill=#D2A883  border=#B4B4B4  grad5=#FFFFFF
+  p=42 s=0  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=42 s=1  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=42 s=2  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=42 s=3  text=#707070  border=#B4B4B4  grad5=#FFFFFF
+  p=42 s=4  text=#707070  border=#B4B4B4  grad5=#FFFFFF

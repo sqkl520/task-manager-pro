@@ -1,0 +1,22 @@
+TASKMANAGER(14,0,3803)\t#000000\tresourceTitle text
+TASKMANAGER(15,0,3803)\t#000000\tresourceName text
+TASKMANAGER(16,0,3803)\t#1F59C3\tsidebarLabel text
+TASKMANAGER(18,0,3803)\t#000000\tdynamicLabel text
+TASKMANAGER(19,0,3803)\t#000000\tdynamicData text
+TASKMANAGER(20,0,3802)\t#FFFFFF\tBarchartStandby fill
+TASKMANAGER(21,0,3802)\t#F4F2F4\tBarchartInuse fill
+TASKMANAGER(22,0,3802)\t#EEE6F1\tBarchartModified fill A
+TASKMANAGER(23,0,3802)\t#CEB0D7\tBarchartModified fill B
+TASKMANAGER(24,1,3803)\t#4C607A\tTmSubColumnHeader text
+TASKMANAGER(25,0,3803)\t#000000\tcpuBlockStyleData text
+TASKMANAGER(38,0,3802)\t#117DBB\tcpuHeatGrid fill/bg
+TASKMANAGER(39,0,3802)\t#DFE7EB\tcpuBlockStyleR fill
+TASKMANAGER(40,0,3802)\t#BFCFDF\tcpuBlockStyleB fill
+TASKMANAGER(41,0,3802)\t#BABABA\tResizerImage grad1
+TASKMANAGER(42,0,3802)\t#E8E8E8\tResizerImage grad2
+TASKMANAGER(44,0,3803)\t#707070\tlheader text
+CHARTVIEW(9,0,3802)\t#8B12AE\tBarchartMemoryHolder fill
+CHARTVIEW(9,0,3803)\tHRESULT=0x80070490\tBarchartMemoryHolder text
+ItemsView::ListView(1,3,3803)\t#000000\tgrid line / textcolor
+TEXTSTYLE(1,0,3802)\tHRESULT=0x80070490\tResourceValueClass fill
+TEXTSTYLE(1,0,3803)\t#003399\tResourceValueClass text

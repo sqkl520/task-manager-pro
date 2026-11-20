@@ -1,0 +1,62 @@
+CoInitializeEx -> 0x00000000
+
+=== 1. 设备映射表 ===
+  C:   -> \Device\HarddiskVolume3
+  D:   -> \Device\HarddiskVolume4
+
+=== 2. class 88 返回的路径格式 ===
+  pid=36604 : [\Device\ ] \Device\HarddiskVolume4\Projects\Task Manager Pro\build\icontest.exe
+  pid=    4 : <fail/empty>
+  pid=    0 : <fail/empty>
+  pid=    4 : <fail/empty>
+  pid=  120 : <fail/empty>
+  pid=  204 : [UNKNOWN  ] Registry
+  pid=  572 : [\Device\ ] \Device\HarddiskVolume3\Windows\System32\smss.exe
+  pid=  864 : [\Device\ ] \Device\HarddiskVolume3\Windows\System32\csrss.exe
+  pid=  144 : [\Device\ ] \Device\HarddiskVolume3\Windows\System32\wininit.exe
+  pid=  484 : [\Device\ ] \Device\HarddiskVolume3\Windows\System32\csrss.exe
+  pid=  920 : [\Device\ ] \Device\HarddiskVolume3\Windows\System32\services.exe
+  pid=  956 : [\Device\ ] \Device\HarddiskVolume3\Windows\System32\winlogon.exe
+  pid= 1020 : [\Device\ ] \Device\HarddiskVolume3\Windows\System32\LsaIso.exe
+  pid= 1032 : [\Device\ ] \Device\HarddiskVolume3\Windows\System32\lsass.exe
+
+=== 3. 同一 exe 不同路径形式 → SHGetFileInfoW ===
+
+  --- (a) DOS 路径 ---
+  路径: C:\Windows\System32\notepad.exe
+  (a) DOS                : plain      ok=1 icon=00000000061C14FB  169.570 ms
+  (a) DOS                : USEFILEATTR ok=1 icon=00000000047015C5  8.676 ms
+
+  --- (b) NT 设备路径 ---
+  路径: \Device\HarddiskVolume3\Windows\System32\notepad.exe
+  (b) NT device          : plain      ok=0 icon=0000000000000000  17.825 ms
+  (b) NT device          : USEFILEATTR ok=0 icon=0000000000000000  0.258 ms
+
+  --- (c) \??\ 前缀 ---
+  路径: \??\C:\Windows\System32\notepad.exe
+  (c) ??\DOS             : plain      ok=0 icon=0000000000000000  0.221 ms
+  (c) ??\DOS             : USEFILEATTR ok=0 icon=0000000000000000  0.230 ms
+
+  --- (d) \\?\ 前缀 ---
+  路径: \\?\C:\Windows\System32\notepad.exe
+  (d) \\?\DOS            : plain      ok=0 icon=0000000000000000  0.218 ms
+  (d) \\?\DOS            : USEFILEATTR ok=0 icon=0000000000000000  0.234 ms
+
+=== 4. NT -> DOS 转换对比 ===
+  输入: \Device\HarddiskVolume3\Windows\System32\notepad.exe
+  A QueryDosDevice -> "C:\Windows\System32\notepad.exe"  (0.0111 ms)
+  B GetFinalPath   -> ""  (0.1604 ms)
+
+  A 的输出测图标:
+  A result               : plain      ok=1 icon=00000000032E14B9  2.149 ms
+  A result               : USEFILEATTR ok=1 icon=0000000003FA03C9  1.061 ms
+
+  B 的输出测图标:
+  B result               : <empty>
+
+=== 5. ExtractIconExW ===
+  ExtractIconEx n=2 large=0000000003FB03C9 small=0000000000FC14CF  1.496 ms
+
+=== 6. 性能：热 / 冷 ===
+  热同文件 x20 : 40.174 ms total, 2.009 ms/each
+  不同文件 x24 : 128.527 ms total, 5.355 ms/each (ok=21)

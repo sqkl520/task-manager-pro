@@ -1,0 +1,908 @@
+styleOrBlock	selector	property	value	offset
+tab	(style)	font	gtf(TEXTSTYLE, 4, 0)	@1c0
+tab	(style)	p8003	gtf(TEXTSTYLE, 4, 0)	@1d6
+list	(style)	font	gtf(TEXTSTYLE, 4, 0)	@1e8
+list	(style)		gtf(TEXTSTYLE, 4, 0)	@1f8
+page	(style)		gtf(TEXTSTYLE, 4, 0)	@21c
+SmallViewPage	(style)		gtf(TEXTSTYLE, 4, 0)	@240
+drop	(style)	bordercolor	gtc(Button,1,4,3803)	@260
+drop	(style)		gtf(TEXTSTYLE, 4, 0)	@26c
+chart	(style)		gtf(TEXTSTYLE, 4, 0)	@2a0
+cpuchart	(style)		gtf(TEXTSTYLE, 4, 0)	@2d4
+gpuchart	(style)		gtf(TEXTSTYLE, 4, 0)	@308
+staticResourceChart	(style)		gtf(TEXTSTYLE, 4, 0)	@338
+secondaryChart	(style)		gtf(TEXTSTYLE, 4, 0)	@368
+chartbox	dotIcon		gtf(TEXTSTYLE, 4, 0)	@3ac
+chartbox	InactiveChart		gtf(TEXTSTYLE, 4, 0)	@3dc
+chartbox	dashSidebarActionButton	content	dtb(CommandModule,3,1)	@3f0
+chartbox	dashSidebarActionButton	content	dtb(EXPLORER::LISTVIEW, 1, 2)	@414
+chartbox	dashSidebarActionButton		gtf(TEXTSTYLE, 4, 0)	@418
+chartbox	dashSidebarActionButton	content	dtb(EXPLORER::LISTVIEW, 1, 2)	@42c
+chartbox	dashSidebarActionButton		gtf(TEXTSTYLE, 4, 0)	@430
+chartbox	dashSidebarActionButton	content	dtb(CommandModule, 3, 2)	@444
+chartbox	dashSidebarActionButton		gtf(TEXTSTYLE, 4, 0)	@448
+chartbox	dashSidebarActionButton	p8003	gtc(Button,1,4,3803)	@452
+chartbox	dashSidebarActionButton	content	dtb(EXPLORER::LISTVIEW, 1, 3)	@458
+chartbox	dashSidebarActionButton		gtf(TEXTSTYLE, 4, 0)	@45c
+chartbox	dashSidebarActionButton	p8003	gtc(Button,1,4,3803)	@466
+chartbox	dashSidebarActionButton	content	dtb(EXPLORER::LISTVIEW, 1, 3)	@46c
+chartbox	dashSidebarActionButton	content	dtb(EXPLORER::LISTVIEW, 1, 5)	@480
+chartbox	dashSidebarActionButton		gtf(TEXTSTYLE, 4, 0)	@484
+chartbox	dashSidebarActionButton	state	gtf(TEXTSTYLE, 4, 0)	@486
+chartbox	dashSidebarActionButton	state	gtf(TEXTSTYLE, 4, 0)	@48a
+chartbox	dashSidebarActionButton	state	gtf(TEXTSTYLE, 4, 0)	@48e
+TaskManagerCommon	(style)		gtc(Button,1,4,3803)	@49c
+TaskManagerCommon	link	foreground	gtc(CONTROLPANELSTYLE,10,1,3803)	@4b4
+TaskManagerCommon	link	font	gtf(CONTROLPANELSTYLE,10,1)	@4b8
+TaskManagerCommon	link	p8003	dtb(EXPLORER::LISTVIEW, 1, 3)	@4c6
+TaskManagerCommon	link	foreground	gtc(CONTROLPANELSTYLE,10,2,3803)	@4d0
+TaskManagerCommon	link	font	gtf(CONTROLPANELSTYLE,10,2)	@4d4
+TaskManagerCommon	link		gtf(TEXTSTYLE, 4, 0)	@4d8
+TaskManagerCommon	link	p8003	dtb(EXPLORER::LISTVIEW, 1, 3)	@4e2
+TaskManagerCommon	link	foreground	gtc(CONTROLPANELSTYLE,10,2,3803)	@4ec
+TaskManagerCommon	link	font	gtf(CONTROLPANELSTYLE,10,2)	@4f0
+TaskManagerCommon	link		gtf(TEXTSTYLE, 4, 0)	@4f4
+TaskManagerCommon	link	state	gtf(TEXTSTYLE, 4, 0)	@4f6
+TaskManagerCommon	BodyText		dtb(EXPLORER::LISTVIEW, 1, 3)	@504
+TaskManagerCommon	BodyText	font	gtf(TEXTSTYLE, 4, 0)	@508
+TaskManagerCommon	BodyText	foreground	gtc(TEXTSTYLE, 4, 0, 3803)	@50c
+TaskManagerCommon	BodyText		gtf(TEXTSTYLE, 4, 0)	@514
+TaskManagerCommon	LowMemoryTitleLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@520
+TaskManagerCommon	LowMemoryTitleLabel		gtf(TEXTSTYLE, 4, 0)	@530
+TaskManagerCommon	LowMemoryDescriptionLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@53c
+TaskManagerCommon	LowMemoryDescriptionLabel	font	gtf(TASKMANAGER, 17, 0)	@540
+TaskManagerCommon	LowMemoryDescriptionLabel		gtf(TEXTSTYLE, 4, 0)	@54c
+TaskManagerCommon	StaticLabel	font	gtf(TASKMANAGER, 17, 0)	@560
+TaskManagerCommon	StaticLabel	foreground	gtc(TASKMANAGER, 17, 0, 3803)	@564
+TaskManagerCommon	StaticLabel		gtf(TEXTSTYLE, 4, 0)	@570
+TaskManagerCommon	StaticLabel	state	gtf(TEXTSTYLE, 4, 0)	@572
+DashboardStyle	atom(BarchartMemoryHolder)		dtb(EXPLORER::LISTVIEW, 1, 3)	@594
+DashboardStyle	atom(BarchartMemoryHolder)	bordercolor	gtc(CHARTVIEW, 9, 0, 3802)	@59c
+DashboardStyle	atom(BarchartMemoryHolder)		gtf(TEXTSTYLE, 4, 0)	@5a4
+DashboardStyle	atom(BarchartInuse)	content	gtc(TASKMANAGER, 21, 0, 3802)	@5b8
+DashboardStyle	atom(BarchartInuse)		gtf(TEXTSTYLE, 4, 0)	@5d0
+DashboardStyle	atom(BarchartModified)	bordercolor	gtc(TASKMANAGER, 23, 0, 3802)	@5e8
+DashboardStyle	atom(BarchartModified)	content	gtc(TASKMANAGER, 22, 0, 3802)	@5ec
+DashboardStyle	atom(BarchartModified)		gtf(TEXTSTYLE, 4, 0)	@5fc
+DashboardStyle	atom(BarchartStandby)	content	gtc(TASKMANAGER, 20, 0, 3802)	@610
+DashboardStyle	atom(BarchartStandby)	bordercolor	gtc(TASKMANAGER, 23, 0, 3802)	@618
+DashboardStyle	atom(BarchartStandby)		gtf(TEXTSTYLE, 4, 0)	@630
+DashboardStyle	atom(BarchartFree)	content	gtc(TASKMANAGER, 20, 0, 3802)	@644
+DashboardStyle	atom(BarchartFree)	bordercolor	gtc(TASKMANAGER, 23, 0, 3802)	@64c
+DashboardStyle	atom(BarchartFree)		gtf(TEXTSTYLE, 4, 0)	@664
+DashboardStyle	atom(resourceTitle)	font	gtf(TASKMANAGER, 14, 0)	@674
+DashboardStyle	atom(resourceTitle)	foreground	gtc(TASKMANAGER, 14, 0, 3803)	@678
+DashboardStyle	atom(resourceTitle)		gtf(TEXTSTYLE, 4, 0)	@68c
+DashboardStyle	atom(resourceName)	font	gtf(TASKMANAGER, 15, 0)	@69c
+DashboardStyle	atom(resourceName)	foreground	gtc(TASKMANAGER, 15, 0, 3803)	@6a0
+DashboardStyle	atom(resourceName)		gtf(TEXTSTYLE, 4, 0)	@6bc
+DashboardStyle	staticLabel	font	gtf(TASKMANAGER, 17, 0)	@6d0
+DashboardStyle	staticLabel	foreground	gtc(TASKMANAGER, 17, 0, 3803)	@6d4
+DashboardStyle	staticLabel		gtf(TEXTSTYLE, 4, 0)	@6e8
+DashboardStyle	staticData	font	gtf(TASKMANAGER, 18, 0)	@6fc
+DashboardStyle	staticData	foreground	gtc(TASKMANAGER, 18, 0, 3803)	@700
+DashboardStyle	staticData		gtf(TEXTSTYLE, 4, 0)	@714
+DashboardStyle	signalIcon		gtf(TEXTSTYLE, 4, 0)	@738
+DashboardStyle	dynamicLabel	font	gtf(TASKMANAGER, 17, 0)	@748
+DashboardStyle	dynamicLabel	foreground	gtc(TASKMANAGER, 17, 0, 3803)	@74c
+DashboardStyle	dynamicLabel		gtf(TEXTSTYLE, 4, 0)	@768
+DashboardStyle	dynamicData	font	gtf(TASKMANAGER, 19, 0)	@778
+DashboardStyle	dynamicData	foreground	gtc(TASKMANAGER, 19, 0, 3803)	@77c
+DashboardStyle	dynamicData		gtf(TEXTSTYLE, 4, 0)	@798
+DashboardStyle	dashboardLegend	p8003	gtf(TEXTSTYLE, 4, 0)	@7ba
+DashboardStyle	dashboardWriteLegend	p8003	gtf(TEXTSTYLE, 4, 0)	@7de
+DashboardStyle	sidebarLabel	font	gtf(TASKMANAGER, 16, 0)	@7f0
+DashboardStyle	sidebarLabel		gtf(TEXTSTYLE, 4, 0)	@808
+DashboardStyle	sidebarData	font	gtf(TASKMANAGER, 17, 0)	@818
+DashboardStyle	sidebarData		gtf(TEXTSTYLE, 4, 0)	@834
+DashboardStyle	sidebarDataHeader	font	gtf(TASKMANAGER, 17, 0)	@844
+DashboardStyle	sidebarDataHeader	foreground	gtc(TASKMANAGER, 17, 0, 3803)	@848
+DashboardStyle	sidebarDataHeader		gtf(TEXTSTYLE, 4, 0)	@860
+DashboardStyle	theader		dtb(EXPLORER::LISTVIEW, 1, 3)	@86c
+DashboardStyle	theader		gtf(TEXTSTYLE, 4, 0)	@87c
+DashboardStyle	bheader		dtb(EXPLORER::LISTVIEW, 1, 3)	@888
+DashboardStyle	bheader		gtf(TEXTSTYLE, 4, 0)	@898
+DashboardStyle	cpu_theader		dtb(EXPLORER::LISTVIEW, 1, 3)	@8a4
+DashboardStyle	cpu_theader		gtf(TEXTSTYLE, 4, 0)	@8b4
+DashboardStyle	cpu_bheader		dtb(EXPLORER::LISTVIEW, 1, 3)	@8c0
+DashboardStyle	cpu_bheader		gtf(TEXTSTYLE, 4, 0)	@8d0
+DashboardStyle	lheader	font	gtf(TASKMANAGER, 44, 0)	@8e0
+DashboardStyle	lheader	foreground	gtc(TASKMANAGER, 44, 0, 3803)	@8e4
+DashboardStyle	lheader		gtf(TEXTSTYLE, 4, 0)	@908
+DashboardStyle	rheader	font	gtf(TASKMANAGER, 44, 0)	@918
+DashboardStyle	rheader	foreground	gtc(TASKMANAGER, 44, 0, 3803)	@91c
+DashboardStyle	rheader		gtf(TEXTSTYLE, 4, 0)	@944
+DashboardStyle	cpuHeatGrid		gtc(Button,1,4,3803)	@950
+DashboardStyle	cpuHeatGrid	bordercolor	gtc(TASKMANAGER, 38, 0, 3802)	@954
+DashboardStyle	cpuHeatGrid		gtf(TEXTSTYLE, 4, 0)	@958
+DashboardStyle	cpuHeatGrid	p8003	gtc(Button,1,4,3803)	@962
+DashboardStyle	cpuHeatGrid	foreground	themeable(gtc(ItemsView::ListView, 1, 3, 3803), highlightText)	@968
+DashboardStyle	cpuHeatGrid		gtf(TEXTSTYLE, 4, 0)	@96c
+DashboardStyle	cpuHeatGrid	state	gtf(TEXTSTYLE, 4, 0)	@96e
+cpuBlockStyleB	(style)		gtc(Button,1,4,3803)	@97c
+cpuBlockStyleB	(style)	bordercolor	gtc(TASKMANAGER, 40, 0, 3802)	@980
+cpuBlockStyleB	(style)		gtf(TEXTSTYLE, 4, 0)	@984
+cpuBlockStyleR	(style)		gtc(Button,1,4,3803)	@990
+cpuBlockStyleR	(style)	bordercolor	gtc(TASKMANAGER, 39, 0, 3802)	@994
+cpuBlockStyleR	(style)		gtf(TEXTSTYLE, 4, 0)	@998
+cpuBlockStyleData	(style)	font	gtf(TASKMANAGER, 25, 0)	@9a8
+cpuBlockStyleData	(style)	foreground	gtc(TASKMANAGER, 25, 0, 3803)	@9ac
+cpuBlockStyleData	(style)		gtf(TEXTSTYLE, 4, 0)	@9b0
+scrollviewer	(style)		gtf(TEXTSTYLE, 4, 0)	@9e0
+TmGroupHeaderStyle	(style)		gtc(Button,1,4,3803)	@9ec
+TmGroupHeaderStyle	atom(TmGroupHeaderName)	font	gtf(TASKMANAGER, 16, 0)	@a00
+TmGroupHeaderStyle	atom(TmGroupHeaderName)	foreground	gtc(TASKMANAGER, 16, 0, 3803)	@a04
+TmGroupHeaderStyle	atom(TmGroupHeaderName)	bordercolor	gtc(TASKMANAGER,2,0,3802)	@a0c
+TmGroupHeaderStyle	atom(TmGroupHeaderName)		gtf(TEXTSTYLE, 4, 0)	@a10
+TmGroupHeaderStyle	atom(TmGroupHeaderName)	state	gtf(TEXTSTYLE, 4, 0)	@a12
+TmColumnContainerStyle	(style)		dtb(EXPLORER::LISTVIEW, 1, 3)	@a20
+TmColumnContainerStyle	(style)	font	gtf(TEXTSTYLE, 4, 0)	@a2c
+TmColumnContainerStyle	TmHeatText		gtc(Button,1,4,3803)	@a38
+TmColumnContainerStyle	TmHeatText	foreground	gtc(TASKMANAGER,13,0,3803)	@a3c
+TmColumnContainerStyle	TmHeatText		gtf(TEXTSTYLE, 4, 0)	@a40
+TmColumnContainerStyle	TmHeatText	state	gtf(TEXTSTYLE, 4, 0)	@a42
+TmColumnHeaderStyle	(style)		gtc(Button,1,4,3803)	@a50
+TmColumnHeaderStyle	(style)	p8003	gtc(Button,1,4,3803)	@a5e
+TmColumnHeaderStyle	(style)	content	dtb(EXPLORER::LISTVIEW, 1, 2)	@a64
+TmColumnHeaderStyle	(style)		gtf(TEXTSTYLE, 4, 0)	@a68
+TmColumnHeaderStyle	(style)	p8003	gtc(Button,1,4,3803)	@a72
+TmColumnHeaderStyle	(style)	content	dtb(EXPLORER::LISTVIEW, 1, 2)	@a78
+TmColumnHeaderStyle	(style)		gtf(TEXTSTYLE, 4, 0)	@a7c
+TmColumnHeaderStyle	TmColHeaderContend		gtc(Button,1,4,3803)	@a88
+TmColumnHeaderStyle	TmColHeaderContend	content	dtb(TASKMANAGER, 43, 1)	@a8c
+TmColumnHeaderStyle	TmColHeaderContend	p8003	gtc(Button,1,4,3803)	@a96
+TmColumnHeaderStyle	TmColHeaderContend	content	dtb(TASKMANAGER, 43, 2)	@a9c
+TmColumnHeaderStyle	TmColHeaderContend		gtf(TEXTSTYLE, 4, 0)	@aa0
+TmColumnHeaderStyle	TmColHeaderContend	p8003	gtc(Button,1,4,3803)	@aaa
+TmColumnHeaderStyle	TmColHeaderContend	content	dtb(TASKMANAGER, 43, 2)	@ab0
+TmColumnHeaderStyle	TmColHeaderContend		gtf(TEXTSTYLE, 4, 0)	@ab4
+TmColumnHeaderStyle	TmColHeaderContend	state	gtf(TEXTSTYLE, 4, 0)	@ab6
+TmColumnHeaderStyle	TmColHeaderContend	state	gtf(TEXTSTYLE, 4, 0)	@aba
+TmSubColumnHeaderStyle	(style)	font	gtf(TEXTSTYLE, 4, 0)	@ad0
+TmSubColumnHeaderStyle	(style)	foreground	gtc(TASKMANAGER, 24, 1, 3803)	@ad4
+TmSubColumnHeaderStyle	ResourceValueClass	font	gtf(TEXTSTYLE, 1, 0)	@ae8
+TmSubColumnHeaderStyle	ResourceValueClass	foreground	gtc(TASKMANAGER, 18, 0, 3803)	@aec
+TmSubColumnHeaderStyle	ResourceValueClass		gtf(TEXTSTYLE, 4, 0)	@afc
+TmSubColumnHeaderStyle	ResourceValueClassWhiteContend	font	gtf(TEXTSTYLE, 1, 0)	@b0c
+TmSubColumnHeaderStyle	ResourceValueClassWhiteContend	foreground	themeable(gtc(ItemsView::ListView, 1, 3, 3803), highlightText)	@b10
+TmSubColumnHeaderStyle	ResourceValueClassWhiteContend		gtf(TEXTSTYLE, 4, 0)	@b20
+TmSubColumnHeaderStyle	ColHeaderTextContend	foreground	themeable(gtc(ItemsView::ListView, 1, 3, 3803), highlightText)	@b30
+TmSubColumnHeaderStyle	ColHeaderTextContend		gtf(TEXTSTYLE, 4, 0)	@b40
+TmSubColumnHeaderStyle	SortAscending		gtf(TEXTSTYLE, 4, 0)	@b74
+TmSubColumnHeaderStyle	SortAscendingContend		dtb(EXPLORER::LISTVIEW, 1, 3)	@b80
+TmSubColumnHeaderStyle	SortAscendingContend	foreground	themeable(gtc(ItemsView::ListView, 1, 3, 3803), highlightText)	@b8c
+TmSubColumnHeaderStyle	SortAscendingContend		gtf(TEXTSTYLE, 4, 0)	@b90
+TmSubColumnHeaderStyle	SortDescending		gtf(TEXTSTYLE, 4, 0)	@ba8
+TmSubColumnHeaderStyle	SortDescendingContend		dtb(EXPLORER::LISTVIEW, 1, 3)	@bb4
+TmSubColumnHeaderStyle	SortDescendingContend	foreground	themeable(gtc(ItemsView::ListView, 1, 3, 3803), highlightText)	@bc0
+TmSubColumnHeaderStyle	SortDescendingContend		gtf(TEXTSTYLE, 4, 0)	@bc4
+TmSubColumnHeaderStyle	SortDescendingContend	state	gtf(TEXTSTYLE, 4, 0)	@bc6
+TmSubColumnHeaderStyle	NoBorderColor		gtf(TEXTSTYLE, 4, 0)	@bf4
+TmSubColumnHeaderStyle	NoBorderColor	state	gtf(TEXTSTYLE, 4, 0)	@bf6
+TmSubColumnHeaderStyle	NoBorderColor	state	gtf(TEXTSTYLE, 4, 0)	@bfa
+TmViewItemStyle	(style)		gtc(Button,1,4,3803)	@c08
+TmViewItemStyle	TmChildViewItemClass		gtc(Button,1,4,3803)	@c18
+TmViewItemStyle	TmChildViewItemClass		gtf(TEXTSTYLE, 4, 0)	@c20
+TmViewItemStyle	TmParentViewItemSelectorClass	p8003	gtc(Button,1,4,3803)	@c32
+TmViewItemStyle	TmParentViewItemSelectorClass	content	dtb(EXPLORER::LISTVIEW, 1, 2)	@c38
+TmViewItemStyle	TmParentViewItemSelectorClass		gtf(TEXTSTYLE, 4, 0)	@c3c
+TmViewItemStyle	TmParentViewItemSelectorClass	content	dtb(EXPLORER::LISTVIEW, 1, 3)	@c4c
+TmViewItemStyle	TmParentViewItemSelectorClass	foreground	themeable(gtc(ItemsView::ListView, 1, 3, 3803), highlightText)	@c50
+TmViewItemStyle	TmParentViewItemSelectorClass	p8004	gtc(Button,1,4,3803)	@c5a
+TmViewItemStyle	TmParentViewItemSelectorClass	content	dtb(EXPLORER::LISTVIEW, 1, 5)	@c60
+TmViewItemStyle	TmParentViewItemSelectorClass		gtf(TEXTSTYLE, 4, 0)	@c64
+TmViewItemStyle	TmParentViewItemSelectorClass	p8003	gtc(Button,1,4,3803)	@c6e
+TmViewItemStyle	TmParentViewItemSelectorClass	content	dtb(EXPLORER::LISTVIEW, 1, 3)	@c74
+TmViewItemStyle	TmParentViewItemSelectorClass		gtf(TEXTSTYLE, 4, 0)	@c78
+TmViewItemStyle	TmParentViewItemSelectorClass	state	gtf(TEXTSTYLE, 4, 0)	@c7a
+TmViewItemStyle	TmParentViewItemSelectorClass	p8003	gtc(Button,1,4,3803)	@c8e
+TmViewItemStyle	TmParentViewItemSelectorClass	content	dtb(EXPLORER::LISTVIEW, 1, 2)	@c94
+TmViewItemStyle	TmParentViewItemSelectorClass		gtf(TEXTSTYLE, 4, 0)	@c98
+TmViewItemStyle	TmParentViewItemSelectorClass	p8004	gtc(Button,1,4,3803)	@ca2
+TmViewItemStyle	TmParentViewItemSelectorClass		gtf(TEXTSTYLE, 4, 0)	@cac
+TmViewItemStyle	TmParentViewItemSelectorClass	state	gtf(TEXTSTYLE, 4, 0)	@cae
+TmViewItemStyle	TmParentViewItemSelectorClass	p8003	gtc(Button,1,4,3803)	@cc2
+TmViewItemStyle	TmParentViewItemSelectorClass	content	dtb(EXPLORER::LISTVIEW, 1, 2)	@cc8
+TmViewItemStyle	TmParentViewItemSelectorClass		gtf(TEXTSTYLE, 4, 0)	@ccc
+TmViewItemStyle	TmParentViewItemSelectorClass	p8004	gtc(Button,1,4,3803)	@cd6
+TmViewItemStyle	TmParentViewItemSelectorClass		gtf(TEXTSTYLE, 4, 0)	@ce0
+TmViewItemStyle	TmParentViewItemSelectorClass	state	gtf(TEXTSTYLE, 4, 0)	@ce2
+TmViewItemStyle	TmParentViewItemSelectorClass	state	gtf(TEXTSTYLE, 4, 0)	@ce6
+TmViewItemStyle	atom(clipper)		gtf(TEXTSTYLE, 4, 0)	@d08
+TmViewItemStyle	atom(clipped)		gtf(TEXTSTYLE, 4, 0)	@d28
+TmViewItemStyle	TmChildViewItemSelectorClass	foreground	gtc(TASKMANAGER, 18, 0, 3803)	@d40
+TmViewItemStyle	TmChildViewItemSelectorClass	content	dtb(EXPLORER::LISTVIEW, 1, 2)	@d44
+TmViewItemStyle	TmChildViewItemSelectorClass		gtf(TEXTSTYLE, 4, 0)	@d48
+TmViewItemStyle	TmChildViewItemSelectorClass	content	dtb(EXPLORER::LISTVIEW, 1, 3)	@d58
+TmViewItemStyle	TmChildViewItemSelectorClass	foreground	themeable(gtc(ItemsView::ListView, 1, 3, 3803), highlightText)	@d5c
+TmViewItemStyle	TmChildViewItemSelectorClass	p8004	gtc(Button,1,4,3803)	@d66
+TmViewItemStyle	TmChildViewItemSelectorClass	content	dtb(EXPLORER::LISTVIEW, 1, 5)	@d6c
+TmViewItemStyle	TmChildViewItemSelectorClass		gtf(TEXTSTYLE, 4, 0)	@d70
+TmViewItemStyle	TmChildViewItemSelectorClass	state	gtf(TEXTSTYLE, 4, 0)	@d72
+TmViewItemStyle	TmChildViewItemSelectorClass	p8003	gtc(Button,1,4,3803)	@d86
+TmViewItemStyle	TmChildViewItemSelectorClass	content	dtb(EXPLORER::LISTVIEW, 1, 2)	@d8c
+TmViewItemStyle	TmChildViewItemSelectorClass		gtf(TEXTSTYLE, 4, 0)	@d90
+TmViewItemStyle	TmChildViewItemSelectorClass	state	gtf(TEXTSTYLE, 4, 0)	@d92
+TmViewItemStyle	TmChildViewItemSelectorClass	state	gtf(TEXTSTYLE, 4, 0)	@d96
+TmViewItemStyle	atom(TmRowIcon)		gtc(Button,1,4,3803)	@da4
+TmViewItemStyle	atom(TmRowIcon)		gtf(TEXTSTYLE, 4, 0)	@dac
+TmViewItemStyle	atom(TmChildRowIcon)		gtc(Button,1,4,3803)	@db8
+TmViewItemStyle	atom(TmChildRowIcon)		gtf(TEXTSTYLE, 4, 0)	@dc0
+TmViewItemStyle	atom(ViewExpandoButtonImage)		dtb(EXPLORER::LISTVIEW, 1, 3)	@dcc
+TmViewItemStyle	atom(ViewExpandoButtonImage)	p8004	gtc(Button,1,4,3803)	@de2
+TmViewItemStyle	atom(ViewExpandoButtonImage)	content	dtb(Explorer::TreeView, 2, 1)	@de8
+TmViewItemStyle	atom(ViewExpandoButtonImage)	p8003	gtc(Button,1,4,3803)	@df2
+TmViewItemStyle	atom(ViewExpandoButtonImage)	content	dtb(Explorer::TreeView, 4, 1)	@df8
+TmViewItemStyle	atom(ViewExpandoButtonImage)		gtf(TEXTSTYLE, 4, 0)	@dfc
+TmViewItemStyle	atom(ViewExpandoButtonImage)	p8003	gtc(Button,1,4,3803)	@e06
+TmViewItemStyle	atom(ViewExpandoButtonImage)	content	dtb(Explorer::TreeView, 4, 1)	@e0c
+TmViewItemStyle	atom(ViewExpandoButtonImage)		gtf(TEXTSTYLE, 4, 0)	@e10
+TmViewItemStyle	atom(ViewExpandoButtonImage)	state	gtf(TEXTSTYLE, 4, 0)	@e12
+TmViewItemStyle	atom(ViewExpandoButtonImage)	p8003	gtc(Button,1,4,3803)	@e1e
+TmViewItemStyle	atom(ViewExpandoButtonImage)	content	dtb(Explorer::TreeView, 2, 2)	@e24
+TmViewItemStyle	atom(ViewExpandoButtonImage)	p8003	gtc(Button,1,4,3803)	@e2e
+TmViewItemStyle	atom(ViewExpandoButtonImage)	content	dtb(Explorer::TreeView, 4, 2)	@e34
+TmViewItemStyle	atom(ViewExpandoButtonImage)		gtf(TEXTSTYLE, 4, 0)	@e38
+TmViewItemStyle	atom(ViewExpandoButtonImage)	p8003	gtc(Button,1,4,3803)	@e42
+TmViewItemStyle	atom(ViewExpandoButtonImage)	content	dtb(Explorer::TreeView, 4, 2)	@e48
+TmViewItemStyle	atom(ViewExpandoButtonImage)		gtf(TEXTSTYLE, 4, 0)	@e4c
+TmViewItemStyle	atom(ViewExpandoButtonImage)	state	gtf(TEXTSTYLE, 4, 0)	@e4e
+TmViewItemStyle	atom(ViewExpandoButtonImage)	state	gtf(TEXTSTYLE, 4, 0)	@e52
+TmViewItemStyle	atom(TmFirstColumn)		gtc(Button,1,4,3803)	@e60
+TmViewItemStyle	atom(TmFirstColumn)	bordercolor	gtc(TASKMANAGER,2,0,3802)	@e64
+TmViewItemStyle	atom(TmFirstColumn)		gtf(TEXTSTYLE, 4, 0)	@e68
+TmViewItemStyle	atom(TmFirstColumn)	state	gtf(TEXTSTYLE, 4, 0)	@e6a
+BIOSPostTimeStyle	atom(BIOSPostTimeHolder)		gtc(Button,1,4,3803)	@e80
+BIOSPostTimeStyle	atom(BIOSPostTimeHolder)		gtf(TEXTSTYLE, 4, 0)	@e88
+BIOSPostTimeStyle	atom(BIOSPostTimeLabel)	font	gtf(TASKMANAGER, 17, 0)	@e98
+BIOSPostTimeStyle	atom(BIOSPostTimeLabel)	foreground	gtc(TASKMANAGER, 24, 1, 3803)	@e9c
+BIOSPostTimeStyle	atom(BIOSPostTimeLabel)		gtf(TEXTSTYLE, 4, 0)	@ea0
+BIOSPostTimeStyle	atom(BIOSPostTimeText)	font	gtf(TASKMANAGER, 18, 0)	@eb0
+BIOSPostTimeStyle	atom(BIOSPostTimeText)	foreground	gtc(TASKMANAGER, 18, 0, 3803)	@eb4
+BIOSPostTimeStyle	atom(BIOSPostTimeText)		gtf(TEXTSTYLE, 4, 0)	@eb8
+BIOSPostTimeStyle	atom(BIOSPostTimeText)	state	gtf(TEXTSTYLE, 4, 0)	@eba
+TmCommandBarStyle	(style)		gtc(Button,1,4,3803)	@ec8
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)		dtb(EXPLORER::LISTVIEW, 1, 3)	@ed8
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	height	gtmet(TaskDialog, 13, 0, 2417)	@edc
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	width	gtmet(TaskDialog, 13, 0, 2416)	@ee0
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	content	dtb(TaskDialog, 13, 1)	@ee4
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	p8003	gtc(Button,1,4,3803)	@eee
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	content	dtb(TaskDialog, 13, 2)	@ef4
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)		gtf(TEXTSTYLE, 4, 0)	@ef8
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	p8003	gtc(Button,1,4,3803)	@f02
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	content	dtb(TaskDialog, 13, 3)	@f08
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)		gtf(TEXTSTYLE, 4, 0)	@f0c
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	p8003	gtc(Button,1,4,3803)	@f16
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	content	dtb(TaskDialog, 13, 2)	@f1c
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)		gtf(TEXTSTYLE, 4, 0)	@f20
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	p8003	gtc(Button,1,4,3803)	@f2a
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	content	dtb(TaskDialog, 13, 4)	@f30
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	p8003	gtc(Button,1,4,3803)	@f3a
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	content	dtb(TaskDialog, 13, 5)	@f40
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)		gtf(TEXTSTYLE, 4, 0)	@f44
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	p8003	gtc(Button,1,4,3803)	@f4e
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	content	dtb(TaskDialog, 13, 6)	@f54
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)		gtf(TEXTSTYLE, 4, 0)	@f58
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	p8003	gtc(Button,1,4,3803)	@f62
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	content	dtb(TaskDialog, 13, 5)	@f68
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)		gtf(TEXTSTYLE, 4, 0)	@f6c
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	state	gtf(TEXTSTYLE, 4, 0)	@f6e
+TmCommandBarStyle	atom(CBExpandoButtonImageArrow)	state	gtf(TEXTSTYLE, 4, 0)	@f72
+TmCommandBarStyle	atom(CBExpandoButtonImageText)		gtc(Button,1,4,3803)	@f80
+TmCommandBarStyle	atom(CBExpandoButtonImageText)		gtc(Button,1,4,3803)	@f88
+TmCommandBarStyle	atom(CBExpandoButtonImageText)	p8003	gtc(Button,1,4,3803)	@f96
+TmCommandBarStyle	atom(CBExpandoButtonImageText)		gtf(TEXTSTYLE, 4, 0)	@fa0
+TmCommandBarStyle	atom(CBExpandoButtonImageText)	state	gtf(TEXTSTYLE, 4, 0)	@fa2
+TmCommandBarStyle	TmTaskButton	content	themeable(dtb(button, 1, 1), 0)	@fb4
+TmCommandBarStyle	TmTaskButton	foreground	gtc(button, 1, 2, 3803)	@fdc
+TmCommandBarStyle	TmTaskButton	content	dtb(button, 1, 2)	@fe0
+TmCommandBarStyle	TmTaskButton		gtf(TEXTSTYLE, 4, 0)	@fe4
+TmCommandBarStyle	TmTaskButton	foreground	gtc(button, 1, 2, 3803)	@ff4
+TmCommandBarStyle	TmTaskButton	content	dtb(button, 1, 2)	@ff8
+TmCommandBarStyle	TmTaskButton		gtf(TEXTSTYLE, 4, 0)	@ffc
+TmCommandBarStyle	TmTaskButton	foreground	gtc(button, 1, 3, 3803)	@100c
+TmCommandBarStyle	TmTaskButton	content	dtb(button, 1, 3)	@1010
+TmCommandBarStyle	TmTaskButton		gtf(TEXTSTYLE, 4, 0)	@1014
+TmCommandBarStyle	TmTaskButton	state	gtf(TEXTSTYLE, 4, 0)	@1016
+TmCommandBarStyle	TmTaskButton	content	dtb(button, 1, 4)	@1028
+TmCommandBarStyle	TmTaskButton	foreground	gtc(CONTROLPANELSTYLE,10,4,3803)	@102c
+TmCommandBarStyle	TmTaskButton		gtf(TEXTSTYLE, 4, 0)	@1030
+TmCommandBarStyle	TmTaskButton	state	gtf(TEXTSTYLE, 4, 0)	@1032
+TmCommandBarStyle	TmTaskButton	state	gtf(TEXTSTYLE, 4, 0)	@1036
+TmViewStyle	(style)		gtc(Button,1,4,3803)	@1044
+TmViewStyle	atom(TmViewData)		gtf(TEXTSTYLE, 4, 0)	@1060
+TmViewStyle	atom(TmViewColumnHeader)		gtf(TEXTSTYLE, 4, 0)	@1078
+TmViewStyle	ScrollViewer		dtb(EXPLORER::LISTVIEW, 1, 3)	@1084
+TmViewStyle	ScrollViewer		dtb(EXPLORER::LISTVIEW, 1, 3)	@1094
+TmViewStyle	ScrollViewer		gtc(Button,1,4,3803)	@10a4
+TmViewStyle	ScrollViewer		gtf(TEXTSTYLE, 4, 0)	@10ac
+TmViewStyle	ScrollViewer	state	gtf(TEXTSTYLE, 4, 0)	@10ae
+TmViewStyle	ScrollViewer	p8008	gtf(TEXTSTYLE, 4, 0)	@10b2
+TmViewStyle	ScrollViewer	p8005	gtc(TASKMANAGER, 15, 0, 3803)	@10b6
+TmAppViewItem	TmViewItemClass	p8020	dtb(CommandModule, 3, 2)	@10d2
+TmAppViewItem	atom(ViewExpandoButtonImage)		gtf(TEXTSTYLE, 4, 0)	@1144
+TmAppViewItem	atom(TmRowIcon)		gtf(TEXTSTYLE, 4, 0)	@11cc
+TmAppViewItem	atom(TmColFriendlyName)		gtf(TEXTSTYLE, 4, 0)	@11ec
+TmAppViewItem	atom(TmColType)		gtc(TASKMANAGER, 15, 0, 3803)	@120c
+TmAppViewItem	atom(TmLeafIcon)		gtf(TEXTSTYLE, 4, 0)	@1278
+TmAppViewItem	atom(TmColPowerUsageTrend)		gtf(TEXTSTYLE, 4, 0)	@13e8
+TmAppViewItem	atom(TmColPowerUsageTrend)	background	dtb(CommandModule, 3, 2)	@13ea
+TmAppViewItem	atom(clipped)		gtf(TEXTSTYLE, 4, 0)	@1418
+TmAppViewItem	atom(clipped)		gtf(TEXTSTYLE, 4, 0)	@141c
+TmAppViewItem	atom(clipped)		gtf(TEXTSTYLE, 4, 0)	@1420
+TmAppViewItem	atom(clipped)		gtf(TEXTSTYLE, 4, 0)	@1424
+TmAppViewItem	atom(clipped)	background	gtc(TASKMANAGER, 15, 0, 3803)	@1426
+TmAppChildViewItem	atom(TmViewRow)	p8003	gtc(TASKMANAGER, 15, 0, 3803)	@148e
+TmAppChildViewItem	atom(TmRowIcon)		gtf(TEXTSTYLE, 4, 0)	@14e4
+TmAppChildViewItem	atom(TmColFriendlyName)		gtf(TEXTSTYLE, 4, 0)	@1504
+TmAppChildViewItem	atom(TmColType)		gtc(TASKMANAGER, 15, 0, 3803)	@1524
+TmAppChildViewItem	atom(TmLeafIcon)		gtf(TEXTSTYLE, 4, 0)	@1590
+TmAppChildViewItem	atom(TmColPowerUsageTrend)		gtf(TEXTSTYLE, 4, 0)	@1700
+TmAppChildViewItem	atom(TmColPowerUsageTrend)	background	gtf(TEXTSTYLE, 4, 0)	@1702
+TmAppChildViewItem	atom(TmColPowerUsageTrend)		gtf(TEXTSTYLE, 4, 0)	@1708
+TmAppChildViewItem	atom(TmColPowerUsageTrend)	background	gtc(TASKMANAGER, 15, 0, 3803)	@170a
+TmStartupViewItem	TmViewItemClass	p8020	dtb(CommandModule, 3, 2)	@1726
+TmStartupViewItem	atom(ViewExpandoButtonImage)		gtf(TEXTSTYLE, 4, 0)	@1798
+TmStartupViewItem	atom(TmRowIcon)		gtf(TEXTSTYLE, 4, 0)	@1820
+TmStartupViewItem	atom(TmColFriendlyName)		gtf(TEXTSTYLE, 4, 0)	@1840
+TmStartupViewItem	atom(TmColCommandLine)		gtf(TEXTSTYLE, 4, 0)	@1940
+TmStartupViewItem	atom(TmColCommandLine)	background	dtb(CommandModule, 3, 2)	@1942
+TmStartupViewItem	atom(clipped)		gtf(TEXTSTYLE, 4, 0)	@1970
+TmStartupViewItem	atom(clipped)		gtf(TEXTSTYLE, 4, 0)	@1974
+TmStartupViewItem	atom(clipped)		gtf(TEXTSTYLE, 4, 0)	@1978
+TmStartupViewItem	atom(clipped)		gtf(TEXTSTYLE, 4, 0)	@197c
+TmStartupViewItem	atom(clipped)	background	gtc(TASKMANAGER, 15, 0, 3803)	@197e
+TmStartupChildViewItem	atom(TmViewRow)	p8003	gtc(TASKMANAGER, 15, 0, 3803)	@19e6
+TmStartupChildViewItem	atom(TmRowIcon)		gtf(TEXTSTYLE, 4, 0)	@1a3c
+TmStartupChildViewItem	atom(TmColFriendlyName)		gtf(TEXTSTYLE, 4, 0)	@1a5c
+TmStartupChildViewItem	atom(TmColCommandLine)		gtf(TEXTSTYLE, 4, 0)	@1b5c
+TmStartupChildViewItem	atom(TmColCommandLine)	background	gtf(TEXTSTYLE, 4, 0)	@1b5e
+TmStartupChildViewItem	atom(TmColCommandLine)		gtf(TEXTSTYLE, 4, 0)	@1b64
+TmStartupChildViewItem	atom(TmColCommandLine)	background	gtc(TASKMANAGER, 15, 0, 3803)	@1b66
+TmUsersViewItem	TmViewItemClass		dtb(CommandModule, 3, 2)	@1b84
+TmUsersViewItem	atom(ViewExpandoButtonImage)		gtf(TEXTSTYLE, 4, 0)	@1bf4
+TmUsersViewItem	atom(TmRowIcon)		gtf(TEXTSTYLE, 4, 0)	@1c7c
+TmUsersViewItem	atom(TmColFriendlyName)		gtf(TEXTSTYLE, 4, 0)	@1c9c
+TmUsersViewItem	atom(TmColGpuEngineName)		gtf(TEXTSTYLE, 4, 0)	@1dcc
+TmUsersViewItem	atom(TmColGpuEngineName)	background	dtb(CommandModule, 3, 2)	@1dce
+TmUsersViewItem	atom(clipped)		gtf(TEXTSTYLE, 4, 0)	@1dfc
+TmUsersViewItem	atom(clipped)		gtf(TEXTSTYLE, 4, 0)	@1e00
+TmUsersViewItem	atom(clipped)		gtf(TEXTSTYLE, 4, 0)	@1e04
+TmUsersViewItem	atom(clipped)		gtf(TEXTSTYLE, 4, 0)	@1e08
+TmUsersViewItem	atom(clipped)	background	gtc(TASKMANAGER, 15, 0, 3803)	@1e0a
+TmUsersChildViewItem	atom(TmViewRow)	p8003	gtc(TASKMANAGER, 15, 0, 3803)	@1e72
+TmUsersChildViewItem	atom(TmRowIcon)		gtf(TEXTSTYLE, 4, 0)	@1ec8
+TmUsersChildViewItem	atom(TmColFriendlyName)		gtf(TEXTSTYLE, 4, 0)	@1ee8
+TmUsersChildViewItem	atom(TmColGpuEngineName)		gtf(TEXTSTYLE, 4, 0)	@2018
+TmUsersChildViewItem	atom(TmColGpuEngineName)	background	gtf(TEXTSTYLE, 4, 0)	@201a
+TmUsersChildViewItem	atom(TmColGpuEngineName)		gtf(TEXTSTYLE, 4, 0)	@2020
+TmUsersChildViewItem	atom(TmColGpuEngineName)	background	gtc(TASKMANAGER, 15, 0, 3803)	@2022
+TmAppHistoryViewItem	TmViewItemClass		dtb(CommandModule, 3, 2)	@2040
+TmAppHistoryViewItem	atom(ViewExpandoButtonImage)		gtf(TEXTSTYLE, 4, 0)	@20b0
+TmAppHistoryViewItem	atom(TmRowIcon)		gtf(TEXTSTYLE, 4, 0)	@2138
+TmAppHistoryViewItem	atom(TmColFriendlyName)		gtf(TEXTSTYLE, 4, 0)	@2158
+TmAppHistoryViewItem	atom(TmColNetworkUpstream)		gtf(TEXTSTYLE, 4, 0)	@2230
+TmAppHistoryViewItem	atom(TmColNetworkUpstream)	background	dtb(CommandModule, 3, 2)	@2232
+TmAppHistoryViewItem	atom(clipped)		gtf(TEXTSTYLE, 4, 0)	@2260
+TmAppHistoryViewItem	atom(clipped)		gtf(TEXTSTYLE, 4, 0)	@2264
+TmAppHistoryViewItem	atom(clipped)		gtf(TEXTSTYLE, 4, 0)	@2268
+TmAppHistoryViewItem	atom(clipped)		gtf(TEXTSTYLE, 4, 0)	@226c
+TmAppHistoryViewItem	atom(clipped)	background	gtc(TASKMANAGER, 15, 0, 3803)	@226e
+TmAppHistoryChildViewItem	atom(TmViewRow)	p8003	gtc(TASKMANAGER, 15, 0, 3803)	@22d6
+TmAppHistoryChildViewItem	atom(TmRowIcon)		gtf(TEXTSTYLE, 4, 0)	@232c
+TmAppHistoryChildViewItem	atom(TmColFriendlyName)		gtf(TEXTSTYLE, 4, 0)	@234c
+TmAppHistoryChildViewItem	atom(TmColNetworkUpstream)		gtf(TEXTSTYLE, 4, 0)	@2424
+TmAppHistoryChildViewItem	atom(TmColNetworkUpstream)	background	gtf(TEXTSTYLE, 4, 0)	@2426
+TmAppHistoryChildViewItem	atom(TmColNetworkUpstream)		gtf(TEXTSTYLE, 4, 0)	@242c
+apptab_graphs	(style)	p8004	gtf(TEXTSTYLE, 4, 0)	@2446
+apptab_tables	(style)	p802a	gtc(TASKMANAGER, 39, 0, 3802)	@2462
+apptab_tables	atom(ColScrollViewer)	p8004	gtc(TASKMANAGER, 15, 0, 3803)	@24ae
+apptab_tables	atom(TmColumnHeader)		gtc(TASKMANAGER, 39, 0, 3802)	@24cc
+apptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@2522
+apptab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@255e
+apptab_tables	atom(ColHeaderText)		gtc(TASKMANAGER, 39, 0, 3802)	@2564
+apptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@25ba
+apptab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@25f6
+apptab_tables	atom(ColHeaderText)		gtc(TASKMANAGER, 39, 0, 3802)	@25fc
+apptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@2652
+apptab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@268e
+apptab_tables	atom(ColHeaderText)		gtc(TASKMANAGER, 39, 0, 3802)	@2694
+apptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@26ea
+apptab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@2726
+apptab_tables	atom(ColHeaderText)		gtc(TASKMANAGER, 39, 0, 3802)	@272c
+apptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@2782
+apptab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@27be
+apptab_tables	atom(ColHeaderText)		gtc(TASKMANAGER, 39, 0, 3802)	@27c4
+apptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@281a
+apptab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@2856
+apptab_tables	atom(ColHeaderText)		gtc(TASKMANAGER, 39, 0, 3802)	@285c
+apptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@28b2
+apptab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@28ee
+apptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@2952
+apptab_tables	ResourceValueClass	p8029	gtf(TEXTSTYLE, 4, 0)	@299a
+apptab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@29bc
+apptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@2a1e
+apptab_tables	ResourceValueClass	p8029	gtf(TEXTSTYLE, 4, 0)	@2a66
+apptab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@2a88
+apptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@2aea
+apptab_tables	ResourceValueClass	p8029	gtf(TEXTSTYLE, 4, 0)	@2b32
+apptab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@2b54
+apptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@2bb6
+apptab_tables	ResourceValueClass	p8029	gtf(TEXTSTYLE, 4, 0)	@2bfe
+apptab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@2c20
+apptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@2c82
+apptab_tables	ResourceValueClass	p8029	gtf(TEXTSTYLE, 4, 0)	@2cca
+apptab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@2cec
+apptab_tables	atom(ColHeaderText)		gtc(TASKMANAGER, 39, 0, 3802)	@2cf0
+apptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@2d46
+apptab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@2d82
+apptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@2de6
+apptab_tables	ResourceValueClass	p8029	gtf(TEXTSTYLE, 4, 0)	@2e2e
+apptab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@2e50
+apptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@2eb2
+apptab_tables	ResourceValueClass	p8029	gtf(TEXTSTYLE, 4, 0)	@2efa
+apptab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@2f1c
+apptab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@2f20
+apptab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@2f24
+apptab_tables	atom(TmScrollerItem)		gtc(TASKMANAGER, 15, 0, 3803)	@2f78
+apptab_tables	atom(TmGroupHeader_Apps)	p803f	dtb(CommandModule, 3, 2)	@2f92
+apptab_tables	atom(TmGroupRow)	p803f	dtb(EXPLORER::LISTVIEW, 1, 3)	@2fa2
+apptab_tables	atom(TmColPowerUsageTrend)		gtf(TEXTSTYLE, 4, 0)	@3150
+apptab_tables	atom(TmColPowerUsageTrend)	background	dtb(EXPLORER::LISTVIEW, 1, 3)	@3152
+apptab_tables	atom(TmGroupHeaderItems)	p803f	gtf(TEXTSTYLE, 4, 0)	@3162
+apptab_tables	atom(TmGroupHeaderItems)		gtc(TASKMANAGER, 15, 0, 3803)	@3168
+apptab_tables	atom(TmGroupHeader_Background)	p803f	dtb(CommandModule, 3, 2)	@3182
+apptab_tables	atom(TmGroupRow)	p803f	dtb(EXPLORER::LISTVIEW, 1, 3)	@3192
+apptab_tables	atom(TmColPowerUsageTrend)		gtf(TEXTSTYLE, 4, 0)	@3348
+apptab_tables	atom(TmColPowerUsageTrend)	background	dtb(EXPLORER::LISTVIEW, 1, 3)	@334a
+apptab_tables	atom(TmGroupHeaderItems)	p803f	gtf(TEXTSTYLE, 4, 0)	@335a
+apptab_tables	atom(TmGroupHeaderItems)		gtc(TASKMANAGER, 15, 0, 3803)	@3360
+apptab_tables	atom(TmGroupHeader_Windows)	p803f	dtb(CommandModule, 3, 2)	@337a
+apptab_tables	atom(TmGroupRow)	p803f	dtb(EXPLORER::LISTVIEW, 1, 3)	@338a
+apptab_tables	atom(TmColPowerUsageTrend)		gtf(TEXTSTYLE, 4, 0)	@3540
+apptab_tables	atom(TmColPowerUsageTrend)	background	dtb(EXPLORER::LISTVIEW, 1, 3)	@3542
+apptab_tables	atom(TmGroupHeaderItems)	p803f	gtf(TEXTSTYLE, 4, 0)	@3552
+apptab_tables	atom(TmScrollerItemList)	p803f	gtf(TEXTSTYLE, 4, 0)	@3562
+apptab_tables	atom(TmScrollerItemList)	background	gtf(TEXTSTYLE, 4, 0)	@3566
+apptab_tables	atom(TmScrollerItemList)		gtf(TEXTSTYLE, 4, 0)	@356c
+apptab_tables	atom(TmScrollerItemList)	background	gtf(TEXTSTYLE, 4, 0)	@356e
+apptab_tables	atom(TmScrollerItemList)		gtf(TEXTSTYLE, 4, 0)	@3574
+apptab_tables	atom(TmScrollerItemList)	background	gtf(TEXTSTYLE, 4, 0)	@3576
+startuptab_graphs	(style)	p8004	gtf(TEXTSTYLE, 4, 0)	@3592
+startuptab_tables	(style)	p802a	gtc(TASKMANAGER, 39, 0, 3802)	@35ae
+startuptab_tables	atom(BIOSPostTimeHolder)	p8004	dtb(CommandModule, 3, 2)	@35ee
+startuptab_tables	atom(BIOSPostTimeText)		gtf(TEXTSTYLE, 4, 0)	@362c
+startuptab_tables	atom(BIOSPostTimeText)	background	gtf(TEXTSTYLE, 4, 0)	@362e
+startuptab_tables	atom(ColScrollViewer)	p8004	gtc(TASKMANAGER, 15, 0, 3803)	@3656
+startuptab_tables	atom(TmColumnHeader)		gtc(TASKMANAGER, 39, 0, 3802)	@3674
+startuptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@36ca
+startuptab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@3706
+startuptab_tables	atom(ColHeaderText)		gtc(TASKMANAGER, 39, 0, 3802)	@370c
+startuptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@3762
+startuptab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@379e
+startuptab_tables	atom(ColHeaderText)		gtc(TASKMANAGER, 39, 0, 3802)	@37a4
+startuptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@37fa
+startuptab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@3836
+startuptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@389a
+startuptab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@38d6
+startuptab_tables	atom(ColHeaderText)		gtc(TASKMANAGER, 39, 0, 3802)	@38dc
+startuptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@3932
+startuptab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@396e
+startuptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@39d2
+startuptab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@3a0e
+startuptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@3a72
+startuptab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@3aae
+startuptab_tables	atom(ColHeaderText)		gtc(TASKMANAGER, 39, 0, 3802)	@3ab4
+startuptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@3b0a
+startuptab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@3b46
+startuptab_tables	atom(ColHeaderText)		gtc(TASKMANAGER, 39, 0, 3802)	@3b4c
+startuptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@3ba2
+startuptab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@3bde
+startuptab_tables	atom(ColHeaderText)		gtc(TASKMANAGER, 39, 0, 3802)	@3be4
+startuptab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@3c3a
+startuptab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@3c76
+startuptab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@3c7c
+startuptab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@3c80
+startuptab_tables	StaticLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@3cec
+startuptab_tables	atom(TmScrollerItemList)	p803f	gtf(TEXTSTYLE, 4, 0)	@3cfa
+startuptab_tables	atom(TmScrollerItemList)	background	gtf(TEXTSTYLE, 4, 0)	@3cfe
+startuptab_tables	atom(TmScrollerItemList)		gtf(TEXTSTYLE, 4, 0)	@3d04
+startuptab_tables	atom(TmScrollerItemList)	background	gtf(TEXTSTYLE, 4, 0)	@3d06
+startuptab_tables	atom(TmScrollerItemList)		gtf(TEXTSTYLE, 4, 0)	@3d0c
+startuptab_tables	atom(TmScrollerItemList)	background	gtf(TEXTSTYLE, 4, 0)	@3d0e
+userstab_graphs	(style)	p8004	gtf(TEXTSTYLE, 4, 0)	@3d2a
+userstab_tables	(style)	p802a	gtc(TASKMANAGER, 39, 0, 3802)	@3d46
+userstab_tables	atom(ColScrollViewer)	p8004	gtc(TASKMANAGER, 15, 0, 3803)	@3d92
+userstab_tables	atom(TmColumnHeader)		gtc(TASKMANAGER, 39, 0, 3802)	@3db0
+userstab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@3e06
+userstab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@3e42
+userstab_tables	atom(ColHeaderText)		gtc(TASKMANAGER, 39, 0, 3802)	@3e48
+userstab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@3e9e
+userstab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@3eda
+userstab_tables	atom(ColHeaderText)		gtc(TASKMANAGER, 39, 0, 3802)	@3ee0
+userstab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@3f36
+userstab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@3f72
+userstab_tables	atom(ColHeaderText)		gtc(TASKMANAGER, 39, 0, 3802)	@3f78
+userstab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@3fce
+userstab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@400a
+userstab_tables	atom(ColHeaderText)		gtc(TASKMANAGER, 39, 0, 3802)	@4010
+userstab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@4066
+userstab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@40a2
+userstab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@4106
+userstab_tables	ResourceValueClass	p8029	gtf(TEXTSTYLE, 4, 0)	@414e
+userstab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@4170
+userstab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@41d2
+userstab_tables	ResourceValueClass	p8029	gtf(TEXTSTYLE, 4, 0)	@421a
+userstab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@423c
+userstab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@429e
+userstab_tables	ResourceValueClass	p8029	gtf(TEXTSTYLE, 4, 0)	@42e6
+userstab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@4308
+userstab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@436a
+userstab_tables	ResourceValueClass	p8029	gtf(TEXTSTYLE, 4, 0)	@43b2
+userstab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@43d4
+userstab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@4436
+userstab_tables	ResourceValueClass	p8029	gtf(TEXTSTYLE, 4, 0)	@447e
+userstab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@44a0
+userstab_tables	atom(ColHeaderText)		gtc(TASKMANAGER, 39, 0, 3802)	@44a4
+userstab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@44fa
+userstab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@4536
+userstab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@453c
+userstab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@4540
+userstab_tables	atom(TmScrollerItemList)	p803f	gtf(TEXTSTYLE, 4, 0)	@459a
+userstab_tables	atom(TmScrollerItemList)	background	gtf(TEXTSTYLE, 4, 0)	@459e
+userstab_tables	atom(TmScrollerItemList)		gtf(TEXTSTYLE, 4, 0)	@45a4
+userstab_tables	atom(TmScrollerItemList)	background	gtf(TEXTSTYLE, 4, 0)	@45a6
+userstab_tables	atom(TmScrollerItemList)		gtf(TEXTSTYLE, 4, 0)	@45ac
+userstab_tables	atom(TmScrollerItemList)	background	gtf(TEXTSTYLE, 4, 0)	@45ae
+apphistorytab_graphs	(style)	p8004	gtf(TEXTSTYLE, 4, 0)	@45ca
+apphistorytab_tables	(style)	p802a	gtc(TASKMANAGER, 39, 0, 3802)	@45e6
+apphistorytab_tables	link		gtf(TEXTSTYLE, 4, 0)	@4670
+apphistorytab_tables	atom(ColScrollViewer)	p8004	gtc(TASKMANAGER, 15, 0, 3803)	@46a2
+apphistorytab_tables	atom(TmColumnHeader)		gtc(TASKMANAGER, 39, 0, 3802)	@46c0
+apphistorytab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@4716
+apphistorytab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@4752
+apphistorytab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@47b6
+apphistorytab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@47f2
+apphistorytab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@4856
+apphistorytab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@4892
+apphistorytab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@48f6
+apphistorytab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@4932
+apphistorytab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@4996
+apphistorytab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@49d2
+apphistorytab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@4a36
+apphistorytab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@4a72
+apphistorytab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@4ad6
+apphistorytab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@4b12
+apphistorytab_tables	atom(ResizerImage)	p8029	gtf(TEXTSTYLE, 4, 0)	@4b76
+apphistorytab_tables	atom(ColHeaderText)	p8027	gtf(TEXTSTYLE, 4, 0)	@4bb2
+apphistorytab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@4bb8
+apphistorytab_tables	atom(ColHeaderText)		gtf(TEXTSTYLE, 4, 0)	@4bbc
+apphistorytab_tables	StaticLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@4c28
+apphistorytab_tables	atom(TmScrollerItemList)	p803f	gtf(TEXTSTYLE, 4, 0)	@4c36
+apphistorytab_tables	atom(TmScrollerItemList)	background	gtf(TEXTSTYLE, 4, 0)	@4c3a
+apphistorytab_tables	atom(TmScrollerItemList)		gtf(TEXTSTYLE, 4, 0)	@4c40
+apphistorytab_tables	atom(TmScrollerItemList)	background	gtf(TEXTSTYLE, 4, 0)	@4c42
+apphistorytab_tables	atom(TmScrollerItemList)	background	gtf(TEXTSTYLE, 4, 0)	@4c46
+apphistorytab_tables	atom(TmScrollerItemList)		gtf(TEXTSTYLE, 4, 0)	@4c4c
+apphistorytab_tables	atom(TmScrollerItemList)	background	gtf(TEXTSTYLE, 4, 0)	@4c4e
+performancetab_graphs	(style)	p803f	gtc(TASKMANAGER, 15, 0, 3803)	@4c5e
+performancetab_graphs	atom(dashSidebarScrollViewer)		dtb(CommandModule, 3, 2)	@4c7c
+performancetab_graphs	atom(dashSidebar)	p803f	dtb(CommandModule, 3, 2)	@4c8a
+performancetab_graphs	atom(dashSidebarGpuEntry)	p803f	gtf(TEXTSTYLE, 4, 0)	@4cd6
+performancetab_graphs	atom(dashSidebarGpuEntry)	background	gtc(Button,1,4,3803)	@4cda
+performancetab_graphs	atom(dashSidebarGpuEntry)	p802a	gtf(TEXTSTYLE, 4, 0)	@4ce2
+performancetab_graphs	atom(dashSidebarGpuEntry)	background	gtf(TEXTSTYLE, 4, 0)	@4ce6
+performancetab_graphs	atom(dashSidebarGpuEntry)		gtc(TASKMANAGER, 15, 0, 3803)	@4cec
+performancetab_graphs	atom(dashSidebarDivider)	content	sgraphic(31222, 4, -1, 0, 0, 1, 1)	@4d10
+performancetab_graphs	atom(dashSidebarDivider)	content	sgraphic(31223, 4, -1, 0, 0, 1, 1)	@4d24
+performancetab_graphs	atom(dashSidebarDivider)	content	sgraphic(31224, 4, -1, 0, 0, 1, 1)	@4d30
+performancetab_graphs	atom(dashSidebarDivider)		gtf(TEXTSTYLE, 4, 0)	@4d3c
+performancetab_graphs	atom(dashSidebarDivider)	background	gtf(TEXTSTYLE, 4, 0)	@4d3e
+dashSidebarEntryViewer	atom(dashSidebarEntry)		gtf(TEXTSTYLE, 4, 0)	@4d70
+dashSidebarCpuButton	dashSidebarActionButton		dtb(EXPLORER::LISTVIEW, 1, 3)	@4d94
+dashSidebarCpuButton	dotIcon	p8011	sgraphic(31213,2)	@4db0
+dashSidebarCpuButton	dotIcon		dtb(CommandModule, 3, 2)	@4db8
+dashSidebarCpuButton	sidebarData		gtf(TEXTSTYLE, 4, 0)	@4e14
+dashSidebarCpuButton	sidebarData	background	gtf(TEXTSTYLE, 4, 0)	@4e16
+dashSidebarCpuButton	sidebarData	background	gtf(TEXTSTYLE, 4, 0)	@4e1a
+dashSidebarMemoryButton	dashSidebarActionButton		dtb(EXPLORER::LISTVIEW, 1, 3)	@4e40
+dashSidebarMemoryButton	dotIcon	p8011	sgraphic(31214,2)	@4e5c
+dashSidebarMemoryButton	dotIcon		dtb(CommandModule, 3, 2)	@4e64
+dashSidebarMemoryButton	sidebarLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@4e88
+dashSidebarMemoryButton	sidebarData	p8026	gtf(TEXTSTYLE, 4, 0)	@4e96
+dashSidebarMemoryButton	sidebarData	background	gtf(TEXTSTYLE, 4, 0)	@4e9a
+dashSidebarDiskButton	dashSidebarActionButton		dtb(EXPLORER::LISTVIEW, 1, 3)	@4eb8
+dashSidebarDiskButton	dotIcon	p8011	sgraphic(31215,2)	@4ed4
+dashSidebarDiskButton	dotIcon		dtb(CommandModule, 3, 2)	@4edc
+dashSidebarDiskButton	dotIcon		dtb(EXPLORER::LISTVIEW, 1, 3)	@4eec
+dashSidebarDiskButton	sidebarLabel	p8026	dtb(EXPLORER::LISTVIEW, 1, 3)	@4efa
+dashSidebarDiskButton	sidebarData	p8026	dtb(EXPLORER::LISTVIEW, 1, 3)	@4f0a
+dashSidebarDiskButton	sidebarData	p8026	dtb(CommandModule, 3, 2)	@4f1a
+dashSidebarDiskButton	sidebarDataHeader		dtb(EXPLORER::LISTVIEW, 1, 3)	@4f40
+dashSidebarDiskButton	sidebarDataHeader		dtb(EXPLORER::LISTVIEW, 1, 3)	@4f64
+dashSidebarDiskButton	sidebarData	p8028	gtf(TEXTSTYLE, 4, 0)	@4f72
+dashSidebarDiskButton	sidebarData	background	gtf(TEXTSTYLE, 4, 0)	@4f76
+dashSidebarDiskButton	sidebarData	background	gtf(TEXTSTYLE, 4, 0)	@4f7a
+dashSidebarNetButton	dashSidebarActionButton		dtb(CommandModule, 3, 2)	@4f98
+dashSidebarNetButton	atom(sideBarNetChartHost)	p8028	dtb(EXPLORER::LISTVIEW, 1, 3)	@4fa6
+dashSidebarNetButton	InactiveChart	p8011	sgraphic(31220)	@4fc4
+dashSidebarNetButton	InactiveChart		gtf(TEXTSTYLE, 4, 0)	@4fcc
+dashSidebarNetButton	InactiveChart	background	dtb(CommandModule, 3, 2)	@4fce
+dashSidebarNetButton	dotIcon	p8011	sgraphic(31216,2)	@4fec
+dashSidebarNetButton	dotIcon	p8011	sgraphic(31221,2)	@5000
+dashSidebarNetButton	dotIcon		gtf(TEXTSTYLE, 4, 0)	@5008
+dashSidebarNetButton	dotIcon	background	dtb(CommandModule, 3, 2)	@500a
+dashSidebarNetButton	dotIcon		dtb(EXPLORER::LISTVIEW, 1, 3)	@501c
+dashSidebarNetButton	sidebarData		dtb(CommandModule, 3, 2)	@5048
+dashSidebarNetButton	sidebarDataHeader		dtb(EXPLORER::LISTVIEW, 1, 3)	@506c
+dashSidebarNetButton	sidebarDataHeader		dtb(EXPLORER::LISTVIEW, 1, 3)	@5090
+dashSidebarNetButton	sidebarData	p8028	gtf(TEXTSTYLE, 4, 0)	@509e
+dashSidebarNetButton	sidebarDataHeader		gtf(TEXTSTYLE, 4, 0)	@50b8
+dashSidebarNetButton	sidebarDataHeader	background	gtf(TEXTSTYLE, 4, 0)	@50ba
+dashSidebarGpuButton	dashSidebarActionButton		dtb(EXPLORER::LISTVIEW, 1, 3)	@50d8
+dashSidebarGpuButton	dotIcon	p8011	sgraphic(31217,2)	@50f4
+dashSidebarGpuButton	dotIcon		dtb(CommandModule, 3, 2)	@50fc
+dashSidebarGpuButton	dotIcon		dtb(EXPLORER::LISTVIEW, 1, 3)	@510c
+dashSidebarGpuButton	sidebarData		gtf(TEXTSTYLE, 4, 0)	@5168
+dashSidebarGpuButton	sidebarData	background	gtf(TEXTSTYLE, 4, 0)	@516a
+dashSidebarGpuButton	sidebarData	background	gtf(TEXTSTYLE, 4, 0)	@516e
+dashSidebarGpuButton	sidebarData		dtb(CommandModule, 3, 2)	@5174
+performancetab_tables	(style)		dtb(CommandModule, 3, 2)	@5184
+performancetab_tables	atom(resourceName)	p802a	gtf(TEXTSTYLE, 4, 0)	@51fa
+performancetab_tables	atom(chartInfo)		gtf(TEXTSTYLE, 4, 0)	@5228
+performancetab_tables	atom(staticInfo)		gtf(TEXTSTYLE, 4, 0)	@527c
+performancetab_tables	atom(staticInfo)	background	gtf(TEXTSTYLE, 4, 0)	@527e
+performancetab_tables	atom(staticInfo)	background	gtf(TEXTSTYLE, 4, 0)	@5282
+performancetab_tables	atom(staticInfo)		gtf(TEXTSTYLE, 4, 0)	@5288
+performancetab_tables	atom(staticInfo)	background	gtf(TEXTSTYLE, 4, 0)	@528a
+static_cpu	staticData		gtf(TEXTSTYLE, 4, 0)	@52d8
+static_cpu	staticData		gtf(TEXTSTYLE, 4, 0)	@530c
+static_cpu	staticData		gtf(TEXTSTYLE, 4, 0)	@5340
+static_cpu	staticData		gtf(TEXTSTYLE, 4, 0)	@5374
+static_cpu	staticData		gtf(TEXTSTYLE, 4, 0)	@53a8
+static_cpu	staticData		gtf(TEXTSTYLE, 4, 0)	@53dc
+static_cpu	staticData		gtf(TEXTSTYLE, 4, 0)	@5410
+static_cpu	staticData		gtf(TEXTSTYLE, 4, 0)	@5444
+static_cpu	staticData		gtf(TEXTSTYLE, 4, 0)	@5478
+static_cpu	staticData		gtf(TEXTSTYLE, 4, 0)	@54ac
+static_cpu	staticData		gtf(TEXTSTYLE, 4, 0)	@54e0
+static_cpu	staticData		gtf(TEXTSTYLE, 4, 0)	@5514
+static_cpu	staticData	background	gtf(TEXTSTYLE, 4, 0)	@5516
+dynamic_cpu	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@5560
+dynamic_cpu	dynamicData		gtf(TEXTSTYLE, 4, 0)	@5570
+dynamic_cpu	dynamicData	background	dtb(CommandModule, 3, 2)	@5572
+dynamic_cpu	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@5598
+dynamic_cpu	dynamicData		gtf(TEXTSTYLE, 4, 0)	@55a8
+dynamic_cpu	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@55aa
+dynamic_cpu	dynamicData	background	dtb(CommandModule, 3, 2)	@55ae
+dynamic_cpu	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@55e0
+dynamic_cpu	dynamicData		gtf(TEXTSTYLE, 4, 0)	@55f0
+dynamic_cpu	dynamicData	background	dtb(CommandModule, 3, 2)	@55f2
+dynamic_cpu	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@5618
+dynamic_cpu	dynamicData		gtf(TEXTSTYLE, 4, 0)	@5628
+dynamic_cpu	dynamicData	background	dtb(CommandModule, 3, 2)	@562a
+dynamic_cpu	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@5650
+dynamic_cpu	dynamicData		gtf(TEXTSTYLE, 4, 0)	@5660
+dynamic_cpu	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@5662
+dynamic_cpu	dynamicData	background	dtb(CommandModule, 3, 2)	@5666
+dynamic_cpu	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@5698
+dynamic_cpu	dynamicData		gtf(TEXTSTYLE, 4, 0)	@56a8
+dynamic_cpu	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@56aa
+dynamic_cpu	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@56ae
+cpu_chart	atom(overallCpuHost)		dtb(CommandModule, 3, 2)	@56e4
+cpu_chart	lheader		dtb(EXPLORER::LISTVIEW, 1, 3)	@5708
+cpu_chart	rheader		gtf(TEXTSTYLE, 4, 0)	@5718
+cpu_chart	rheader	background	dtb(CommandModule, 3, 2)	@571a
+cpu_chart	atom(primaryCpuChart)		gtf(TEXTSTYLE, 4, 0)	@5748
+cpu_chart	atom(primaryCpuChart)	p8027	dtb(CommandModule, 3, 2)	@5756
+cpu_chart	lheader		dtb(EXPLORER::LISTVIEW, 1, 3)	@5774
+cpu_chart	rheader		gtf(TEXTSTYLE, 4, 0)	@5784
+cpu_chart	rheader	background	gtf(TEXTSTYLE, 4, 0)	@5786
+cpu_chart	rheader	background	gtf(TEXTSTYLE, 4, 0)	@578a
+cpu_chart	rheader	background	gtc(TASKMANAGER, 15, 0, 3803)	@578e
+cpu_chart	atom(logicalCpuHost)		dtb(CommandModule, 3, 2)	@57ac
+cpu_chart	lheader		dtb(EXPLORER::LISTVIEW, 1, 3)	@57c8
+cpu_chart	rheader		gtf(TEXTSTYLE, 4, 0)	@57d8
+cpu_chart	atom(cpuGrid)	p802a	dtb(CommandModule, 3, 2)	@57e6
+cpu_chart	lheader		gtf(TEXTSTYLE, 4, 0)	@5804
+cpu_chart	lheader	background	gtf(TEXTSTYLE, 4, 0)	@5806
+cpu_chart	lheader	background	gtc(TASKMANAGER, 15, 0, 3803)	@580a
+cpu_chart	atom(heatMapCpuHost)		dtb(CommandModule, 3, 2)	@5828
+cpu_chart	lheader		gtf(TEXTSTYLE, 4, 0)	@584c
+cpu_chart	cpuHeatGrid	p803f	dtb(EXPLORER::LISTVIEW, 1, 3)	@5882
+cpu_chart	atom(cpuGrid)	p8004	gtf(TEXTSTYLE, 4, 0)	@5892
+cpu_chart	atom(cpuGrid)	background	gtf(TEXTSTYLE, 4, 0)	@5896
+cpu_chart	atom(cpuGrid)		gtf(TEXTSTYLE, 4, 0)	@589c
+cpu_chart	atom(cpuGrid)	background	dtb(CommandModule, 3, 2)	@589e
+cpu_chart	lheader		gtf(TEXTSTYLE, 4, 0)	@58bc
+cpu_chart	lheader	background	gtf(TEXTSTYLE, 4, 0)	@58be
+cpu_chart	lheader	background	gtc(TASKMANAGER, 15, 0, 3803)	@58c2
+cpu_chart	atom(numaCpuHost)		dtb(CommandModule, 3, 2)	@58e0
+cpu_chart	lheader		dtb(EXPLORER::LISTVIEW, 1, 3)	@58fc
+cpu_chart	rheader		gtf(TEXTSTYLE, 4, 0)	@590c
+cpu_chart	atom(cpuGrid)	p802a	dtb(CommandModule, 3, 2)	@591a
+cpu_chart	lheader		gtf(TEXTSTYLE, 4, 0)	@5938
+cpu_chart	lheader	background	gtf(TEXTSTYLE, 4, 0)	@593a
+cpu_chart	lheader	background	gtf(TEXTSTYLE, 4, 0)	@593e
+atmCpu	(style)	p803f	dtb(EXPLORER::LISTVIEW, 1, 3)	@594e
+atmCpu	atom(atmCpuChart)		gtf(TEXTSTYLE, 4, 0)	@5960
+atmCpu	atom(atmCpuChart)	background	gtc(TASKMANAGER, 15, 0, 3803)	@5962
+cpuBlock	(style)		dtb(CommandModule, 3, 2)	@5980
+cpuBlock	atom(cpuBlockData)		gtf(TEXTSTYLE, 4, 0)	@59ac
+cpuBlock	atom(cpuBlockData)	background	gtf(TEXTSTYLE, 4, 0)	@59ae
+static_memory	staticData		gtf(TEXTSTYLE, 4, 0)	@59fc
+static_memory	staticData		gtf(TEXTSTYLE, 4, 0)	@5a30
+static_memory	staticData		gtf(TEXTSTYLE, 4, 0)	@5a64
+static_memory	staticData		gtf(TEXTSTYLE, 4, 0)	@5a98
+static_memory	staticData		gtf(TEXTSTYLE, 4, 0)	@5acc
+static_memory	staticData	background	gtf(TEXTSTYLE, 4, 0)	@5ace
+dynamic_memory	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@5b18
+dynamic_memory	dynamicData		gtf(TEXTSTYLE, 4, 0)	@5b28
+dynamic_memory	dynamicData	background	dtb(CommandModule, 3, 2)	@5b2a
+dynamic_memory	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@5b50
+dynamic_memory	dynamicData		gtf(TEXTSTYLE, 4, 0)	@5b60
+dynamic_memory	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@5b62
+dynamic_memory	dynamicData	background	dtb(CommandModule, 3, 2)	@5b66
+dynamic_memory	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@5b98
+dynamic_memory	dynamicData		gtf(TEXTSTYLE, 4, 0)	@5ba8
+dynamic_memory	dynamicData	background	dtb(CommandModule, 3, 2)	@5baa
+dynamic_memory	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@5bd0
+dynamic_memory	dynamicData		gtf(TEXTSTYLE, 4, 0)	@5be0
+dynamic_memory	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@5be2
+dynamic_memory	dynamicData	background	dtb(CommandModule, 3, 2)	@5be6
+dynamic_memory	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@5c18
+dynamic_memory	dynamicData		gtf(TEXTSTYLE, 4, 0)	@5c28
+dynamic_memory	dynamicData	background	dtb(CommandModule, 3, 2)	@5c2a
+dynamic_memory	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@5c50
+dynamic_memory	dynamicData		gtf(TEXTSTYLE, 4, 0)	@5c60
+dynamic_memory	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@5c62
+dynamic_memory	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@5c66
+memory_chart	atom(memory_chart)	p802a	dtb(CommandModule, 3, 2)	@5c8e
+memory_chart	atom(memory_size)		gtf(TEXTSTYLE, 4, 0)	@5cc0
+memory_chart	atom(memory_size)	background	dtb(CommandModule, 3, 2)	@5cc2
+memory_chart	atom(memoryUsageGraph)		gtf(TEXTSTYLE, 4, 0)	@5cf0
+memory_chart	lheader		dtb(EXPLORER::LISTVIEW, 1, 3)	@5d20
+memory_chart	rheader		gtf(TEXTSTYLE, 4, 0)	@5d30
+memory_chart	rheader	background	gtf(TEXTSTYLE, 4, 0)	@5d32
+memory_chart	rheader	background	gtf(TEXTSTYLE, 4, 0)	@5d36
+memory_chart	rheader	background	gtc(TASKMANAGER, 39, 0, 3802)	@5d3a
+memory_chart	atom(BarchartMemoryHolder)	p803f	dtb(EXPLORER::LISTVIEW, 1, 3)	@5d92
+memory_chart	atom(BarchartInuse)	p8028	dtb(EXPLORER::LISTVIEW, 1, 3)	@5da2
+memory_chart	atom(BarchartModified)	p8028	dtb(EXPLORER::LISTVIEW, 1, 3)	@5db2
+memory_chart	atom(BarchartStandby)	p8028	dtb(EXPLORER::LISTVIEW, 1, 3)	@5dc2
+memory_chart	atom(BarchartFree)	p8028	gtf(TEXTSTYLE, 4, 0)	@5dd2
+memory_chart	atom(BarchartFree)	background	gtf(TEXTSTYLE, 4, 0)	@5dd6
+memory_chart	atom(BarchartFree)	background	gtf(TEXTSTYLE, 4, 0)	@5dda
+static_disk	staticData		gtf(TEXTSTYLE, 4, 0)	@5e28
+static_disk	staticData		gtf(TEXTSTYLE, 4, 0)	@5e5c
+static_disk	staticData		gtf(TEXTSTYLE, 4, 0)	@5e90
+static_disk	staticData		gtf(TEXTSTYLE, 4, 0)	@5ec4
+static_disk	staticData		gtf(TEXTSTYLE, 4, 0)	@5ef8
+static_disk	staticData	background	gtf(TEXTSTYLE, 4, 0)	@5efa
+dynamic_disk_server	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@5f58
+dynamic_disk_server	dynamicData		gtf(TEXTSTYLE, 4, 0)	@5f68
+dynamic_disk_server	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@5fa0
+dynamic_disk_server	dynamicData		gtf(TEXTSTYLE, 4, 0)	@5fb0
+dynamic_disk_server	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@5fb2
+dynamic_disk_server	dynamicData	background	dtb(CommandModule, 3, 2)	@5fb6
+dynamic_disk_server	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@5fe8
+dynamic_disk_server	dynamicData		gtf(TEXTSTYLE, 4, 0)	@5ff8
+dynamic_disk_server	dynamicData	background	dtb(CommandModule, 3, 2)	@5ffa
+dynamic_disk_server	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@6020
+dynamic_disk_server	dynamicData		gtf(TEXTSTYLE, 4, 0)	@6030
+dynamic_disk_server	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@6032
+dynamic_disk_server	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@6036
+dynamic_disk_client	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@6080
+dynamic_disk_client	dynamicData		gtf(TEXTSTYLE, 4, 0)	@6090
+dynamic_disk_client	dynamicData	background	dtb(CommandModule, 3, 2)	@6092
+dynamic_disk_client	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@60b8
+dynamic_disk_client	dynamicData		gtf(TEXTSTYLE, 4, 0)	@60c8
+dynamic_disk_client	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@60ca
+dynamic_disk_client	dynamicData	background	dtb(CommandModule, 3, 2)	@60ce
+dynamic_disk_client	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@6114
+dynamic_disk_client	dynamicData		gtf(TEXTSTYLE, 4, 0)	@6124
+dynamic_disk_client	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@615c
+dynamic_disk_client	dynamicData		gtf(TEXTSTYLE, 4, 0)	@616c
+dynamic_disk_client	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@616e
+dynamic_disk_client	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@6172
+disk_chart	lheader		dtb(EXPLORER::LISTVIEW, 1, 3)	@61bc
+disk_chart	rheader		gtf(TEXTSTYLE, 4, 0)	@61cc
+disk_chart	rheader	background	dtb(CommandModule, 3, 2)	@61ce
+disk_chart	atom(diskTimeGraph)		gtf(TEXTSTYLE, 4, 0)	@61f8
+disk_chart	atom(diskTimeGraph)	p8027	dtb(CommandModule, 3, 2)	@6206
+disk_chart	lheader		dtb(EXPLORER::LISTVIEW, 1, 3)	@6224
+disk_chart	rheader		gtf(TEXTSTYLE, 4, 0)	@6234
+disk_chart	rheader	background	gtf(TEXTSTYLE, 4, 0)	@6236
+disk_chart	rheader	background	gtf(TEXTSTYLE, 4, 0)	@623a
+disk_chart	rheader	background	dtb(CommandModule, 3, 2)	@623e
+disk_chart	atom(disk_rate_unit)		gtf(TEXTSTYLE, 4, 0)	@627c
+disk_chart	atom(disk_rate_unit)	background	dtb(CommandModule, 3, 2)	@627e
+disk_chart	atom(diskRateGraph)		gtf(TEXTSTYLE, 4, 0)	@62a8
+disk_chart	atom(diskRateGraph)	p8027	dtb(CommandModule, 3, 2)	@62b6
+disk_chart	lheader		dtb(EXPLORER::LISTVIEW, 1, 3)	@62d4
+disk_chart	rheader		gtf(TEXTSTYLE, 4, 0)	@62e4
+disk_chart	rheader	background	gtf(TEXTSTYLE, 4, 0)	@62e6
+disk_chart	rheader	background	gtf(TEXTSTYLE, 4, 0)	@62ea
+disk_chart	rheader	background	gtf(TEXTSTYLE, 4, 0)	@62ee
+disk_server_chart	atom(disk_rate_unit)		gtf(TEXTSTYLE, 4, 0)	@6344
+disk_server_chart	atom(disk_rate_unit)	background	dtb(CommandModule, 3, 2)	@6346
+disk_server_chart	atom(diskRateGraph)		gtf(TEXTSTYLE, 4, 0)	@6370
+disk_server_chart	atom(diskRateGraph)	p8027	dtb(CommandModule, 3, 2)	@637e
+disk_server_chart	lheader		dtb(EXPLORER::LISTVIEW, 1, 3)	@639c
+disk_server_chart	rheader		gtf(TEXTSTYLE, 4, 0)	@63ac
+disk_server_chart	rheader	background	gtf(TEXTSTYLE, 4, 0)	@63ae
+disk_server_chart	rheader	background	gtf(TEXTSTYLE, 4, 0)	@63b2
+disk_server_chart	rheader	background	dtb(CommandModule, 3, 2)	@63b6
+disk_server_chart	lheader		dtb(EXPLORER::LISTVIEW, 1, 3)	@63e8
+disk_server_chart	rheader		gtf(TEXTSTYLE, 4, 0)	@63f8
+disk_server_chart	rheader	background	dtb(CommandModule, 3, 2)	@63fa
+disk_server_chart	atom(diskTimeGraph)		gtf(TEXTSTYLE, 4, 0)	@6424
+disk_server_chart	atom(diskTimeGraph)	p8027	dtb(CommandModule, 3, 2)	@6432
+disk_server_chart	lheader		dtb(EXPLORER::LISTVIEW, 1, 3)	@6450
+disk_server_chart	rheader		gtf(TEXTSTYLE, 4, 0)	@6460
+disk_server_chart	rheader	background	gtf(TEXTSTYLE, 4, 0)	@6462
+disk_server_chart	rheader	background	gtf(TEXTSTYLE, 4, 0)	@6466
+disk_server_chart	rheader	background	gtf(TEXTSTYLE, 4, 0)	@646a
+static_network	staticData		gtf(TEXTSTYLE, 4, 0)	@64b8
+static_network	staticData		gtf(TEXTSTYLE, 4, 0)	@64ec
+static_network	staticData		gtf(TEXTSTYLE, 4, 0)	@6520
+static_network	staticData		gtf(TEXTSTYLE, 4, 0)	@6554
+static_network	staticData		gtf(TEXTSTYLE, 4, 0)	@6588
+static_network	staticData		gtf(TEXTSTYLE, 4, 0)	@65bc
+static_network	staticData		gtf(TEXTSTYLE, 4, 0)	@65f0
+static_network	staticData		gtf(TEXTSTYLE, 4, 0)	@6624
+static_network	staticData	background	gtf(TEXTSTYLE, 4, 0)	@6626
+dynamic_network	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@6684
+dynamic_network	dynamicData		gtf(TEXTSTYLE, 4, 0)	@6694
+dynamic_network	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@6696
+dynamic_network	dynamicData	background	dtb(CommandModule, 3, 2)	@669a
+dynamic_network	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@66e0
+dynamic_network	dynamicData		gtf(TEXTSTYLE, 4, 0)	@66f0
+dynamic_network	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@66f2
+dynamic_network	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@66f6
+net_chart	atom(net_chart)		dtb(CommandModule, 3, 2)	@6714
+net_chart	rheader		gtf(TEXTSTYLE, 4, 0)	@6744
+net_chart	rheader	background	dtb(CommandModule, 3, 2)	@6746
+net_chart	atom(net_adapter)		gtf(TEXTSTYLE, 4, 0)	@6770
+net_chart	atom(net_adapter)	p8027	dtb(CommandModule, 3, 2)	@677e
+net_chart	lheader		dtb(EXPLORER::LISTVIEW, 1, 3)	@679c
+net_chart	rheader		gtf(TEXTSTYLE, 4, 0)	@67ac
+net_chart	rheader	background	gtf(TEXTSTYLE, 4, 0)	@67ae
+net_chart	rheader	background	gtf(TEXTSTYLE, 4, 0)	@67b2
+static_gpu	staticData		gtf(TEXTSTYLE, 4, 0)	@6800
+static_gpu	staticData		gtf(TEXTSTYLE, 4, 0)	@6834
+static_gpu	staticData		gtf(TEXTSTYLE, 4, 0)	@6868
+static_gpu	staticData		gtf(TEXTSTYLE, 4, 0)	@689c
+static_gpu	staticData		gtf(TEXTSTYLE, 4, 0)	@68d0
+static_gpu	staticData	background	gtf(TEXTSTYLE, 4, 0)	@68d2
+dynamic_gpu	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@691c
+dynamic_gpu	dynamicData		gtf(TEXTSTYLE, 4, 0)	@692c
+dynamic_gpu	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@695c
+dynamic_gpu	dynamicData		gtf(TEXTSTYLE, 4, 0)	@696c
+dynamic_gpu	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@696e
+dynamic_gpu	dynamicData	background	dtb(CommandModule, 3, 2)	@6972
+dynamic_gpu	dynamicData		dtb(CommandModule, 3, 2)	@6984
+dynamic_gpu	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@69ac
+dynamic_gpu	dynamicData		gtf(TEXTSTYLE, 4, 0)	@69bc
+dynamic_gpu	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@69ec
+dynamic_gpu	dynamicData		gtf(TEXTSTYLE, 4, 0)	@69fc
+dynamic_gpu	dynamicLabel		dtb(EXPLORER::LISTVIEW, 1, 3)	@6a28
+dynamic_gpu	dynamicData		gtf(TEXTSTYLE, 4, 0)	@6a38
+dynamic_gpu	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@6a3a
+dynamic_gpu	dynamicData	background	gtf(TEXTSTYLE, 4, 0)	@6a3e
+gpu_chart	atom(gpu_chart)		dtb(EXPLORER::LISTVIEW, 1, 3)	@6a5c
+gpu_chart	atom(gpuMemoryCharts)		gtf(TEXTSTYLE, 4, 0)	@6a80
+gpu_chart	atom(gpuMemoryCharts)	background	gtc(TASKMANAGER, 15, 0, 3803)	@6a82
+singleEngineGpuView	dashSidebarActionButton		dtb(EXPLORER::LISTVIEW, 1, 3)	@6ad4
+singleEngineGpuView	dashSidebarActionButton	p8011	dtb(ItemsView::Header, 4, 2)	@6ad8
+singleEngineGpuView	lheader		gtf(TEXTSTYLE, 4, 0)	@6af0
+singleEngineGpuView	lheader		dtb(EXPLORER::LISTVIEW, 1, 3)	@6af4
+singleEngineGpuView	rheader		gtf(TEXTSTYLE, 4, 0)	@6b04
+singleEngineGpuView	rheader	background	dtb(CommandModule, 3, 2)	@6b06
+singleEngineGpuView	atom(engineChart)		gtf(TEXTSTYLE, 4, 0)	@6b34
+singleEngineGpuView	atom(engineChart)	background	gtf(TEXTSTYLE, 4, 0)	@6b36
+singleEngineGpuView	atom(engineChart)	background	gtc(TASKMANAGER, 15, 0, 3803)	@6b3a
+multiEngineGpuView	atom(gpuGrid)	p802a	gtf(TEXTSTYLE, 4, 0)	@6b62
+gpuEngineChartTemplate	(style)		dtb(CommandModule, 3, 2)	@6b7c
+gpuEngineChartTemplate	dashSidebarActionButton		dtb(EXPLORER::LISTVIEW, 1, 3)	@6bac
+gpuEngineChartTemplate	dashSidebarActionButton	p8011	dtb(ItemsView::Header, 4, 2)	@6bb0

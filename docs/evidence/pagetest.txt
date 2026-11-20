@@ -1,0 +1,67 @@
+=== 任务管理器次要页面 · 数据源本机验证 ===
+进程是否提权: 是(管理员)
+
+========== 启动页数据源 ==========
+注册表启动项: 23 项
+  [启用] ATK HUB                                   HKCU\Run  "C:\Program Files\ATK HUB\ATK HUB.exe" --hidden
+  [启用] HECATEConnect                             HKCU\Run  "D:\HECATEqudong\HECATE.exe" -startup
+  [禁用] WinIsland                                 HKCU\Run  D:\Backup\Downloads\WinIsland.exe
+  [禁用] cloudmusic                                HKCU\Run  "D:\CloudMusic\cloudmusic.exe" --orpheus-startup=autorun
+  [启用] DesktopOK                                 HKCU\Run  "D:\tubagongjuxiang202601\tools\其他工具\DesktopOK\DesktopOK.exe"  -bg -st
+  [启用] Weixin                                    HKCU\Run  "D:\Weixin\Weixin.exe" -autorun
+  [启用] CC Switch                                 HKCU\Run  D:\CC Switch\cc-switch.exe 
+  [启用] Steam                                     HKCU\Run  "D:\Steam\steam.exe" -silent
+  [启用] Patina                                    HKCU\Run  D:\Patina\Patina.exe --autostart
+  [禁用] Lunar Client                              HKCU\Run  "C:\Users\Administrator\AppData\Local\Programs\Lunar Client\Lunar Clie
+  [禁用] GameViewer                                HKCU\Run  "D:\UUyc\GameViewer\GameViewer.exe" --auto-run
+  [启用] Free Download Manager                     HKCU\Run  "C:\Program Files\Softdeluxe\Free Download Manager\fdm.exe" --hidden
+  [启用] QQNT                                      HKCU\Run  "C:\Program Files\Tencent\QQNT\QQ.exe" /background
+  [禁用] YH                                        HKCU\Run  D:\Neverness To Everness\NTELauncher\NTELauncher.exe /autorun
+  [禁用] Thunder                                   HKCU\Run  D:\Thunder\Program\Thunder.exe -silent -StartType:AutoRun
+  [禁用] MicrosoftCopilotAutoLaunch_6CD2C6010CC6F7A014AC3A11B42C93DE  HKCU\Run  "C:\Program Files (x86)\Microsoft\Copilot\Application\mscopilot.exe" -
+  [启用] LocalSend                                 HKCU\Run  "D:\LocalSend\localsend_app.exe" --hidden
+  [启用] RTHDVCPL                                  HKLM\Run  "C:\Program Files\Realtek\Audio\HDA\RAVCpl64.exe" -s
+  [启用] sysdiag                                   HKLM\Run  "D:\huorong\Sysdiag\bin\hipstray.exe"
+  [禁用] Launch comain_ev2f79                      HKLM\Run  C:\Windows\system32\rundll32.exe C:\Windows\system32\comain_ev2f79.dll
+  [禁用] vmware-tray.exe                           HKLM\Run  "D:\VMware Workstation\vmware-tray.exe"
+  [禁用] Adobe CCXProcess                          HKLM\Run(WOW)  C:\Program Files (x86)\Adobe\Adobe Creative Cloud Experience\CCXProces
+  [禁用] RadminVPN                                 HKLM\Run(WOW)  "C:\Program Files (x86)\Radmin VPN\RvRvpnGui.exe" /minimized
+耗时: 3.14 ms
+用户启动文件夹: C:\Users\Administrator\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
+公共启动文件夹: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup
+
+========== 用户页数据源 ==========
+WTSEnumerateSessionsW: 4 个会话
+  sessionId=0   state=已断开      user=\ client= winsta=Services
+  sessionId=1   state=活动       user=WIN10PC-SQKL520\Administrator client= winsta=Console
+  sessionId=65536 state=侦听       user=\ client= winsta=31C5CE94259D4006A9E4
+  sessionId=65537 state=侦听       user=\ client= winsta=RDP-Tcp
+耗时: 8.59 ms
+
+========== 服务页数据源 ==========
+服务总数: 306
+  AicWifiService                         pid=5304   正在运行     组=-                    
+  AJRouter                               pid=0      已停止      组=-                    路由本地 AllJoyn 客户端的 AllJoyn 消息。如果停止此服务，则自身没有捆绑路由器的 A
+  ALG                                    pid=0      已停止      组=-                    为 Internet 连接共享提供第三方协议插件的支持
+  AMD External Events Utility            pid=2876   正在运行     组=Event log            
+  AppIDSvc                               pid=0      已停止      组=ProfSvc_Group        确定并验证应用程序的标识。禁用此服务将阻止强制执行 AppLocker。
+  Appinfo                                pid=10060  正在运行     组=-                    使用辅助管理权限便于交互式应用程序的运行。如果停止此服务，用户将无法使用辅助管理权限启动应用程序，而
+  AppMgmt                                pid=0      已停止      组=-                    为通过组策略部署的软件处理安装、删除以及枚举请求。如果该服务被禁用，则用户将不能安装、删除或枚举通过
+  AppReadiness                           pid=0      已停止      组=-                    当用户初次登录到这台电脑和添加新应用时，使应用进入就绪可用的状态。
+  AppVClient                             pid=0      已停止      组=-                    Manages App-V users and virtual applications
+  AppXSvc                                pid=36896  正在运行     组=-                    为部署 Microsoft Store 应用程序提供基础结构支持。此服务根据需要启动，如果已禁用的 
+  AssignedAccessManagerSvc               pid=0      已停止      组=-                    AssignedAccessManager 服务支持 Windows 中的展台体验。
+  AudioEndpointBuilder                   pid=1808   正在运行     组=AudioGroup           管理 Windows 音频服务的音频设备。如果停止了此服务，音频设备和效果将无法正常工作。如果禁用了
+耗时: 44.53 ms（含前 12 个服务的描述与组查询）
+
+========== 应用历史记录数据源 (SRUM) ==========
+srumapi.dll 加载: 成功
+  SruCreate              -> 无导出
+  SruOpenTable           -> 无导出
+  SruClose               -> 无导出
+  SruRetrieveRecords     -> 无导出
+  SruQueryRecordTable    -> 无导出
+  SruDeleteRecords       -> 无导出
+（LoadLibrary + GetProcAddress 全部检查耗时: 5.05 ms）
+SRUDB.dat 直接打开: 成功，60.9 MB
+  前 4 字节: AC 3B C7 47  (ESE 签名应为 EF CD AB 89)

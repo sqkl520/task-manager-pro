@@ -1,0 +1,56 @@
+# ============================================================
+# 忽略规则
+# ============================================================
+# 原则：能被构建出来的、能重新下载的、只对本机有意义的东西，都不进仓库。
+# 仓库里只留「改一次就永久有价值」的内容：源码、构建脚本、文档。
+
+# ---- 构建产物（全部可由 build.bat 重建） ----
+build/
+*.obj
+*.exe
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.idb
+*.res
+*.tlog
+*.lastbuildstate
+*.ipdb
+*.iobj
+*.log
+
+# ---- 探针工具的落盘输出（跑一次生成，含本机进程名/PID 等真实数据） ----
+*.txt
+!docs/**/*.txt
+dumped*.json
+srum_*.json
+
+# ---- Visual Studio / 编辑器缓存 ----
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.VC.db
+*.VC.opendb
+*.sln.docstates
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+
+# ---- 系统垃圾 ----
+Thumbs.db
+desktop.ini
+.DS_Store
+desktop.grass
+*.swp
+*~
+
+# ---- 本地临时脚本与一次性产物 ----
+*.bmp
+*.tmp
+*.bak
+*.orig
+*.rej
+_scratch*

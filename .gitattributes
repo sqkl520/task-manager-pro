@@ -1,0 +1,36 @@
+# ============================================================
+# 换行符与编码
+# ============================================================
+# 这个项目是纯 Windows / MSVC 项目，0x0A 单独出现在源码里会让某些工具误判。
+# 所有文本文件在仓库内统一存 LF，检出到工作区时转 CRLF。
+
+* text=auto eol=crlf
+
+# ---- C/C++ 与构建脚本：检出为 CRLF ----
+*.c      text eol=crlf
+*.cpp    text eol=crlf
+*.h      text eol=crlf
+*.hpp    text eol=crlf
+*.bat    text eol=crlf
+*.cmd    text eol=crlf
+*.rc     text eol=crlf
+
+# ---- 文档与配置：检出为 LF，跨平台可读 ----
+*.md     text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.json   text eol=lf
+.gitignore      text eol=lf
+.gitattributes  text eol=lf
+
+# ---- 二进制：不做任何转换 ----
+*.png    binary
+*.jpg    binary
+*.bmp    binary
+*.ico    binary
+*.exe    binary
+*.lib    binary
+*.zip    binary
+
+# ---- 语言统计：文档和探针不计入代码行数 ----
+docs/**  linguist-documentation

@@ -1,0 +1,48 @@
+name: Feature request
+description: Suggest behavior this project should have
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Start from the **problem**, not the control you want added. This project
+        reconstructs an existing program whose behavior is already known, so
+        "the stock one does X" is a complete argument — but "add a button"
+        alone is not.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you hitting
+      description: |
+        Describe the situation where the current behavior is not good enough.
+        What were you trying to do, and what got in the way?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: stock-behavior
+    attributes:
+      label: What the stock Windows 10 Task Manager does
+      description: |
+        If this feature exists there, describe how it behaves and, ideally,
+        attach a screenshot. The UI is reconstructed from observable specs, so a
+        screenshot of the real thing settles more questions than a description.
+        If it does not exist in the stock one, say that — it changes the
+        priority a great deal.
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+    validations:
+      required: false

@@ -1,0 +1,87 @@
+=== Task Manager Pro :: 性能页数据源实测 ===
+机器: Xeon 服务器级 CPU (10C/20T) / Win10 22H2
+
+=== 1. CPU 利用率 ===
+  NtQSI(8) status=0x00000000 need=960 bytes  (exact size = 960)
+  NtQSI(8) SystemProcessorPerfInfo         : avg    0.103 ms  p50    0.101  p95    0.121  max    0.143  (每核，1 次拿全部)
+  NtQSI(8) with 64KB buffer -> status=0xC0000004 need=960  (给大会返回 LENGTH_MISMATCH!)
+  PDH \Processor(_Total)\% Proc Time       : avg    0.637 ms  p50    0.639  p95    1.304  max    1.304  (总利用率)
+  PDH \Processor(*)\% Proc Time            : avg    0.683 ms  p50    0.629  p95    1.855  max    1.855  (20 核通配符)
+
+=== 2. CPU 频率与型号 ===
+  注册表 ProcessorNameString: Intel(R) Xeon(R) CPU @ 3.00GHz
+  注册表 ~MHz               : 2993 MHz
+  CallNtPowerInformation status=0x00000000  structSize=24
+    core0: Max=3001 Current=3001 Limit=3001 MaxIdle=2 CurIdle=2
+    所有 20 核 CurrentMhz 是否一致: YES (恒定)
+  CallNtPowerInformation(11)               : avg    0.001 ms  p50    0.001  p95    0.012  max    0.012  (每核频率)
+  PDH \Processor Information(_Total)\% Processor Performance -> 0x00000000
+  PDH % Processor Performance              : avg    0.647 ms  p50    0.714  p95    0.940  max    0.940  
+
+=== 3. 内存组成 ===
+  NtQSI(2) SystemPerformanceInformation status=0xC0000004 structSize=216 need=344
+  NtQSI(2) SystemPerformanceInfo           : avg    0.000 ms  p50    0.000  p95    0.001  max    0.001  (内存组成，1 次全拿)
+  GlobalMemoryStatusEx                     : avg    0.001 ms  p50    0.001  p95    0.003  max    0.003  (总数/可用)
+    物理: 31.94 GB 总 / 3.23 GB 可用  提交: 39.59/57.66 GB
+  PDH \Memory\* (6 个计数器)                   : avg    0.205 ms  p50    0.213  p95    0.248  max    0.248  
+    \Memory\Available MBytes                       = 3290.00
+    \Memory\Cache Bytes                            = 880062464.00
+    \Memory\Modified Page List Bytes               = 53592064.00
+    \Memory\Standby Cache Normal Priority Bytes    = 2593419264.00
+    \Memory\Pool Paged Bytes                       = 1111973888.00
+    \Memory\Pool Nonpaged Bytes                    = 1131712512.00
+
+=== 4. 磁盘 ===
+  --- 物理磁盘枚举 ---
+    PhysicalDrive0 product: NVMe SSD A
+  PDH \PhysicalDisk(_Total)\* (5 个)        : avg    0.328 ms  p50    0.326  p95    0.462  max    0.462  
+    \PhysicalDisk(_Total)\% Idle Time              = 73.280
+    \PhysicalDisk(_Total)\Disk Read Bytes/sec      = 9664049.495
+    \PhysicalDisk(_Total)\Disk Write Bytes/sec     = 16375194.977
+    \PhysicalDisk(_Total)\Avg. Disk sec/Transfer   = 0.000
+    \PhysicalDisk(_Total)\Current Disk Queue Length = 1.000
+  PDH \PhysicalDisk(*)\% Idle Time -> 0x00000000
+
+=== 5. 网络 ===
+  GetIfTable: 64 个接口
+    [0] ifIndex=27 type=6 oper=5 inOctets=0 outOctets=537125
+    [1] ifIndex=28 type=6 oper=5 inOctets=0 outOctets=537125
+    [2] ifIndex=29 type=6 oper=5 inOctets=0 outOctets=537125
+    [3] ifIndex=30 type=6 oper=5 inOctets=0 outOctets=537125
+    [4] ifIndex=31 type=6 oper=5 inOctets=0 outOctets=537125
+    [5] ifIndex=32 type=6 oper=5 inOctets=36 outOctets=2986
+    [6] ifIndex=33 type=6 oper=5 inOctets=36 outOctets=6999
+    [7] ifIndex=35 type=6 oper=0 inOctets=0 outOctets=0
+  GetIfTable size-probe                    : avg    1.144 ms  p50    1.111  p95    1.346  max    1.346  (枚举全部适配器)
+  PDH \Network Interface(*)\Bytes Received/sec -> 0x00000000
+  PDH \Network Interface(*)\Bytes Total/sec -> 0x00000000
+
+=== 6. GPU ===
+  PdhAddEnglishCounter(\GPU Engine(*)\Utilization Percentage) -> 0x00000000
+  PDH \GPU Engine(*) collect               : avg    1.153 ms  p50    1.054  p95    1.623  max    1.623  (全部引擎实例)
+  PdhAddEnglishCounter(\GPU Adapter Memory(*)\Dedicated Usage) -> 0x00000000
+  PdhAddEnglishCounter(\GPU Process Memory(*)\Dedicated Usage) -> 0x00000000
+  --- DXGI 适配器 ---
+    CreateDXGIFactory1 -> 0x00000000
+    (COM 枚举需完整 IDXGIFactory1 实现，此处仅验证可用)
+
+=== 7. 系统基础信息 ===
+  NtQSI(3) SystemTimeOfDayInfo status=0x00000000 size=48
+    启动时间: 2026-11-13 13:28:13
+    正常运行时间: 4:30:22
+  NtQSI(3) SystemTimeOfDayInfo             : avg    0.000 ms  p50    0.000  p95    0.000  max    0.000  (启动时间/正常运行时间)
+
+=== 8. 每核利用率的计算可行性 ===
+  单次采集 0.249 ms, 采集到 20 核
+  每核利用率（示例）：
+    CPU  0:  43.8%  (kernel=8750000 user=1250000 idle=5625000)
+    CPU  1:  26.6%  (kernel=9375000 user=625000 idle=7343750)
+    CPU  2:  82.8%  (kernel=7968750 user=2031250 idle=1718750)
+    CPU  3:  48.4%  (kernel=8750000 user=1250000 idle=5156250)
+    CPU  4:  70.3%  (kernel=7031250 user=2968750 idle=2968750)
+    CPU  5:  46.9%  (kernel=8281250 user=1718750 idle=5312500)
+    CPU  6:  68.8%  (kernel=5625000 user=4375000 idle=3125000)
+    CPU  7:  45.3%  (kernel=7500000 user=2500000 idle=5468750)
+    CPU 19:  45.3%  (kernel=8281250 user=1718750 idle=5468750)
+
+=== 完成 ===

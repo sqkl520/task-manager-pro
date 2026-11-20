@@ -1,0 +1,241 @@
+=== C:\Windows\System32\zh-CN\taskmgr.exe.mui ===
+
+--- resource type summary ---
+  type MUI            : 1
+  type #4             : 16
+  type #5             : 8
+  type #6             : 122
+  type #9             : 1
+  type #11            : 1
+  type #16            : 1
+
+--- DIALOG resources ---
+
+[DIALOG 30120] items=0 rect=(0,192 -28472x6) class='' title='分析等待链'
+    >>> SysTabControl32: no
+
+[DIALOG 30130] items=0 rect=(0,200 -32568x4) class='' title='选择处理器'
+    >>> SysTabControl32: no
+
+[DIALOG 34665] items=0 rect=(0,200 -32561x1) class='' title='网络详细信息'
+    >>> SysTabControl32: no
+
+[DIALOG 34700] items=0 rect=(0,200 -32568x6) class='' title='Ê²'
+    >>> SysTabControl32: no
+
+[DIALOG 34701] items=0 rect=(0,200 -32568x4) class='' title='Ê²'
+    >>> SysTabControl32: no
+
+[DIALOG 34801] items=0 rect=(0,192 -28472x2) class='' title='转储进程'
+    >>> SysTabControl32: no
+
+[DIALOG 34802] items=0 rect=(0,192 -28472x4) class='' title='转储进程'
+    >>> SysTabControl32: no
+
+[DIALOG 34850] items=0 rect=(0,192 -28472x6) class='' title='发送消息'
+    >>> SysTabControl32: no
+
+--- MENU resources ---
+
+[MENU 30200] 728 bytes
+    version=1 headerSize=4
+    'CPU Context'
+    '结束任务(&E)'
+    '结束进程树(&T)'
+    '提供反馈(&B)'
+    '设置优先级(&P)'
+    '实时(&R)'
+    '高(&H)'
+    '高于正常(&A)'
+    '正常(&N)'
+    '低于正常(&B)'
+    '低(&L)'
+    '设置相关性(&F)'
+    '分析等待链(&A)'
+    '调试(&D)'
+    'UAC 虚拟化(&V)'
+    '创建转储文件(&C)'
+    '打开文件所在的位置(&O)'
+    '在线搜索(&N)'
+    '属性(&R)'
+    '转到服务(&S)'
+
+[MENU 30201] 76 bytes
+    version=0 headerSize=0
+    'Header Context'
+    '盍隐藏列(&D)'
+    '盎选择列(&S)'
+
+[MENU 30202] 172 bytes
+    version=0 headerSize=0
+    'Service Context'
+    '盏开始(&S)'
+    '盐停止(&T)'
+    '监重新启动(&R)'
+    '盼打开服务(&V)'
+    '盖在线搜索(&O)'
+    '盠转到详细信息(&D)'
+
+[MENU 30204] 56 bytes
+    version=0 headerSize=0
+    'Other Context'
+    '盀结束进程(&E)'
+
+[MENU 30205] 944 bytes
+    version=1 headerSize=4
+    '文件(&F)'
+    '运行新任务(&N)'
+    '退出(&X)'
+    '选项(&O)'
+    '置于顶层(&A)'
+    '使用时最小化(&M)'
+    '最小化时隐藏(&H)'
+    '设置默认选项卡(&D)'
+    '进程(&R)'
+    '性能(&E)'
+    '应用历史记录(&I)'
+    '启动(&T)'
+    '用户(&U)'
+    '详细信息(&L)'
+    '服务(&V)'
+    '显示完整账户名(&S)'
+    '显示所有进程的历史记录(&P)'
+    '查看(&V)'
+    '立即刷新(&R)'
+    '更新速度(&U)'
+    '高(&H)'
+    '正常(&N)'
+    '低(&L)'
+    '已暂停(&P)'
+    '按类型分组(&G)'
+    '全部展开(&E)'
+    '全部折叠(&C)'
+
+[MENU 30206] 648 bytes
+    version=1 headerSize=4
+    'Dashboard Context'
+    '将图形更改为(&H)'
+    '总体利用率(&O)'
+    '逻辑处理器(&L)'
+    'NUMA 节点(&N)'
+    '单个引擎(&S)'
+    '多个引擎(&E)'
+    '显示内核时间(&K)'
+    '图形摘要视图(&W)'
+    '查看(&V)'
+    'CPU(&P)'
+    '内存(&M)'
+    '磁盘(&D)'
+    '网络(&N)'
+    'GPU(&G)'
+    '查看网络详细信息(&D)'
+    '复制(&C) Ctrl+C'
+
+[MENU 30207] 164 bytes
+    version=0 headerSize=0
+    'Dashboard Sidebar Context'
+    '睘摘要视图(&W)'
+    '睙显示图形(&S)'
+    '睛隐藏图形(&H)'
+    '盭复制(&C) Ctrl+C'
+
+[MENU 30208] 812 bytes
+    version=1 headerSize=4
+    'Process Context'
+    '展开(&P)'
+    '折叠(&P)'
+    '切换到(&T)'
+    '重新启动(&R)'
+    '结束任务(&E)'
+    '资源值(&V)'
+    '内存(&M)'
+    '百分比'
+    '值'
+    '磁盘(&K)'
+    '百分比'
+    '值'
+    '网络(&N)'
+    '百分比'
+    '值'
+    '提供反馈(&B)'
+    '调试(&D)'
+    '创建转储文件(&C)'
+    '运行新任务(&N)'
+    '置于顶层(&A)'
+    '转到详细信息(&G)'
+    '打开文件所在的位置(&O)'
+    '在线搜索(&S)'
+    '属性(&I)'
+
+[MENU 30209] 136 bytes
+    version=0 headerSize=0
+    'Window Context'
+    '盺切换到(&T)'
+    '真前置(&B)'
+    '眠最小化(&M)'
+    '眡最大化(&X)'
+    '盳结束任务(&E)'
+
+[MENU 30210] 100 bytes
+    version=0 headerSize=0
+    'Service Context'
+    '盻停止(&S)'
+    '盼打开服务(&O)'
+    '相在线搜索(&S)'
+
+[MENU 30211] 206 bytes
+    version=0 headerSize=0
+    'User Context'
+    '盥展开(&P)'
+    '盦折叠(&P)'
+    '眢连接(&C)'
+    '眀断开连接(&D)'
+    '省注销(&I)'
+    '盾发送消息(&S)'
+    '盿切换用户账户(&W)'
+    '眂管理用户账户(&M)'
+
+[MENU 30213] 198 bytes
+    version=0 headerSize=0
+    'Startup Item Context'
+    '盥展开(&P)'
+    '盦折叠(&P)'
+    '鋣启用(&E)'
+    '鋢禁用(&D)'
+    '盷打开文件所在的位置(&O)'
+    '相在线搜索(&S)'
+    '盹属性(&I)'
+
+[MENU 30214] 106 bytes
+    version=0 headerSize=0
+    'App history Context'
+    '盺切换到(&T)'
+    '相在线搜索(&S)'
+    '盹属性(&P)'
+
+[MENU 30215] 110 bytes
+    version=0 headerSize=0
+    'System Tray Context'
+    '眑还原(&R)'
+    '監关闭(&C)'
+    '眄置于顶层(&A)'
+
+[MENU 30216] 312 bytes
+    version=1 headerSize=4
+    'Additional ColHeader Context'
+    '内存(&M)'
+    '百分比'
+    '值'
+    '磁盘(&I)'
+    '百分比'
+    '值'
+    '网络(&N)'
+    '百分比'
+    '值'
+
+[MENU 30217] 126 bytes
+    version=0 headerSize=0
+    'Startup Process Context'
+    '盷打开文件所在的位置(&O)'
+    '相在线搜索(&S)'
+    '盹属性(&I)'

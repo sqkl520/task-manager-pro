@@ -1,0 +1,72 @@
+=== gpuinfo 模块验证 ===
+
+A) 未 Init: available=0 engines=0 total=0.00 adapterName="" dx="" ms=0.000
+   Collect(nullptr,0) 安全返回; History=0
+
+B) Init() = 1, 耗时 12.79 ms, available=1
+   适配器名      = "NVIDIA GeForce discrete GPU"
+   驱动版本      = "32.0.16.1714"
+   驱动日期      = "2026-09-17"
+   专用显存总量  = 8377073664 字节 (7989.00 MiB)
+   共享内存总量  = 17146097664 字节 (16351.79 MiB)
+   为硬件预留    = 212860928 字节 (203.00 MiB)
+   物理位置      = "PCI    DirectX 版本  = "" (Init 不填充，见 G)
+   NodeCount=14 SegmentCount=3 processCount=0
+   引擎列表 (6):
+     3D               type=1  nodeCount=1
+     Copy             type=6  nodeCount=7
+     Video Encode     type=3  nodeCount=1
+     Video Decode     type=2  nodeCount=1
+     Overlay          type=7  nodeCount=1
+     Other            type=0  nodeCount=3
+
+C) 多轮 Collect（1s 间隔 × 6）
+   round 0: 5.411 ms  total=0.000%  3D=0.00% Copy=0.00% Video Encode=0.00% Video Decode=0.00% Overlay=0.00% Other=0.00% | dedInUse=2666.9 MB shrInUse=62.8 MB procs=31
+   round 1: 4.654 ms  total=0.178%  3D=0.18% Copy=0.01% Video Encode=0.00% Video Decode=0.00% Overlay=0.00% Other=0.00% | dedInUse=2666.9 MB shrInUse=62.8 MB procs=28
+   round 2: 4.050 ms  total=0.175%  3D=0.18% Copy=0.01% Video Encode=0.00% Video Decode=0.00% Overlay=0.00% Other=0.00% | dedInUse=2666.9 MB shrInUse=62.8 MB procs=28
+   round 3: 10.615 ms  total=0.179%  3D=0.18% Copy=0.01% Video Encode=0.00% Video Decode=0.00% Overlay=0.00% Other=0.00% | dedInUse=2666.9 MB shrInUse=62.8 MB procs=28
+   round 4: 5.331 ms  total=0.181%  3D=0.18% Copy=0.01% Video Encode=0.00% Video Decode=0.00% Overlay=0.00% Other=0.00% | dedInUse=2666.9 MB shrInUse=62.8 MB procs=28
+   round 5: 4.928 ms  total=0.181%  3D=0.18% Copy=0.02% Video Encode=0.00% Video Decode=0.00% Overlay=0.00% Other=0.00% | dedInUse=2666.9 MB shrInUse=62.8 MB procs=28
+   Collect 耗时: avg=5.831 p50=5.331 max=10.615 ms
+
+F) 历史曲线
+   3D               len=5
+   Copy             len=5
+   Video Encode     len=5
+   Video Decode     len=5
+   Overlay          len=5
+   Other            len=5
+
+D) PDH \GPU Engine(*) 对照（按引擎类型聚合）
+   全通配 expand: 1350.1 ms, 525 实例（这就是明确不用的原因）
+   出现的 LUID:
+     luid_0x00000000_0x00013812               420 实例
+     luid_0x00000000_0x000146EC               105 实例
+   engine                gpuinfo          PDH       diff
+   3D                     0.182%       0.183%    -0.000
+   Copy                   0.011%       0.012%    -0.000
+   Video Encode           0.000%       0.000%     0.000
+   Video Decode           0.000%       0.000%     0.000
+   Overlay                0.000%       0.000%     0.000
+   Other                  0.000%       0.000%     0.000
+   总使用率 gpuinfo=0.182%  (PDH 最大引擎=0.183%)
+
+E) 显存 inUse vs PDH Adapter Memory
+   Dedicated: gpuinfo=2666.89 MB  PDH(max)=2666.89 MB  diff=0.000 MB
+   Shared   : gpuinfo=62.78 MB  PDH(max)=62.78 MB  diff=0.000 MB
+
+G) ProbeDirectXVersion
+   -> "12.1"  耗时 542.9 ms（Init/Collect 里绝不做，见文件头第 8 条）
+   缓存后第二次调用: "12.1"
+
+H) Collect(pids, count) 重载（复用外部 pid 列表）
+   n=527 avg=0.905 p50=0.589 p95=4.078 max=4.078 ms
+
+I) 紧密循环测 Collect（200 次，间隔 20ms）
+   avg=1.144 p50=0.604 p90=3.226 p95=3.921 p99=9.849 max=32.092 ms
+   LastCollectMs() 一致? 1
+
+J) 字符串转储（UTF-8 文件，排除控制台乱码）
+   已写入 gpuinfo_strings.txt（当前工作目录）
+
+=== done ===

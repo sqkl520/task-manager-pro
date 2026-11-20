@@ -1,0 +1,97 @@
+=== PdhGetFormattedCounterArray 诊断 ===
+
+--- \PhysicalDisk(*)\% Idle Time ---
+  PdhAddEnglishCounter: 0x00000000 (SUCCESS/VALID_DATA)
+  PdhCollectQueryData: 0x00000000 (SUCCESS/VALID_DATA)
+  GetArray(1st, sz=0,cnt=0): 0x800007D2 (PDH_MORE_DATA)  -> sz=106 cnt=3
+  GetArray(2nd): 0x00000000 (SUCCESS/VALID_DATA)  -> cnt=3
+    [ 0] 0 C:                                                     = 47.274
+    [ 1] 1 D:                                                     = 100.000
+    [ 2] _Total                                                   = 73.675
+
+--- \PhysicalDisk(_Total)\% Idle Time ---
+  PdhAddEnglishCounter: 0x00000000 (SUCCESS/VALID_DATA)
+  PdhCollectQueryData: 0x00000000 (SUCCESS/VALID_DATA)
+  GetArray(1st, sz=0,cnt=0): 0x800007D2 (PDH_MORE_DATA)  -> sz=38 cnt=1
+  GetArray(2nd): 0x00000000 (SUCCESS/VALID_DATA)  -> cnt=1
+    [ 0] _Total                                                   = 66.910
+
+--- \Processor(*)\% Processor Time ---
+  PdhAddEnglishCounter: 0x00000000 (SUCCESS/VALID_DATA)
+  PdhCollectQueryData: 0x00000000 (SUCCESS/VALID_DATA)
+  GetArray(1st, sz=0,cnt=0): 0x800007D2 (PDH_MORE_DATA)  -> sz=618 cnt=21
+  GetArray(2nd): 0x00000000 (SUCCESS/VALID_DATA)  -> cnt=21
+    [ 0] 0                                                        = 90.839
+    [ 1] 1                                                        = 51.142
+    [ 2] 10                                                       = 78.625
+    [ 3] 11                                                       = 75.571
+    [ 4] 12                                                       = 48.088
+    [ 5] 13                                                       = 87.786
+    [ 6] 14                                                       = 72.517
+    [ 7] 15                                                       = 78.625
+    [ 8] 16                                                       = 72.517
+    [ 9] 17                                                       = 75.571
+    ... (11 more)
+
+--- \Process(*)\% Processor Time ---
+  PdhAddEnglishCounter: 0x00000000 (SUCCESS/VALID_DATA)
+  PdhCollectQueryData: 0x00000000 (SUCCESS/VALID_DATA)
+  GetArray(1st, sz=0,cnt=0): 0x800007D2 (PDH_MORE_DATA)  -> sz=22006 cnt=530
+  GetArray(2nd): 0x00000000 (SUCCESS/VALID_DATA)  -> cnt=530
+    [ 0] ATK HUB                                                  = 0.000
+    [ 1] ATK HUB                                                  = 0.000
+    [ 2] ATK HUB                                                  = 0.000
+    [ 3] ATK HUB                                                  = 0.000
+    [ 4] ATK HUB                                                  = 0.000
+    [ 5] AicWifiService                                           = 0.000
+    [ 6] ChsIME                                                   = 0.000
+    [ 7] CompPkgSrv                                               = 0.000
+    [ 8] DesktopOK                                                = 0.000
+    [ 9] DownloadSDKServer                                        = 0.000
+    ... (520 more)
+
+--- \GPU Engine(*)\Utilization Percentage ---
+  PdhAddEnglishCounter: 0x00000000 (SUCCESS/VALID_DATA)
+  PdhCollectQueryData: 0x00000000 (SUCCESS/VALID_DATA)
+  GetArray(1st, sz=0,cnt=0): 0x800007D2 (PDH_MORE_DATA)  -> sz=95064 cnt=623
+  GetArray(2nd): 0x00000000 (SUCCESS/VALID_DATA)  -> cnt=623
+    [ 0] pid_11092_luid_0x00000000_0x000146EC_phys_0_eng_0_engtype_3D = 0.000
+    [ 1] pid_11092_luid_0x00000000_0x000146EC_phys_0_eng_10_engtype_3D = 0.000
+    [ 2] pid_11092_luid_0x00000000_0x000146EC_phys_0_eng_11_engtype_3D = 0.000
+    [ 3] pid_11092_luid_0x00000000_0x000146EC_phys_0_eng_12_engtype_3D = 0.000
+    [ 4] pid_11092_luid_0x00000000_0x000146EC_phys_0_eng_13_engtype_3D = 0.000
+    [ 5] pid_11092_luid_0x00000000_0x000146EC_phys_0_eng_14_engtype_3D = 0.000
+    [ 6] pid_11092_luid_0x00000000_0x000146EC_phys_0_eng_15_engtype_3D = 0.000
+    [ 7] pid_11092_luid_0x00000000_0x000146EC_phys_0_eng_16_engtype_3D = 0.000
+    [ 8] pid_11092_luid_0x00000000_0x000146EC_phys_0_eng_17_engtype_3D = 0.000
+    [ 9] pid_11092_luid_0x00000000_0x000146EC_phys_0_eng_18_engtype_3D = 0.000
+    ... (613 more)
+
+--- \Network Interface(*)\Bytes Received/sec ---
+  PdhAddEnglishCounter: 0x00000000 (SUCCESS/VALID_DATA)
+  PdhCollectQueryData: 0x00000000 (SUCCESS/VALID_DATA)
+  GetArray(1st, sz=0,cnt=0): 0x800007D2 (PDH_MORE_DATA)  -> sz=176 cnt=2
+  GetArray(2nd): 0x00000000 (SUCCESS/VALID_DATA)  -> cnt=2
+    [ 0] Realtek PCIe GbE Family Controller                       = 0.000
+    [ 1] TP-LINK Wireless USB Adapter                             = 11705.558
+
+=== PdhExpandWildCardPath ===
+  \PhysicalDisk(*)\% Idle Time                       1st call -> 0x800007D2 (PDH_MORE_DATA) len=150
+    2nd: 0x00000000 (SUCCESS/VALID_DATA)
+      \\WIN10PC-SQKL520\PhysicalDisk(0 C:)\% Idle Time
+      \\WIN10PC-SQKL520\PhysicalDisk(1 D:)\% Idle Time
+      \\WIN10PC-SQKL520\PhysicalDisk(_Total)\% Idle Time
+    展开出 3 个路径
+  \GPU Engine(*)\Utilization Percentage              1st call -> 0x800007D2 (PDH_MORE_DATA) len=73076
+    2nd: 0x00000000 (SUCCESS/VALID_DATA)
+      \\WIN10PC-SQKL520\GPU Engine(pid_11092_luid_0x00000000_0x000146EC_phys_0_eng_0_engtype_3D)\Utilization Percentage
+      \\WIN10PC-SQKL520\GPU Engine(pid_11092_luid_0x00000000_0x000146EC_phys_0_eng_10_engtype_3D)\Utilization Percentage
+      \\WIN10PC-SQKL520\GPU Engine(pid_11092_luid_0x00000000_0x000146EC_phys_0_eng_11_engtype_3D)\Utilization Percentage
+      \\WIN10PC-SQKL520\GPU Engine(pid_11092_luid_0x00000000_0x000146EC_phys_0_eng_12_engtype_3D)\Utilization Percentage
+      \\WIN10PC-SQKL520\GPU Engine(pid_11092_luid_0x00000000_0x000146EC_phys_0_eng_13_engtype_3D)\Utilization Percentage
+      \\WIN10PC-SQKL520\GPU Engine(pid_11092_luid_0x00000000_0x000146EC_phys_0_eng_14_engtype_3D)\Utilization Percentage
+      \\WIN10PC-SQKL520\GPU Engine(pid_11092_luid_0x00000000_0x000146EC_phys_0_eng_15_engtype_3D)\Utilization Percentage
+      \\WIN10PC-SQKL520\GPU Engine(pid_11092_luid_0x00000000_0x000146EC_phys_0_eng_16_engtype_3D)\Utilization Percentage
+    展开出 623 个路径
+  \Network Interface(*)\Bytes Received/sec           1st call -> 0x800007D2 (PDH_MORE_DATA) len=177
+    2nd: 0x

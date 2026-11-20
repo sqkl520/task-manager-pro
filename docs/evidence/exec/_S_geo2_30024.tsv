@@ -1,0 +1,213 @@
+styleOrBlock	selector	property	value	offset
+tab	(style)		rect(15rp,0rp,0rp,0rp)	@c4
+tab	(style)	borderthickness	rect(0rp,0rp,0rp,0rp)	@d0
+tab	(style)	height	30rp	@d4
+tab	(style)	padding	rect(0rp,2rp,0rp,0rp)	@d8
+page	(style)		rect(1rp,0rp,0rp,0rp)	@10c
+page	(style)	padding	rect(0rp,0rp,0rp,0rp)	@11c
+page	(style)	borderthickness	rect(0rp,0rp,0rp,0rp)	@120
+SmallViewPage	(style)		rect(1rp,0rp,0rp,0rp)	@130
+SmallViewPage	(style)	padding	rect(0rp,0rp,0rp,0rp)	@13c
+SmallViewPage	(style)	borderthickness	rect(0rp,0rp,0rp,0rp)	@144
+drop	(style)		rect(0rp,0rp,6rp,0rp)	@154
+drop	(style)	padding	rect(0rp,0rp,0rp,0rp)	@164
+drop	(style)	borderthickness	rect(0rp,0rp,0rp,0rp)	@170
+chart	(style)	margin	rect(20rp,10rp,10rp,10rp)	@18c
+chart	(style)	padding	rect(0rp,5rp,0rp,0rp)	@190
+chart	(style)	height	45rp	@194
+chart	(style)	width	60rp	@198
+cpuchart	(style)	margin	rect(0rp,0rp,0rp,0rp)	@1c0
+cpuchart	(style)	padding	rect(2rp,2rp,2rp,2rp)	@1c4
+cpuchart	(style)	height	80rp	@1c8
+cpuchart	(style)	width	80rp	@1cc
+gpuchart	(style)	height	80rp	@1f4
+gpuchart	(style)	width	80rp	@1f8
+gpuchart	(style)	margin	rect(0rp,0rp,0rp,0rp)	@1fc
+gpuchart	(style)	padding	rect(2rp,2rp,2rp,2rp)	@200
+staticResourceChart	(style)		rect(2rp,0rp,2rp,0rp)	@21c
+staticResourceChart	(style)	height	80rp	@228
+staticResourceChart	(style)	margin	rect(0rp,0rp,0rp,0rp)	@22c
+staticResourceChart	(style)	padding	rect(0rp,0rp,0rp,0rp)	@230
+secondaryChart	(style)		rect(2rp,0rp,2rp,0rp)	@24c
+secondaryChart	(style)	margin	rect(0rp,0rp,0rp,0rp)	@258
+secondaryChart	(style)	padding	rect(0rp,0rp,0rp,0rp)	@25c
+secondaryChart	(style)	height	67rp	@260
+chartbox	(style)		rect(15rp,0rp,0rp,0rp)	@27c
+chartbox	(style)	margin	rect(0rp,0rp,0rp,0rp)	@288
+chartbox	(style)	padding	rect(0rp,0rp,0rp,0rp)	@28c
+chartbox	(style)	borderthickness	rect(0rp,0rp,0rp,0rp)	@290
+chartbox	dotIcon	padding	rect(0rp,5rp,10rp,0rp)	@2ac
+chartbox	InactiveChart		rect(2rp,0rp,2rp,0rp)	@2c0
+chartbox	InactiveChart	margin	rect(20rp,10rp,10rp,10rp)	@2cc
+chartbox	InactiveChart	padding	rect(0rp,5rp,0rp,0rp)	@2d0
+chartbox	InactiveChart	height	45rp	@2d4
+chartbox	InactiveChart	width	60rp	@2d8
+chartbox	dashSidebarActionButton		rect(15rp,0rp,0rp,0rp)	@2f0
+chartbox	dashSidebarActionButton	padding	rect(10rp,5rp,9rp,10rp)	@2fc
+TaskManagerCommon	StaticLabel		rect(1rp,0rp,0rp,0rp)	@460
+DashboardStyle	(style)	borderthickness	rect(0rp,0rp,0rp,0rp)	@490
+DashboardStyle	atom(BarchartMemoryHolder)	borderthickness	rect(1rp,1rp,1rp,1rp)	@4a0
+DashboardStyle	atom(BarchartMemoryHolder)	height	52rp	@4a8
+DashboardStyle	atom(BarchartInuse)		rect(0rp,0rp,6rp,0rp)	@4b8
+DashboardStyle	atom(BarchartInuse)	padding	rect(0rp,0rp,0rp,0rp)	@4c4
+DashboardStyle	atom(BarchartInuse)	margin	rect(0rp,0rp,0rp,0rp)	@4c8
+DashboardStyle	atom(BarchartModified)		rect(0rp,0rp,6rp,0rp)	@4e4
+DashboardStyle	atom(BarchartModified)	borderthickness	rect(1rp,0rp,0rp,0rp)	@4ec
+DashboardStyle	atom(BarchartStandby)	borderthickness	rect(1rp,0rp,0rp,0rp)	@51c
+DashboardStyle	atom(BarchartStandby)	padding	rect(0rp,0rp,0rp,0rp)	@524
+DashboardStyle	atom(BarchartStandby)	margin	rect(0rp,0rp,0rp,0rp)	@528
+DashboardStyle	atom(BarchartFree)	borderthickness	rect(1rp,0rp,0rp,0rp)	@550
+DashboardStyle	atom(BarchartFree)	padding	rect(0rp,0rp,0rp,0rp)	@558
+DashboardStyle	atom(BarchartFree)	margin	rect(0rp,0rp,0rp,0rp)	@55c
+DashboardStyle	atom(resourceTitle)		rect(15rp,0rp,0rp,0rp)	@578
+DashboardStyle	atom(resourceName)		rect(2rp,0rp,2rp,0rp)	@5a0
+DashboardStyle	atom(resourceName)	margin	rect(15rp,0rp,0rp,0rp)	@5ac
+DashboardStyle	atom(resourceName)	padding	rect(0rp,0rp,0rp,3rp)	@5b0
+DashboardStyle	staticLabel		rect(0rp,0rp,6rp,0rp)	@5d0
+DashboardStyle	staticLabel	padding	rect(0rp,0rp,0rp,3rp)	@5e0
+DashboardStyle	staticData		rect(0rp,0rp,6rp,0rp)	@5fc
+DashboardStyle	staticData	padding	rect(0rp,0rp,0rp,3rp)	@60c
+DashboardStyle	signalIcon		rect(1rp,0rp,0rp,0rp)	@628
+DashboardStyle	signalIcon	padding	rect(1rp,0rp,0rp,0rp)	@630
+DashboardStyle	dynamicLabel		rect(2rp,0rp,2rp,0rp)	@64c
+DashboardStyle	dynamicLabel	margin	rect(0rp,0rp,0rp,0rp)	@65c
+DashboardStyle	dynamicLabel	padding	rect(0rp,0rp,0rp,0rp)	@660
+DashboardStyle	dynamicData		rect(2rp,0rp,2rp,0rp)	@67c
+DashboardStyle	dynamicData	margin	rect(0rp,0rp,0rp,0rp)	@68c
+DashboardStyle	dynamicData	padding	rect(0rp,0rp,0rp,0rp)	@690
+DashboardStyle	dashboardLegend		rect(1rp,0rp,0rp,0rp)	@6ac
+DashboardStyle	dashboardLegend	margin	rect(0rp,0rp,6rp,0rp)	@6b0
+DashboardStyle	dashboardLegend	padding	rect(0rp,0rp,3rp,0rp)	@6b4
+DashboardStyle	dashboardLegend	width	2rp	@6b8
+DashboardStyle	dashboardLegend	height	32rp	@6bc
+DashboardStyle	dashboardWriteLegend		rect(1rp,0rp,0rp,0rp)	@6d0
+DashboardStyle	dashboardWriteLegend	margin	rect(20rp,0rp,6rp,0rp)	@6d4
+DashboardStyle	dashboardWriteLegend	padding	rect(0rp,0rp,3rp,0rp)	@6d8
+DashboardStyle	dashboardWriteLegend	width	2rp	@6dc
+DashboardStyle	dashboardWriteLegend	height	32rp	@6e0
+DashboardStyle	sidebarLabel		rect(15rp,0rp,0rp,0rp)	@6f4
+DashboardStyle	sidebarData		rect(0rp,0rp,6rp,0rp)	@71c
+DashboardStyle	sidebarData	padding	rect(1rp,0rp,0rp,0rp)	@72c
+DashboardStyle	sidebarDataHeader		rect(0rp,0rp,6rp,0rp)	@748
+DashboardStyle	sidebarDataHeader	padding	rect(1rp,0rp,0rp,0rp)	@758
+DashboardStyle	theader	margin	rect(0rp,0rp,0rp,0rp)	@77c
+DashboardStyle	theader	padding	rect(0rp,0rp,0rp,3rp)	@780
+DashboardStyle	bheader	margin	rect(0rp,0rp,0rp,0rp)	@798
+DashboardStyle	bheader	padding	rect(0rp,2rp,0rp,0rp)	@79c
+DashboardStyle	cpu_theader	margin	rect(0rp,0rp,0rp,0rp)	@7b4
+DashboardStyle	cpu_theader	padding	rect(2rp,0rp,2rp,1rp)	@7b8
+DashboardStyle	cpu_bheader	margin	rect(0rp,0rp,0rp,0rp)	@7d0
+DashboardStyle	cpu_bheader	padding	rect(2rp,0rp,2rp,0rp)	@7d4
+DashboardStyle	lheader	margin	rect(0rp,0rp,0rp,0rp)	@7fc
+DashboardStyle	lheader	padding	rect(0rp,0rp,0rp,0rp)	@800
+DashboardStyle	rheader	margin	rect(0rp,0rp,0rp,0rp)	@834
+DashboardStyle	rheader	padding	rect(0rp,0rp,0rp,0rp)	@838
+scrollviewer	(style)	padding	rect(0rp,0rp,0rp,0rp)	@8e4
+TmSubColumnHeaderStyle	ResourceValueClass		rect(1rp,0rp,0rp,0rp)	@9ec
+TmSubColumnHeaderStyle	ResourceValueClassWhiteContend		rect(1rp,0rp,0rp,0rp)	@a10
+TmSubColumnHeaderStyle	atom(SortArrow)	height	5rp	@a58
+TmSubColumnHeaderStyle	atom(SortArrow)	padding	rect(0rp,5rp,4rp,0rp)	@a60
+TmSubColumnHeaderStyle	atom(ResizerImage)	width	1rp	@ae0
+TmSubColumnHeaderStyle	atom(ResizerImage)	content	gradient(gtc(TASKMANAGER, 42, 0, 3802), gtc(TASKMANAGER, 41, 0, 3802), 1)	@ae4
+TmSubColumnHeaderStyle	NoBorderColor	width	1rp	@af4
+TmViewItemStyle	atom(clipper)	padding	rect(0rp, 0rp, 0rp, 0rp)	@c04
+TmViewItemStyle	atom(clipper)	margin	rect(0rp, 0rp, 0rp, 0rp)	@c08
+TmViewItemStyle	atom(clipper)	borderthickness	rect(0rp,0rp,0rp,0rp)	@c0c
+TmViewItemStyle	atom(clipped)	padding	rect(0rp, 0rp, 0rp, 0rp)	@c24
+TmViewItemStyle	atom(clipped)	margin	rect(0rp, 0rp, 0rp, 0rp)	@c28
+TmViewItemStyle	atom(clipped)	borderthickness	rect(0rp,0rp,0rp,0rp)	@c2c
+TmViewItemStyle	atom(ViewExpandoButtonImage)	height	16rp	@cdc
+TmViewItemStyle	atom(ViewExpandoButtonImage)	width	16rp	@ce0
+BIOSPostTimeStyle	atom(BIOSPostTimeHolder)	padding	rect(0rp,7rp,7rp,20rp)	@d8c
+TmCommandBarStyle	TmTaskButton		rect(1rp,0rp,0rp,0rp)	@eb8
+TmCommandBarStyle	TmTaskButton	padding	rect(2rp,0rp,2rp,0rp)	@ec4
+TmCommandBarStyle	TmTaskButton	margin	rect(10rp, 10rp, 10rp, 10rp)	@ec8
+TmCommandBarStyle	TmTaskButton		size(85rp,23rp)	@ece
+TmViewStyle	atom(TmViewData)	borderthickness	rect(0rp,1rp,0rp,1rp)	@f60
+TmViewStyle	atom(TmViewColumnHeader)	borderthickness	rect(1rp,0rp, 1rp, 0rp)	@f78
+TmSmallViewItem	TmChildViewItemClass	borderthickness	rect(0rp,0rp,0rp,0rp)	@fe0
+TmSmallViewItem	atom(TmViewRow)	height	28rp	@1020
+TmSmallViewItem	atom(TmFirstColumn)	padding	rect(7rp,0rp,0rp,0rp)	@1040
+TmSmallViewItem	atom(TmRowIconBackground)	width	16rp	@105c
+TmSmallViewItem	atom(TmRowIconBackground)	height	16rp	@1060
+TmSmallViewItem	atom(TmRowIconBackground)		rect(2rp,0rp,2rp,0rp)	@1064
+TmSmallViewItem	atom(TmRowIcon)	width	16rp	@1080
+TmSmallViewItem	atom(TmRowIcon)	height	16rp	@1084
+TmSmallViewItem	atom(TmRowIcon)	background	rect(15rp,0rp,0rp,0rp)	@108a
+TmSmallViewItem	atom(TmColFriendlyName)	padding	rect(4rp,2rp,4rp,3rp)	@10a4
+TmLowMemoryViewItem	TmChildViewItemClass	borderthickness	rect(0rp,0rp,0rp,0rp)	@10d8
+TmLowMemoryViewItem	atom(TmViewRow)	height	28rp	@1118
+TmLowMemoryViewItem	atom(TmFirstColumn)	padding	rect(7rp,0rp,0rp,0rp)	@1138
+TmLowMemoryViewItem	atom(TmRowIconBackground)	width	16rp	@1154
+TmLowMemoryViewItem	atom(TmRowIconBackground)	height	16rp	@1158
+TmLowMemoryViewItem	atom(TmRowIconBackground)		rect(2rp,0rp,2rp,0rp)	@115c
+TmLowMemoryViewItem	atom(TmRowIcon)	width	16rp	@1178
+TmLowMemoryViewItem	atom(TmRowIcon)	height	16rp	@117c
+TmLowMemoryViewItem	atom(TmRowIcon)	background	rect(15rp,0rp,0rp,0rp)	@1182
+TmLowMemoryViewItem	atom(TmColFriendlyName)	padding	rect(4rp,2rp,4rp,3rp)	@119c
+TmLowMemoryViewItem	atom(TmColFriendlyName)	background	rect(0rp,0rp,6rp,0rp)	@11a2
+TmLowMemoryViewItem	atom(TmColMemory)	padding	rect(4rp,2rp,4rp,3rp)	@11bc
+TmLowMemoryViewItem	atom(TmColMemory)	borderthickness	rect(1rp,0rp,1rp,0rp)	@11c0
+taskman	TmView	padding	rect(0rp, 0rp, 0rp, 0rp)	@1214
+taskman	atom(TmViewData)	borderthickness	rect(0rp,0rp,0rp,1rp)	@122c
+taskman	atom(TmViewData)		5rp	@1230
+taskman	TmScrollViewer	p803f	rect(15rp,0rp,0rp,0rp)	@1266
+taskman	StaticLabel	padding	rect(0rp,8rp,0rp,0rp)	@1280
+taskman	TmView	padding	rect(0rp, 0rp, 0rp, 0rp)	@12e0
+taskman	LowMemoryTitleLabel	padding	rect(20rp,25rp,20rp,0rp)	@130c
+taskman	LowMemoryDescriptionLabel	padding	rect(20rp,8rp,20rp,0rp)	@1338
+taskman	atom(ColScrollViewer)	padding	rect(20rp,8rp,20rp,0rp)	@1360
+taskman	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@13a0
+taskman	atom(Resizer)	width	5rp	@13c4
+taskman	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@13c8
+taskman	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@13da
+taskman	atom(SortArrow)	height	10rp	@13ec
+taskman	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@13f0
+taskman	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@13fc
+taskman	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@140c
+taskman	atom(ColHeaderText)		5rp	@1418
+taskman	TmColHeader	padding	rect(7rp,0rp,0rp,0rp)	@1440
+taskman	atom(Resizer)	width	5rp	@1464
+taskman	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@1468
+taskman	atom(ResizerImage)	padding	rect(0rp,0rp,0rp,0rp)	@148c
+taskman	atom(ResizerImage)		rect(1rp,0rp,0rp,0rp)	@1494
+taskman	atom(SortArrow)	width	17rp	@14a4
+taskman	ResourceValueClass	background	rect(15rp,0rp,0rp,0rp)	@14c2
+taskman	atom(ColHeaderText)	padding	rect(0rp,3rp,0rp,4rp)	@14d4
+taskman	atom(TmViewData)	borderthickness	rect(0rp,0rp,0rp,1rp)	@1500
+taskman	atom(TmViewData)	padding	rect(20rp,0rp,20rp,0rp)	@1504
+taskman	atom(TmViewData)		5rp	@1508
+taskman	TmScrollViewer	p803f	rect(15rp,0rp,0rp,0rp)	@153e
+taskman	StaticLabel	padding	rect(0rp,8rp,0rp,0rp)	@1558
+taskman	atom(tabctrl)	width	1rp	@15c0
+processestab_tables	(style)	padding	rect(0rp,7rp,0rp,0rp)	@1708
+processestab_tables	(style)		rect(15rp,0rp,0rp,0rp)	@170c
+processestab_tables	atom(cpuList)	borderthickness	rect(0rp,1rp,0rp,1rp)	@1720
+GenericCommandBar	TmCommandBar	height	48rp	@1740
+GenericCommandBar	TmCommandBar	padding	rect(8rp,0rp,0rp,0rp)	@175c
+GenericCommandBar	atom(CBLeftAlignedButtons)	padding	rect(0rp, 10rp, 0rp, 10rp)	@178c
+GenericCommandBar	atom(CBExpandoButtonImageArrow)	p8004	rect(0rp,0rp,6rp,0rp)	@17c2
+GenericCommandBar	atom(CBExpandoButtonImageText)	margin	rect(5rp,0rp,0rp,0rp)	@17dc
+GenericCommandBar	atom(dashboardBar)	padding	rect(0rp,6rp,0rp,7rp)	@17fc
+GenericCommandBar	atom(dashboardBar)	p8004	rect(0rp,0rp,6rp,0rp)	@1806
+GenericCommandBar	atom(seperatorId)	padding	rect(6rp,0rp,8rp,0rp)	@1814
+GenericCommandBar	link	padding	rect(1rp,1rp,0rp,0rp)	@185c
+GenericCommandBar	link	padding	rect(4rp,0rp,4rp,0rp)	@187c
+GenericCommandBar	atom(servicesBar)	padding	rect(0rp,6rp,0rp,7rp)	@18a4
+GenericCommandBar	atom(servicesBar)	p8004	rect(0rp,0rp,6rp,0rp)	@18ae
+GenericCommandBar	atom(seperatorId)	padding	rect(6rp,0rp,8rp,0rp)	@18bc
+GenericCommandBar	link	padding	rect(1rp,1rp,0rp,0rp)	@1904
+GenericCommandBar	link	padding	rect(4rp,0rp,4rp,0rp)	@1924
+GenericCommandBar	link	padding	rect(0rp,2rp,0rp,0rp)	@1950
+GenericCommandBar	atom(CBTaskButtons)	padding	rect(0rp,0rp,8rp,3rp)	@1968
+GenericCommandBar	TmTaskButton	margin	rect(4rp,0rp,0rp,0rp)	@199c
+GenericCommandBar	TmTaskButton	margin	rect(4rp,0rp,0rp,0rp)	@19f4
+GenericCommandBar	TmTaskButton	margin	rect(4rp,0rp,0rp,0rp)	@1a4c
+GenericCommandBar	TmTaskButton	margin	rect(4rp,0rp,0rp,0rp)	@1aa4
+GenericCommandBar	TmTaskButton	margin	rect(4rp,0rp,0rp,0rp)	@1afc
+GenericCommandBar	TmTaskButton	margin	rect(4rp,0rp,0rp,0rp)	@1b54
+GenericCommandBar	TmTaskButton	margin	rect(4rp,0rp,0rp,0rp)	@1bac
+GenericCommandBar	TmTaskButton	margin	rect(4rp,0rp,0rp,0rp)	@1c00
+GenericCommandBar	atom(CBEndTaskInfoIcon)	margin	rect(0rp, 10rp, 0rp, 0rp)	@1c34
+GenericCommandBar	atom(CBEndTaskInfoIcon)	padding	rect(2rp,0rp,2rp,0rp)	@1c38
+GenericCommandBar	atom(CBEndTaskInfoIcon)		size(23rp,23rp)	@1c3e

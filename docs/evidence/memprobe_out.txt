@@ -1,0 +1,65 @@
+=== 内存组成数据源精测 ===
+页大小 = 4096 字节
+
+=== SystemPerformanceInformation (修正后 344 字节) ===
+  status=0x00000000  structSize=344  need=344
+  --- 关键字段 ---
+  AvailablePages        =     682960  =  2667.81 MB
+  CommittedPages        =   10612207  = 41453.93 MB
+  CommitLimit           =   15116230  = 59047.77 MB
+  PeakCommitment        =   11758978  = 45933.51 MB
+  PagedPoolPages        =     271099  =  1058.98 MB
+  NonPagedPoolPages     =     279018  =  1089.91 MB
+  ResidentSystemCachePage =   212069  =   828.39 MB
+  TotalSystemDriverPages  =      410  =     1.60 MB
+  TotalSystemCodePages    =        0  =     0.00 MB
+
+=== 交叉验证：PDH \Memory\* ===
+  可用 (Available)                     =           2583  =     0.00 MB
+  已缓存 (Cache Bytes)                  =      879505408  =   838.76 MB
+  已修改 (Modified)                     =       63565824  =    60.62 MB
+  备用-普通 (Standby Normal)             =     2691637248  =  2566.95 MB
+  备用-预留 (Standby Reserve)            =              0  =     0.00 MB
+  备用-核心 (Standby Core)               =              0  =     0.00 MB
+  分页缓冲池 (Pool Paged)                 =     1110134784  =  1058.71 MB
+  非分页缓冲池 (Pool Nonpaged)             =     1153564672  =  1100.12 MB
+  已提交 (Committed)                    =    43574173696  = 41555.57 MB
+  提交限制 (Commit Limit)                = 61916078080.00
+  已提交% (% Committed In Use)          =          70.38
+
+=== SystemMemoryListInformation (class 80) ===
+  status=0x00000000  structSize=176  need=176
+  ZeroPageCount          =      171  =     0.67 MB
+  FreePageCount          =     3999  =    15.62 MB
+  ModifiedPageCount      =    15487  =    60.50 MB
+  ModifiedNoWritePageCount =     31  =     0.12 MB
+  BadPageCount           =        0
+    PageCountByPriority[0] =          0 =     0.00 MB
+    PageCountByPriority[1] =          0 =     0.00 MB
+    PageCountByPriority[2] =          0 =     0.00 MB
+    PageCountByPriority[3] =          0 =     0.00 MB
+    PageCountByPriority[4] =          0 =     0.00 MB
+    PageCountByPriority[5] =     657130 =  2566.91 MB
+    PageCountByPriority[6] =          0 =     0.00 MB
+    PageCountByPriority[7] =          0 =     0.00 MB
+  备用合计               =   657130  =  2566.91 MB
+  ModifiedPageCountPageFile =  13570
+
+=== 原始 344 字节转储（前 240 字节，按 ULONG 读）===
+  [  0]   80021942        273  364660745        668
+  [ 16]  123942180         41  576865737          7
+  [ 32]  118702409   63607718  657668345     661302
+  [ 48]   10638226   15116230   11758978 3696643625
+  [ 64]   78222641  874582508          0 2149041863
+  [ 80]   77805540    7134359          0          0
+  [ 96]     857730       3384      16027       4399
+  [112]     271029     281632          0          0
+  [128]          0          0   12434875          0
+  [144]        410          0          0          0
+  [160]    5534435     214727     251496 4294965774
+  [176]          0   60802074          0        233
+  [192]          0          0          0          0
+  [208]          0  674723916          0    2204087
+  [224]   39184153       2953   14920024       6695
+
+=== 完成 ===

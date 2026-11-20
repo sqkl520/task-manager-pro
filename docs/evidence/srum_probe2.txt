@@ -1,0 +1,27 @@
+=== srumapi.dll PE export table (from file) ===
+file size = 65024 bytes
+machine=0x8664 sections=7
+  section .text    VA=0x00001000 VSize=0x00006AFE Raw=0x00000400 RawSize=0x00006C00
+  section .rdata   VA=0x00008000 VSize=0x00005D64 Raw=0x00007000 RawSize=0x00005E00
+  section .data    VA=0x0000E000 VSize=0x00000890 Raw=0x0000CE00 RawSize=0x00000200
+  section .pdata   VA=0x0000F000 VSize=0x00000978 Raw=0x0000D000 RawSize=0x00000A00
+  section .didat   VA=0x00010000 VSize=0x00000048 Raw=0x0000DA00 RawSize=0x00000200
+  section .rsrc    VA=0x00011000 VSize=0x00001D30 Raw=0x0000DC00 RawSize=0x00001E00
+  section .reloc   VA=0x00013000 VSize=0x0000033C Raw=0x0000FA00 RawSize=0x00000400
+export RVA=0x0000CAD0 size=516
+DLLname=SrumAPI.dll names=15 funcs=15 base=1
+  [   1] DllCanUnloadNow
+  [   2] DllGetClassObject
+  [   3] DllRegisterServer
+  [   4] DllUnregisterServer
+  [   5] SruCreateCheckpoint
+  [   6] SruCreateEnergyNotificationServer
+  [   7] SruDeleteStatsByAppName
+  [   8] SruFreeRecordSet
+  [   9] SruQueryStats
+  [  10] SruQueryStatsBySeqNumber
+  [  11] SruQueryStatsEx
+  [  12] SruRegisterRealTimeStats
+  [  13] SruRetrieveEnergyRecord
+  [  14] SruUnregisterRealTimeStats
+  [  15] SruUpdateStats

@@ -1,0 +1,38 @@
+=== 性能页数据源：精确成本（正确阵列读取模式）===
+
+########## CPU ##########
+  NtQSI(8) 每核时间（一次拿 20 核）                        : avg   0.073  p95   0.111  max   0.291  (20 实例)
+  PDH \Processor(*) collect+read                 : avg   0.510  p95   1.414  max   1.414  (21 实例)
+  PDH \Processor(_Total) 4 个计数器 collect          : avg   0.549  p95   1.712  max   1.712  
+
+########## 内存 ##########
+  NtQSI(2) SystemPerformanceInfo (344B)          : avg   0.003  p95   0.004  max   0.010  一次拿全部
+  NtQSI(80) SystemMemoryListInfo (176B)          : avg   0.000  p95   0.000  max   0.001  备用按优先级
+  PDH \Memory\* 7 个计数器                           : avg   0.184  p95   0.223  max   0.257  
+
+########## 磁盘 ##########
+  PDH \PhysicalDisk(*)\% Idle Time               : avg   0.382  p95   0.872  max   0.872  (3 实例)
+  PDH \PhysicalDisk(*) 4 计数器 + 读阵列               : avg   0.310  p95   0.488  max   0.488  (3 实例)
+
+########## 网络 ##########
+  PDH \Network Interface(*) 2 计数器                : avg   2.169  p95   3.354  max   3.354  (2 实例)
+
+########## GPU ##########
+  PDH \GPU Engine(*)\Utilization Percentage      : avg   1.414  p95   1.845  max   1.845  (623 实例)
+  PDH \GPU Adapter Memory(*) Dedicated           : avg   0.055  p95   0.071  max   0.071  (2 实例)
+
+########## 每进程磁盘 IO（进程页磁盘列）##########
+  PDH \Process(*) IO Read+Write                  : avg  18.752  p95  23.282  max  23.282  (532 实例)
+
+########## 汇总：性能页 1Hz 刷新的成本预算 ##########
+  ┌────────────────────────────────────────────┬──────────┬────────┐
+  │ 数据源                                     │ 单次成本 │ 占1Hz  │
+  ├────────────────────────────────────────────┼──────────┼────────┤
+  │ NtQSI(8)  每核 CPU 时间（20 核）           │  0.10 ms │  0.01% │
+  │ NtQSI(2)  内存组成（344B 全字段）          │  0.00 ms │  0.00% │
+  │ NtQSI(80) 内存备用列表（176B）             │  0.00 ms │  0.00% │
+  │ CallNtPowerInformation(11) 每核频率        │  0.00 ms │  0.00% │
+  │ PDH \Processor(_Total) 4 计数器            │ ~0.65 ms │  0.07% │
+  │ PDH \PhysicalDisk(*) 4 计数器              │ ~0.30 ms │  0.03% │
+  │ PDH \Network Interface(*) 2 计数器         │ ~2.30 ms │  0.23% │
+  │ 

@@ -1,0 +1,1055 @@
+styleOrBlock	selector	property	value	offset
+tab	(style)		rect(15rp,0rp,0rp,0rp)	@1bc
+tab	(style)	borderthickness	rect(0rp,0rp,0rp,0rp)	@1c8
+tab	(style)	height	30rp	@1cc
+tab	(style)	padding	rect(0rp,2rp,0rp,0rp)	@1d0
+page	(style)		rect(1rp,0rp,0rp,0rp)	@204
+page	(style)	padding	rect(0rp,0rp,0rp,0rp)	@214
+page	(style)	borderthickness	rect(0rp,0rp,0rp,0rp)	@218
+SmallViewPage	(style)		rect(1rp,0rp,0rp,0rp)	@228
+SmallViewPage	(style)	padding	rect(0rp,0rp,0rp,0rp)	@234
+SmallViewPage	(style)	borderthickness	rect(0rp,0rp,0rp,0rp)	@23c
+drop	(style)		rect(0rp,0rp,6rp,0rp)	@24c
+drop	(style)	padding	rect(0rp,0rp,0rp,0rp)	@25c
+drop	(style)	borderthickness	rect(0rp,0rp,0rp,0rp)	@268
+chart	(style)	margin	rect(20rp,10rp,10rp,10rp)	@284
+chart	(style)	padding	rect(0rp,5rp,0rp,0rp)	@288
+chart	(style)	height	45rp	@28c
+chart	(style)	width	60rp	@290
+cpuchart	(style)	margin	rect(0rp,0rp,0rp,0rp)	@2b8
+cpuchart	(style)	padding	rect(2rp,2rp,2rp,2rp)	@2bc
+cpuchart	(style)	height	80rp	@2c0
+cpuchart	(style)	width	80rp	@2c4
+gpuchart	(style)	height	80rp	@2ec
+gpuchart	(style)	width	80rp	@2f0
+gpuchart	(style)	margin	rect(0rp,0rp,0rp,0rp)	@2f4
+gpuchart	(style)	padding	rect(2rp,2rp,2rp,2rp)	@2f8
+staticResourceChart	(style)		rect(2rp,0rp,2rp,0rp)	@314
+staticResourceChart	(style)	height	80rp	@320
+staticResourceChart	(style)	margin	rect(0rp,0rp,0rp,0rp)	@324
+staticResourceChart	(style)	padding	rect(0rp,0rp,0rp,0rp)	@328
+secondaryChart	(style)		rect(2rp,0rp,2rp,0rp)	@344
+secondaryChart	(style)	margin	rect(0rp,0rp,0rp,0rp)	@350
+secondaryChart	(style)	padding	rect(0rp,0rp,0rp,0rp)	@354
+secondaryChart	(style)	height	67rp	@358
+chartbox	(style)		rect(15rp,0rp,0rp,0rp)	@374
+chartbox	(style)	margin	rect(0rp,0rp,0rp,0rp)	@380
+chartbox	(style)	padding	rect(0rp,0rp,0rp,0rp)	@384
+chartbox	(style)	borderthickness	rect(0rp,0rp,0rp,0rp)	@388
+chartbox	dotIcon	padding	rect(0rp,5rp,10rp,0rp)	@3a4
+chartbox	InactiveChart		rect(2rp,0rp,2rp,0rp)	@3b8
+chartbox	InactiveChart	margin	rect(20rp,10rp,10rp,10rp)	@3c4
+chartbox	InactiveChart	padding	rect(0rp,5rp,0rp,0rp)	@3c8
+chartbox	InactiveChart	height	45rp	@3cc
+chartbox	InactiveChart	width	60rp	@3d0
+chartbox	dashSidebarActionButton		rect(15rp,0rp,0rp,0rp)	@3e8
+chartbox	dashSidebarActionButton	padding	rect(10rp,5rp,9rp,10rp)	@3f4
+TaskManagerCommon	StaticLabel		rect(1rp,0rp,0rp,0rp)	@558
+DashboardStyle	(style)	borderthickness	rect(0rp,0rp,0rp,0rp)	@588
+DashboardStyle	atom(BarchartMemoryHolder)	borderthickness	rect(1rp,1rp,1rp,1rp)	@598
+DashboardStyle	atom(BarchartMemoryHolder)	height	52rp	@5a0
+DashboardStyle	atom(BarchartInuse)		rect(0rp,0rp,6rp,0rp)	@5b0
+DashboardStyle	atom(BarchartInuse)	padding	rect(0rp,0rp,0rp,0rp)	@5bc
+DashboardStyle	atom(BarchartInuse)	margin	rect(0rp,0rp,0rp,0rp)	@5c0
+DashboardStyle	atom(BarchartModified)		rect(0rp,0rp,6rp,0rp)	@5dc
+DashboardStyle	atom(BarchartModified)	borderthickness	rect(1rp,0rp,0rp,0rp)	@5e4
+DashboardStyle	atom(BarchartStandby)	borderthickness	rect(1rp,0rp,0rp,0rp)	@614
+DashboardStyle	atom(BarchartStandby)	padding	rect(0rp,0rp,0rp,0rp)	@61c
+DashboardStyle	atom(BarchartStandby)	margin	rect(0rp,0rp,0rp,0rp)	@620
+DashboardStyle	atom(BarchartFree)	borderthickness	rect(1rp,0rp,0rp,0rp)	@648
+DashboardStyle	atom(BarchartFree)	padding	rect(0rp,0rp,0rp,0rp)	@650
+DashboardStyle	atom(BarchartFree)	margin	rect(0rp,0rp,0rp,0rp)	@654
+DashboardStyle	atom(resourceTitle)		rect(15rp,0rp,0rp,0rp)	@670
+DashboardStyle	atom(resourceName)		rect(2rp,0rp,2rp,0rp)	@698
+DashboardStyle	atom(resourceName)	margin	rect(15rp,0rp,0rp,0rp)	@6a4
+DashboardStyle	atom(resourceName)	padding	rect(0rp,0rp,0rp,3rp)	@6a8
+DashboardStyle	staticLabel		rect(0rp,0rp,6rp,0rp)	@6c8
+DashboardStyle	staticLabel	padding	rect(0rp,0rp,0rp,3rp)	@6d8
+DashboardStyle	staticData		rect(0rp,0rp,6rp,0rp)	@6f4
+DashboardStyle	staticData	padding	rect(0rp,0rp,0rp,3rp)	@704
+DashboardStyle	signalIcon		rect(1rp,0rp,0rp,0rp)	@720
+DashboardStyle	signalIcon	padding	rect(1rp,0rp,0rp,0rp)	@728
+DashboardStyle	dynamicLabel		rect(2rp,0rp,2rp,0rp)	@744
+DashboardStyle	dynamicLabel	margin	rect(0rp,0rp,0rp,0rp)	@754
+DashboardStyle	dynamicLabel	padding	rect(0rp,0rp,0rp,0rp)	@758
+DashboardStyle	dynamicData		rect(2rp,0rp,2rp,0rp)	@774
+DashboardStyle	dynamicData	margin	rect(0rp,0rp,0rp,0rp)	@784
+DashboardStyle	dynamicData	padding	rect(0rp,0rp,0rp,0rp)	@788
+DashboardStyle	dashboardLegend		rect(1rp,0rp,0rp,0rp)	@7a4
+DashboardStyle	dashboardLegend	margin	rect(0rp,0rp,6rp,0rp)	@7a8
+DashboardStyle	dashboardLegend	padding	rect(0rp,0rp,3rp,0rp)	@7ac
+DashboardStyle	dashboardLegend	width	2rp	@7b0
+DashboardStyle	dashboardLegend	height	32rp	@7b4
+DashboardStyle	dashboardWriteLegend		rect(1rp,0rp,0rp,0rp)	@7c8
+DashboardStyle	dashboardWriteLegend	margin	rect(20rp,0rp,6rp,0rp)	@7cc
+DashboardStyle	dashboardWriteLegend	padding	rect(0rp,0rp,3rp,0rp)	@7d0
+DashboardStyle	dashboardWriteLegend	width	2rp	@7d4
+DashboardStyle	dashboardWriteLegend	height	32rp	@7d8
+DashboardStyle	sidebarLabel		rect(15rp,0rp,0rp,0rp)	@7ec
+DashboardStyle	sidebarData		rect(0rp,0rp,6rp,0rp)	@814
+DashboardStyle	sidebarData	padding	rect(1rp,0rp,0rp,0rp)	@824
+DashboardStyle	sidebarDataHeader		rect(0rp,0rp,6rp,0rp)	@840
+DashboardStyle	sidebarDataHeader	padding	rect(1rp,0rp,0rp,0rp)	@850
+DashboardStyle	theader	margin	rect(0rp,0rp,0rp,0rp)	@874
+DashboardStyle	theader	padding	rect(0rp,0rp,0rp,3rp)	@878
+DashboardStyle	bheader	margin	rect(0rp,0rp,0rp,0rp)	@890
+DashboardStyle	bheader	padding	rect(0rp,2rp,0rp,0rp)	@894
+DashboardStyle	cpu_theader	margin	rect(0rp,0rp,0rp,0rp)	@8ac
+DashboardStyle	cpu_theader	padding	rect(2rp,0rp,2rp,1rp)	@8b0
+DashboardStyle	cpu_bheader	margin	rect(0rp,0rp,0rp,0rp)	@8c8
+DashboardStyle	cpu_bheader	padding	rect(2rp,0rp,2rp,0rp)	@8cc
+DashboardStyle	lheader	margin	rect(0rp,0rp,0rp,0rp)	@8f4
+DashboardStyle	lheader	padding	rect(0rp,0rp,0rp,0rp)	@8f8
+DashboardStyle	rheader	margin	rect(0rp,0rp,0rp,0rp)	@92c
+DashboardStyle	rheader	padding	rect(0rp,0rp,0rp,0rp)	@930
+scrollviewer	(style)	padding	rect(0rp,0rp,0rp,0rp)	@9dc
+TmSubColumnHeaderStyle	ResourceValueClass		rect(1rp,0rp,0rp,0rp)	@ae4
+TmSubColumnHeaderStyle	ResourceValueClassWhiteContend		rect(1rp,0rp,0rp,0rp)	@b08
+TmSubColumnHeaderStyle	atom(SortArrow)	height	5rp	@b50
+TmSubColumnHeaderStyle	atom(SortArrow)	padding	rect(0rp,5rp,4rp,0rp)	@b58
+TmSubColumnHeaderStyle	atom(ResizerImage)	width	1rp	@bd8
+TmSubColumnHeaderStyle	atom(ResizerImage)	content	gradient(gtc(TASKMANAGER, 42, 0, 3802), gtc(TASKMANAGER, 41, 0, 3802), 1)	@bdc
+TmSubColumnHeaderStyle	NoBorderColor	width	1rp	@bec
+TmViewItemStyle	atom(clipper)	padding	rect(0rp, 0rp, 0rp, 0rp)	@cfc
+TmViewItemStyle	atom(clipper)	margin	rect(0rp, 0rp, 0rp, 0rp)	@d00
+TmViewItemStyle	atom(clipper)	borderthickness	rect(0rp,0rp,0rp,0rp)	@d04
+TmViewItemStyle	atom(clipped)	padding	rect(0rp, 0rp, 0rp, 0rp)	@d1c
+TmViewItemStyle	atom(clipped)	margin	rect(0rp, 0rp, 0rp, 0rp)	@d20
+TmViewItemStyle	atom(clipped)	borderthickness	rect(0rp,0rp,0rp,0rp)	@d24
+TmViewItemStyle	atom(ViewExpandoButtonImage)	height	16rp	@dd4
+TmViewItemStyle	atom(ViewExpandoButtonImage)	width	16rp	@dd8
+BIOSPostTimeStyle	atom(BIOSPostTimeHolder)	padding	rect(0rp,7rp,7rp,20rp)	@e84
+TmCommandBarStyle	TmTaskButton		rect(1rp,0rp,0rp,0rp)	@fb0
+TmCommandBarStyle	TmTaskButton	padding	rect(2rp,0rp,2rp,0rp)	@fbc
+TmCommandBarStyle	TmTaskButton	margin	rect(10rp, 10rp, 10rp, 10rp)	@fc0
+TmCommandBarStyle	TmTaskButton		size(85rp,23rp)	@fc6
+TmViewStyle	atom(TmViewData)	borderthickness	rect(0rp,1rp,0rp,1rp)	@1058
+TmViewStyle	atom(TmViewColumnHeader)	borderthickness	rect(1rp,0rp, 1rp, 0rp)	@1070
+TmAppViewItem	atom(arrow)	padding	rect(0rp,0rp,0rp,0rp)	@1104
+TmAppViewItem	atom(ViewExpandoImageWrapper)	width	22rp	@1120
+TmAppViewItem	atom(ViewExpandoImageWrapper)	padding	rect(4rp,5rp,2rp,0rp)	@1124
+TmAppViewItem	atom(ViewExpandoImageWrapper)	p8004	rect(1rp,0rp,0rp,0rp)	@112a
+TmAppViewItem	atom(TmViewRow)	height	28rp	@1160
+TmAppViewItem	atom(TmFirstColumn)	padding	rect(6rp, 0rp, 0rp, 0rp)	@1180
+TmAppViewItem	atom(TmRowIconBackground)	width	16rp	@11a0
+TmAppViewItem	atom(TmRowIconBackground)	height	16rp	@11a4
+TmAppViewItem	atom(TmRowIconBackground)		rect(2rp,0rp,2rp,0rp)	@11a8
+TmAppViewItem	atom(TmRowIcon)	width	16rp	@11c4
+TmAppViewItem	atom(TmRowIcon)	height	16rp	@11c8
+TmAppViewItem	atom(TmRowIcon)	background	rect(15rp,0rp,0rp,0rp)	@11ce
+TmAppViewItem	atom(TmColFriendlyName)	padding	rect(4rp,2rp,4rp,3rp)	@11e8
+TmAppViewItem	atom(TmColFriendlyName)	background	rect(15rp,0rp,0rp,0rp)	@11ee
+TmAppViewItem	atom(TmColType)	padding	rect(4rp,2rp,4rp,3rp)	@1208
+TmAppViewItem	atom(TmColStatus)	p8004	rect(15rp,0rp,0rp,0rp)	@1226
+TmAppViewItem	atom(TmColStatusText)	padding	rect(4rp,2rp,4rp,3rp)	@1240
+TmAppViewItem	atom(TmLeafIcon)	width	20rp	@1270
+TmAppViewItem	atom(TmLeafIcon)	height	16rp	@1274
+TmAppViewItem	atom(TmLeafIcon)	background	rect(15rp,0rp,0rp,0rp)	@127a
+TmAppViewItem	atom(TmColPublisher)	padding	rect(4rp,2rp,4rp,3rp)	@1294
+TmAppViewItem	atom(TmColPublisher)		rect(15rp,0rp,0rp,0rp)	@1298
+TmAppViewItem	atom(TmColPid)	padding	rect(4rp,2rp,4rp,3rp)	@12b0
+TmAppViewItem	atom(TmColPid)		rect(15rp,0rp,0rp,0rp)	@12b4
+TmAppViewItem	atom(TmColProcessName)	padding	rect(4rp,2rp,4rp,3rp)	@12cc
+TmAppViewItem	atom(TmColProcessName)		rect(15rp,0rp,0rp,0rp)	@12d0
+TmAppViewItem	atom(TmColCommandLine)	padding	rect(4rp,2rp,4rp,3rp)	@12e8
+TmAppViewItem	atom(TmColCommandLine)		rect(0rp,0rp,6rp,0rp)	@12ec
+TmAppViewItem	atom(TmColCPUPercent)	padding	rect(4rp,2rp,4rp,3rp)	@1304
+TmAppViewItem	atom(TmColCPUPercent)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1308
+TmAppViewItem	atom(TmColCPUPercent)		rect(0rp,0rp,6rp,0rp)	@130c
+TmAppViewItem	atom(TmColMemory)	padding	rect(4rp,2rp,4rp,3rp)	@1324
+TmAppViewItem	atom(TmColMemory)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1328
+TmAppViewItem	atom(TmColMemory)		rect(0rp,0rp,6rp,0rp)	@132c
+TmAppViewItem	atom(TmColDisk)	padding	rect(4rp,2rp,4rp,3rp)	@1344
+TmAppViewItem	atom(TmColDisk)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1348
+TmAppViewItem	atom(TmColDisk)		rect(0rp,0rp,6rp,0rp)	@134c
+TmAppViewItem	atom(TmColNetwork)	padding	rect(4rp,2rp,4rp,3rp)	@1364
+TmAppViewItem	atom(TmColNetwork)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1368
+TmAppViewItem	atom(TmColNetwork)		rect(0rp,0rp,6rp,0rp)	@136c
+TmAppViewItem	atom(TmColGPUPercent)	padding	rect(4rp,2rp,4rp,3rp)	@1384
+TmAppViewItem	atom(TmColGPUPercent)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1388
+TmAppViewItem	atom(TmColGPUPercent)		rect(15rp,0rp,0rp,0rp)	@138c
+TmAppViewItem	atom(TmColGpuEngineName)	padding	rect(4rp,2rp,4rp,3rp)	@13a4
+TmAppViewItem	atom(TmColGpuEngineName)		rect(0rp,0rp,6rp,0rp)	@13a8
+TmAppViewItem	atom(TmColPowerUsage)	padding	rect(4rp,2rp,4rp,3rp)	@13c0
+TmAppViewItem	atom(TmColPowerUsage)	borderthickness	rect(0rp,0rp,1rp,0rp)	@13c4
+TmAppViewItem	atom(TmColPowerUsage)		rect(0rp,0rp,6rp,0rp)	@13c8
+TmAppViewItem	atom(TmColPowerUsageTrend)	padding	rect(4rp,2rp,4rp,3rp)	@13e0
+TmAppViewItem	atom(TmColPowerUsageTrend)	borderthickness	rect(0rp,0rp,1rp,0rp)	@13e4
+TmAppViewItem	atom(clipper)	p8027	rect(15rp,0rp,0rp,0rp)	@13fa
+TmAppChildViewItem	atom(TmViewRow)	height	22rp	@147c
+TmAppChildViewItem	atom(TmFirstColumn)	padding	rect(14rp, 0rp, 0rp, 0rp)	@149c
+TmAppChildViewItem	atom(TmRowIconBackground)	width	16rp	@14b8
+TmAppChildViewItem	atom(TmRowIconBackground)	height	16rp	@14bc
+TmAppChildViewItem	atom(TmRowIconBackground)		rect(2rp,0rp,2rp,0rp)	@14c0
+TmAppChildViewItem	atom(TmRowIcon)	width	16rp	@14dc
+TmAppChildViewItem	atom(TmRowIcon)	height	16rp	@14e0
+TmAppChildViewItem	atom(TmRowIcon)	background	rect(15rp,0rp,0rp,0rp)	@14e6
+TmAppChildViewItem	atom(TmColFriendlyName)	padding	rect(4rp,2rp,4rp,3rp)	@1500
+TmAppChildViewItem	atom(TmColFriendlyName)	background	rect(15rp,0rp,0rp,0rp)	@1506
+TmAppChildViewItem	atom(TmColType)	padding	rect(4rp,2rp,4rp,3rp)	@1520
+TmAppChildViewItem	atom(TmColStatus)	p8004	rect(15rp,0rp,0rp,0rp)	@153e
+TmAppChildViewItem	atom(TmColStatusText)	padding	rect(4rp,2rp,4rp,3rp)	@1558
+TmAppChildViewItem	atom(TmLeafIcon)	width	20rp	@1588
+TmAppChildViewItem	atom(TmLeafIcon)	height	16rp	@158c
+TmAppChildViewItem	atom(TmLeafIcon)	background	rect(15rp,0rp,0rp,0rp)	@1592
+TmAppChildViewItem	atom(TmColPublisher)	padding	rect(4rp,2rp,4rp,3rp)	@15ac
+TmAppChildViewItem	atom(TmColPublisher)		rect(15rp,0rp,0rp,0rp)	@15b0
+TmAppChildViewItem	atom(TmColPid)	padding	rect(4rp,2rp,4rp,3rp)	@15c8
+TmAppChildViewItem	atom(TmColPid)		rect(15rp,0rp,0rp,0rp)	@15cc
+TmAppChildViewItem	atom(TmColProcessName)	padding	rect(4rp,2rp,4rp,3rp)	@15e4
+TmAppChildViewItem	atom(TmColProcessName)		rect(15rp,0rp,0rp,0rp)	@15e8
+TmAppChildViewItem	atom(TmColCommandLine)	padding	rect(4rp,2rp,4rp,3rp)	@1600
+TmAppChildViewItem	atom(TmColCommandLine)		rect(0rp,0rp,6rp,0rp)	@1604
+TmAppChildViewItem	atom(TmColCPUPercent)	padding	rect(4rp,2rp,4rp,3rp)	@161c
+TmAppChildViewItem	atom(TmColCPUPercent)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1620
+TmAppChildViewItem	atom(TmColCPUPercent)		rect(0rp,0rp,6rp,0rp)	@1624
+TmAppChildViewItem	atom(TmColMemory)	padding	rect(4rp,2rp,4rp,3rp)	@163c
+TmAppChildViewItem	atom(TmColMemory)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1640
+TmAppChildViewItem	atom(TmColMemory)		rect(0rp,0rp,6rp,0rp)	@1644
+TmAppChildViewItem	atom(TmColDisk)	padding	rect(4rp,2rp,4rp,3rp)	@165c
+TmAppChildViewItem	atom(TmColDisk)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1660
+TmAppChildViewItem	atom(TmColDisk)		rect(0rp,0rp,6rp,0rp)	@1664
+TmAppChildViewItem	atom(TmColNetwork)	padding	rect(4rp,2rp,4rp,3rp)	@167c
+TmAppChildViewItem	atom(TmColNetwork)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1680
+TmAppChildViewItem	atom(TmColNetwork)		rect(0rp,0rp,6rp,0rp)	@1684
+TmAppChildViewItem	atom(TmColGPUPercent)	padding	rect(4rp,2rp,4rp,3rp)	@169c
+TmAppChildViewItem	atom(TmColGPUPercent)	borderthickness	rect(0rp,0rp,1rp,0rp)	@16a0
+TmAppChildViewItem	atom(TmColGPUPercent)		rect(15rp,0rp,0rp,0rp)	@16a4
+TmAppChildViewItem	atom(TmColGpuEngineName)	padding	rect(4rp,2rp,4rp,3rp)	@16bc
+TmAppChildViewItem	atom(TmColGpuEngineName)		rect(0rp,0rp,6rp,0rp)	@16c0
+TmAppChildViewItem	atom(TmColPowerUsage)	padding	rect(4rp,2rp,4rp,3rp)	@16d8
+TmAppChildViewItem	atom(TmColPowerUsage)	borderthickness	rect(0rp,0rp,1rp,0rp)	@16dc
+TmAppChildViewItem	atom(TmColPowerUsage)		rect(0rp,0rp,6rp,0rp)	@16e0
+TmAppChildViewItem	atom(TmColPowerUsageTrend)	padding	rect(4rp,2rp,4rp,3rp)	@16f8
+TmAppChildViewItem	atom(TmColPowerUsageTrend)	borderthickness	rect(0rp,0rp,1rp,0rp)	@16fc
+TmStartupViewItem	atom(arrow)	padding	rect(0rp,0rp,0rp,0rp)	@1758
+TmStartupViewItem	atom(ViewExpandoImageWrapper)	width	22rp	@1774
+TmStartupViewItem	atom(ViewExpandoImageWrapper)	padding	rect(4rp,5rp,2rp,0rp)	@1778
+TmStartupViewItem	atom(ViewExpandoImageWrapper)	p8004	rect(1rp,0rp,0rp,0rp)	@177e
+TmStartupViewItem	atom(TmViewRow)	height	28rp	@17b4
+TmStartupViewItem	atom(TmFirstColumn)	padding	rect(6rp,0rp,0rp,0rp)	@17d4
+TmStartupViewItem	atom(TmRowIconBackground)	width	16rp	@17f4
+TmStartupViewItem	atom(TmRowIconBackground)	height	16rp	@17f8
+TmStartupViewItem	atom(TmRowIconBackground)		rect(2rp,0rp,2rp,0rp)	@17fc
+TmStartupViewItem	atom(TmRowIcon)	width	16rp	@1818
+TmStartupViewItem	atom(TmRowIcon)	height	16rp	@181c
+TmStartupViewItem	atom(TmRowIcon)	background	rect(15rp,0rp,0rp,0rp)	@1822
+TmStartupViewItem	atom(TmColFriendlyName)	padding	rect(4rp,2rp,4rp,3rp)	@183c
+TmStartupViewItem	atom(TmColFriendlyName)	background	rect(15rp,0rp,0rp,0rp)	@1842
+TmStartupViewItem	atom(TmColPublisher)	padding	rect(4rp,2rp,4rp,3rp)	@185c
+TmStartupViewItem	atom(TmColPublisher)		rect(15rp,0rp,0rp,0rp)	@1860
+TmStartupViewItem	atom(TmColStatus)	padding	rect(4rp,2rp,4rp,3rp)	@1878
+TmStartupViewItem	atom(TmColStatus)		rect(15rp,0rp,0rp,0rp)	@187c
+TmStartupViewItem	atom(TmColStartupImpact)	padding	rect(4rp,2rp,4rp,3rp)	@1894
+TmStartupViewItem	atom(TmColStartupImpact)		rect(15rp,0rp,0rp,0rp)	@1898
+TmStartupViewItem	atom(TmColStartupType)	padding	rect(4rp,2rp,4rp,3rp)	@18b0
+TmStartupViewItem	atom(TmColStartupType)		rect(15rp,0rp,0rp,0rp)	@18b4
+TmStartupViewItem	atom(TmColStartupDiskIO)	padding	rect(4rp,2rp,4rp,3rp)	@18cc
+TmStartupViewItem	atom(TmColStartupDiskIO)		rect(15rp,0rp,0rp,0rp)	@18d0
+TmStartupViewItem	atom(TmColStartupCPU)	padding	rect(4rp,2rp,4rp,3rp)	@18e8
+TmStartupViewItem	atom(TmColStartupCPU)		rect(15rp,0rp,0rp,0rp)	@18ec
+TmStartupViewItem	atom(TmColRunningNow)	padding	rect(4rp,2rp,4rp,3rp)	@1904
+TmStartupViewItem	atom(TmColRunningNow)		rect(15rp,0rp,0rp,0rp)	@1908
+TmStartupViewItem	atom(TmColDisabledTime)	padding	rect(4rp,2rp,4rp,3rp)	@1920
+TmStartupViewItem	atom(TmColDisabledTime)		rect(15rp,0rp,0rp,0rp)	@1924
+TmStartupViewItem	atom(TmColCommandLine)	padding	rect(4rp,2rp,4rp,3rp)	@193c
+TmStartupViewItem	atom(clipper)	p8027	rect(15rp,0rp,0rp,0rp)	@1952
+TmStartupChildViewItem	atom(TmViewRow)	height	22rp	@19d4
+TmStartupChildViewItem	atom(TmFirstColumn)	padding	rect(14rp,0rp,0rp,0rp)	@19f4
+TmStartupChildViewItem	atom(TmRowIconBackground)	width	16rp	@1a10
+TmStartupChildViewItem	atom(TmRowIconBackground)	height	16rp	@1a14
+TmStartupChildViewItem	atom(TmRowIconBackground)		rect(2rp,0rp,2rp,0rp)	@1a18
+TmStartupChildViewItem	atom(TmRowIcon)	width	16rp	@1a34
+TmStartupChildViewItem	atom(TmRowIcon)	height	16rp	@1a38
+TmStartupChildViewItem	atom(TmRowIcon)	background	rect(15rp,0rp,0rp,0rp)	@1a3e
+TmStartupChildViewItem	atom(TmColFriendlyName)	padding	rect(4rp,2rp,4rp,3rp)	@1a58
+TmStartupChildViewItem	atom(TmColFriendlyName)	background	rect(15rp,0rp,0rp,0rp)	@1a5e
+TmStartupChildViewItem	atom(TmColPublisher)	padding	rect(4rp,2rp,4rp,3rp)	@1a78
+TmStartupChildViewItem	atom(TmColPublisher)		rect(15rp,0rp,0rp,0rp)	@1a7c
+TmStartupChildViewItem	atom(TmColStatus)	padding	rect(4rp,2rp,4rp,3rp)	@1a94
+TmStartupChildViewItem	atom(TmColStatus)		rect(15rp,0rp,0rp,0rp)	@1a98
+TmStartupChildViewItem	atom(TmColStartupImpact)	padding	rect(4rp,2rp,4rp,3rp)	@1ab0
+TmStartupChildViewItem	atom(TmColStartupImpact)		rect(15rp,0rp,0rp,0rp)	@1ab4
+TmStartupChildViewItem	atom(TmColStartupType)	padding	rect(4rp,2rp,4rp,3rp)	@1acc
+TmStartupChildViewItem	atom(TmColStartupType)		rect(15rp,0rp,0rp,0rp)	@1ad0
+TmStartupChildViewItem	atom(TmColStartupDiskIO)	padding	rect(4rp,2rp,4rp,3rp)	@1ae8
+TmStartupChildViewItem	atom(TmColStartupDiskIO)		rect(15rp,0rp,0rp,0rp)	@1aec
+TmStartupChildViewItem	atom(TmColStartupCPU)	padding	rect(4rp,2rp,4rp,3rp)	@1b04
+TmStartupChildViewItem	atom(TmColStartupCPU)		rect(15rp,0rp,0rp,0rp)	@1b08
+TmStartupChildViewItem	atom(TmColRunningNow)	padding	rect(4rp,2rp,4rp,3rp)	@1b20
+TmStartupChildViewItem	atom(TmColRunningNow)		rect(15rp,0rp,0rp,0rp)	@1b24
+TmStartupChildViewItem	atom(TmColDisabledTime)	padding	rect(4rp,2rp,4rp,3rp)	@1b3c
+TmStartupChildViewItem	atom(TmColDisabledTime)		rect(15rp,0rp,0rp,0rp)	@1b40
+TmStartupChildViewItem	atom(TmColCommandLine)	padding	rect(4rp,2rp,4rp,3rp)	@1b58
+TmUsersViewItem	atom(arrow)	padding	rect(0rp,0rp,0rp,0rp)	@1bb4
+TmUsersViewItem	atom(ViewExpandoImageWrapper)	width	22rp	@1bd0
+TmUsersViewItem	atom(ViewExpandoImageWrapper)	padding	rect(4rp,5rp,2rp,0rp)	@1bd4
+TmUsersViewItem	atom(ViewExpandoImageWrapper)	p8004	rect(1rp,0rp,0rp,0rp)	@1bda
+TmUsersViewItem	atom(TmViewRow)	height	28rp	@1c10
+TmUsersViewItem	atom(TmFirstColumn)	padding	rect(6rp,0rp,0rp,0rp)	@1c30
+TmUsersViewItem	atom(TmRowIconBackground)	width	16rp	@1c50
+TmUsersViewItem	atom(TmRowIconBackground)	height	16rp	@1c54
+TmUsersViewItem	atom(TmRowIconBackground)		rect(2rp,0rp,2rp,0rp)	@1c58
+TmUsersViewItem	atom(TmRowIcon)	width	16rp	@1c74
+TmUsersViewItem	atom(TmRowIcon)	height	16rp	@1c78
+TmUsersViewItem	atom(TmRowIcon)	background	rect(15rp,0rp,0rp,0rp)	@1c7e
+TmUsersViewItem	atom(TmColFriendlyName)	padding	rect(4rp,2rp,4rp,3rp)	@1c98
+TmUsersViewItem	atom(TmColFriendlyName)	background	rect(15rp,0rp,0rp,0rp)	@1c9e
+TmUsersViewItem	atom(TmColSessionID)	padding	rect(4rp,2rp,4rp,3rp)	@1cb8
+TmUsersViewItem	atom(TmColSessionID)		rect(15rp,0rp,0rp,0rp)	@1cbc
+TmUsersViewItem	atom(TmColSessionType)	padding	rect(4rp,2rp,4rp,3rp)	@1cd4
+TmUsersViewItem	atom(TmColSessionType)		rect(15rp,0rp,0rp,0rp)	@1cd8
+TmUsersViewItem	atom(TmColClientName)	padding	rect(4rp,2rp,4rp,3rp)	@1cf0
+TmUsersViewItem	atom(TmColClientName)		rect(15rp,0rp,0rp,0rp)	@1cf4
+TmUsersViewItem	atom(TmColStatus)	padding	rect(4rp,2rp,4rp,3rp)	@1d0c
+TmUsersViewItem	atom(TmColStatus)		rect(0rp,0rp,6rp,0rp)	@1d10
+TmUsersViewItem	atom(TmColCPUPercent)	padding	rect(4rp,2rp,4rp,3rp)	@1d28
+TmUsersViewItem	atom(TmColCPUPercent)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1d2c
+TmUsersViewItem	atom(TmColCPUPercent)		rect(0rp,0rp,6rp,0rp)	@1d30
+TmUsersViewItem	atom(TmColMemory)	padding	rect(4rp,2rp,4rp,3rp)	@1d48
+TmUsersViewItem	atom(TmColMemory)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1d4c
+TmUsersViewItem	atom(TmColMemory)		rect(0rp,0rp,6rp,0rp)	@1d50
+TmUsersViewItem	atom(TmColDisk)	padding	rect(4rp,2rp,4rp,3rp)	@1d68
+TmUsersViewItem	atom(TmColDisk)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1d6c
+TmUsersViewItem	atom(TmColDisk)		rect(0rp,0rp,6rp,0rp)	@1d70
+TmUsersViewItem	atom(TmColNetwork)	padding	rect(4rp,2rp,4rp,3rp)	@1d88
+TmUsersViewItem	atom(TmColNetwork)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1d8c
+TmUsersViewItem	atom(TmColNetwork)		rect(0rp,0rp,6rp,0rp)	@1d90
+TmUsersViewItem	atom(TmColGPUPercent)	padding	rect(4rp,2rp,4rp,3rp)	@1da8
+TmUsersViewItem	atom(TmColGPUPercent)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1dac
+TmUsersViewItem	atom(TmColGPUPercent)		rect(15rp,0rp,0rp,0rp)	@1db0
+TmUsersViewItem	atom(TmColGpuEngineName)	padding	rect(4rp,2rp,4rp,3rp)	@1dc8
+TmUsersViewItem	atom(clipper)	p8027	rect(15rp,0rp,0rp,0rp)	@1dde
+TmUsersChildViewItem	atom(TmViewRow)	height	22rp	@1e60
+TmUsersChildViewItem	atom(TmFirstColumn)	padding	rect(14rp,0rp,0rp,0rp)	@1e80
+TmUsersChildViewItem	atom(TmRowIconBackground)	width	16rp	@1e9c
+TmUsersChildViewItem	atom(TmRowIconBackground)	height	16rp	@1ea0
+TmUsersChildViewItem	atom(TmRowIconBackground)		rect(2rp,0rp,2rp,0rp)	@1ea4
+TmUsersChildViewItem	atom(TmRowIcon)	width	16rp	@1ec0
+TmUsersChildViewItem	atom(TmRowIcon)	height	16rp	@1ec4
+TmUsersChildViewItem	atom(TmRowIcon)	background	rect(15rp,0rp,0rp,0rp)	@1eca
+TmUsersChildViewItem	atom(TmColFriendlyName)	padding	rect(4rp,2rp,4rp,3rp)	@1ee4
+TmUsersChildViewItem	atom(TmColFriendlyName)	background	rect(15rp,0rp,0rp,0rp)	@1eea
+TmUsersChildViewItem	atom(TmColSessionID)	padding	rect(4rp,2rp,4rp,3rp)	@1f04
+TmUsersChildViewItem	atom(TmColSessionID)		rect(15rp,0rp,0rp,0rp)	@1f08
+TmUsersChildViewItem	atom(TmColSessionType)	padding	rect(4rp,2rp,4rp,3rp)	@1f20
+TmUsersChildViewItem	atom(TmColSessionType)		rect(15rp,0rp,0rp,0rp)	@1f24
+TmUsersChildViewItem	atom(TmColClientName)	padding	rect(4rp,2rp,4rp,3rp)	@1f3c
+TmUsersChildViewItem	atom(TmColClientName)		rect(15rp,0rp,0rp,0rp)	@1f40
+TmUsersChildViewItem	atom(TmColStatus)	padding	rect(4rp,2rp,4rp,3rp)	@1f58
+TmUsersChildViewItem	atom(TmColStatus)		rect(0rp,0rp,6rp,0rp)	@1f5c
+TmUsersChildViewItem	atom(TmColCPUPercent)	padding	rect(4rp,2rp,4rp,3rp)	@1f74
+TmUsersChildViewItem	atom(TmColCPUPercent)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1f78
+TmUsersChildViewItem	atom(TmColCPUPercent)		rect(0rp,0rp,6rp,0rp)	@1f7c
+TmUsersChildViewItem	atom(TmColMemory)	padding	rect(4rp,2rp,4rp,3rp)	@1f94
+TmUsersChildViewItem	atom(TmColMemory)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1f98
+TmUsersChildViewItem	atom(TmColMemory)		rect(0rp,0rp,6rp,0rp)	@1f9c
+TmUsersChildViewItem	atom(TmColDisk)	padding	rect(4rp,2rp,4rp,3rp)	@1fb4
+TmUsersChildViewItem	atom(TmColDisk)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1fb8
+TmUsersChildViewItem	atom(TmColDisk)		rect(0rp,0rp,6rp,0rp)	@1fbc
+TmUsersChildViewItem	atom(TmColNetwork)	padding	rect(4rp,2rp,4rp,3rp)	@1fd4
+TmUsersChildViewItem	atom(TmColNetwork)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1fd8
+TmUsersChildViewItem	atom(TmColNetwork)		rect(0rp,0rp,6rp,0rp)	@1fdc
+TmUsersChildViewItem	atom(TmColGPUPercent)	padding	rect(4rp,2rp,4rp,3rp)	@1ff4
+TmUsersChildViewItem	atom(TmColGPUPercent)	borderthickness	rect(0rp,0rp,1rp,0rp)	@1ff8
+TmUsersChildViewItem	atom(TmColGPUPercent)		rect(15rp,0rp,0rp,0rp)	@1ffc
+TmUsersChildViewItem	atom(TmColGpuEngineName)	padding	rect(4rp,2rp,4rp,3rp)	@2014
+TmAppHistoryViewItem	atom(arrow)	padding	rect(0rp,0rp,0rp,0rp)	@2070
+TmAppHistoryViewItem	atom(ViewExpandoImageWrapper)	width	22rp	@208c
+TmAppHistoryViewItem	atom(ViewExpandoImageWrapper)	padding	rect(4rp,5rp,2rp,0rp)	@2090
+TmAppHistoryViewItem	atom(ViewExpandoImageWrapper)	p8004	rect(1rp,0rp,0rp,0rp)	@2096
+TmAppHistoryViewItem	atom(TmViewRow)	height	28rp	@20cc
+TmAppHistoryViewItem	atom(TmFirstColumn)	padding	rect(6rp,0rp,0rp,0rp)	@20ec
+TmAppHistoryViewItem	atom(TmRowIconBackground)	width	16rp	@210c
+TmAppHistoryViewItem	atom(TmRowIconBackground)	height	16rp	@2110
+TmAppHistoryViewItem	atom(TmRowIconBackground)		rect(2rp,0rp,2rp,0rp)	@2114
+TmAppHistoryViewItem	atom(TmRowIcon)	width	16rp	@2130
+TmAppHistoryViewItem	atom(TmRowIcon)	height	16rp	@2134
+TmAppHistoryViewItem	atom(TmRowIcon)	background	rect(15rp,0rp,0rp,0rp)	@213a
+TmAppHistoryViewItem	atom(TmColFriendlyName)	padding	rect(4rp,2rp,4rp,3rp)	@2154
+TmAppHistoryViewItem	atom(TmColFriendlyName)	background	rect(0rp,0rp,6rp,0rp)	@215a
+TmAppHistoryViewItem	atom(TmColProcessorCycles)	padding	rect(4rp,2rp,4rp,3rp)	@2174
+TmAppHistoryViewItem	atom(TmColProcessorCycles)	borderthickness	rect(0rp,0rp,1rp,0rp)	@2178
+TmAppHistoryViewItem	atom(TmColProcessorCycles)		rect(0rp,0rp,6rp,0rp)	@217c
+TmAppHistoryViewItem	atom(TmColNetworkTotal)	padding	rect(4rp,2rp,4rp,3rp)	@2194
+TmAppHistoryViewItem	atom(TmColNetworkTotal)	borderthickness	rect(0rp,0rp,1rp,0rp)	@2198
+TmAppHistoryViewItem	atom(TmColNetworkTotal)		rect(0rp,0rp,6rp,0rp)	@219c
+TmAppHistoryViewItem	atom(TmColNetworkCosted)	padding	rect(4rp,2rp,4rp,3rp)	@21b4
+TmAppHistoryViewItem	atom(TmColNetworkCosted)	borderthickness	rect(0rp,0rp,1rp,0rp)	@21b8
+TmAppHistoryViewItem	atom(TmColNetworkCosted)		rect(0rp,0rp,6rp,0rp)	@21bc
+TmAppHistoryViewItem	atom(TmColNetworkNotifications)	padding	rect(4rp,2rp,4rp,3rp)	@21d4
+TmAppHistoryViewItem	atom(TmColNetworkNotifications)	borderthickness	rect(0rp,0rp,1rp,0rp)	@21d8
+TmAppHistoryViewItem	atom(TmColNetworkNotifications)		rect(15rp,0rp,0rp,0rp)	@21dc
+TmAppHistoryViewItem	atom(TmColNetworkUncosted)	padding	rect(4rp,2rp,4rp,3rp)	@21f4
+TmAppHistoryViewItem	atom(TmColNetworkUncosted)		rect(15rp,0rp,0rp,0rp)	@21f8
+TmAppHistoryViewItem	atom(TmColNetworkDownstream)	padding	rect(4rp,2rp,4rp,3rp)	@2210
+TmAppHistoryViewItem	atom(TmColNetworkDownstream)		rect(15rp,0rp,0rp,0rp)	@2214
+TmAppHistoryViewItem	atom(TmColNetworkUpstream)	padding	rect(4rp,2rp,4rp,3rp)	@222c
+TmAppHistoryViewItem	atom(clipper)	p8027	rect(15rp,0rp,0rp,0rp)	@2242
+TmAppHistoryChildViewItem	atom(TmViewRow)	height	22rp	@22c4
+TmAppHistoryChildViewItem	atom(TmFirstColumn)	padding	rect(14rp,0rp,0rp,0rp)	@22e4
+TmAppHistoryChildViewItem	atom(TmRowIconBackground)	width	16rp	@2300
+TmAppHistoryChildViewItem	atom(TmRowIconBackground)	height	16rp	@2304
+TmAppHistoryChildViewItem	atom(TmRowIconBackground)		rect(2rp,0rp,2rp,0rp)	@2308
+TmAppHistoryChildViewItem	atom(TmRowIcon)	width	16rp	@2324
+TmAppHistoryChildViewItem	atom(TmRowIcon)	height	16rp	@2328
+TmAppHistoryChildViewItem	atom(TmRowIcon)	background	rect(15rp,0rp,0rp,0rp)	@232e
+TmAppHistoryChildViewItem	atom(TmColFriendlyName)	padding	rect(4rp,2rp,4rp,3rp)	@2348
+TmAppHistoryChildViewItem	atom(TmColFriendlyName)	background	rect(0rp,0rp,6rp,0rp)	@234e
+TmAppHistoryChildViewItem	atom(TmColProcessorCycles)	padding	rect(4rp,2rp,4rp,3rp)	@2368
+TmAppHistoryChildViewItem	atom(TmColProcessorCycles)	borderthickness	rect(0rp,0rp,1rp,0rp)	@236c
+TmAppHistoryChildViewItem	atom(TmColProcessorCycles)		rect(0rp,0rp,6rp,0rp)	@2370
+TmAppHistoryChildViewItem	atom(TmColNetworkTotal)	padding	rect(4rp,2rp,4rp,3rp)	@2388
+TmAppHistoryChildViewItem	atom(TmColNetworkTotal)	borderthickness	rect(0rp,0rp,1rp,0rp)	@238c
+TmAppHistoryChildViewItem	atom(TmColNetworkTotal)		rect(0rp,0rp,6rp,0rp)	@2390
+TmAppHistoryChildViewItem	atom(TmColNetworkNotifications)	padding	rect(4rp,2rp,4rp,3rp)	@23a8
+TmAppHistoryChildViewItem	atom(TmColNetworkNotifications)	borderthickness	rect(0rp,0rp,1rp,0rp)	@23ac
+TmAppHistoryChildViewItem	atom(TmColNetworkNotifications)		rect(0rp,0rp,6rp,0rp)	@23b0
+TmAppHistoryChildViewItem	atom(TmColNetworkCosted)	padding	rect(4rp,2rp,4rp,3rp)	@23c8
+TmAppHistoryChildViewItem	atom(TmColNetworkCosted)	borderthickness	rect(0rp,0rp,1rp,0rp)	@23cc
+TmAppHistoryChildViewItem	atom(TmColNetworkCosted)		rect(15rp,0rp,0rp,0rp)	@23d0
+TmAppHistoryChildViewItem	atom(TmColNetworkUncosted)	padding	rect(4rp,2rp,4rp,3rp)	@23e8
+TmAppHistoryChildViewItem	atom(TmColNetworkUncosted)		rect(15rp,0rp,0rp,0rp)	@23ec
+TmAppHistoryChildViewItem	atom(TmColNetworkDownstream)	padding	rect(4rp,2rp,4rp,3rp)	@2404
+TmAppHistoryChildViewItem	atom(TmColNetworkDownstream)		rect(15rp,0rp,0rp,0rp)	@2408
+TmAppHistoryChildViewItem	atom(TmColNetworkUpstream)	padding	rect(4rp,2rp,4rp,3rp)	@2420
+apptab_tables	TmView	padding	rect(0rp,8rp,0rp,0rp)	@2478
+apptab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@24ec
+apptab_tables	atom(Resizer)	width	5rp	@2510
+apptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@2514
+apptab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@2526
+apptab_tables	atom(SortArrow)	height	10rp	@2538
+apptab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@253c
+apptab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@2548
+apptab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@2558
+apptab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@2584
+apptab_tables	atom(Resizer)	width	5rp	@25a8
+apptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@25ac
+apptab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@25be
+apptab_tables	atom(SortArrow)	height	10rp	@25d0
+apptab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@25d4
+apptab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@25e0
+apptab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@25f0
+apptab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@261c
+apptab_tables	atom(Resizer)	width	5rp	@2640
+apptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@2644
+apptab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@2656
+apptab_tables	atom(SortArrow)	height	10rp	@2668
+apptab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@266c
+apptab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@2678
+apptab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@2688
+apptab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@26b4
+apptab_tables	atom(Resizer)	width	5rp	@26d8
+apptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@26dc
+apptab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@26ee
+apptab_tables	atom(SortArrow)	height	10rp	@2700
+apptab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@2704
+apptab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@2710
+apptab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@2720
+apptab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@274c
+apptab_tables	atom(Resizer)	width	5rp	@2770
+apptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@2774
+apptab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@2786
+apptab_tables	atom(SortArrow)	height	10rp	@2798
+apptab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@279c
+apptab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@27a8
+apptab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@27b8
+apptab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@27e4
+apptab_tables	atom(Resizer)	width	5rp	@2808
+apptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@280c
+apptab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@281e
+apptab_tables	atom(SortArrow)	height	10rp	@2830
+apptab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@2834
+apptab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@2840
+apptab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@2850
+apptab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@287c
+apptab_tables	atom(Resizer)	width	5rp	@28a0
+apptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@28a4
+apptab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@28b6
+apptab_tables	atom(SortArrow)	height	10rp	@28c8
+apptab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@28cc
+apptab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@28d8
+apptab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@28e8
+apptab_tables	atom(ColHeaderText)		5rp	@28f4
+apptab_tables	TmColHeader	padding	rect(7rp,0rp,0rp,0rp)	@291c
+apptab_tables	atom(Resizer)	width	5rp	@2940
+apptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@2944
+apptab_tables	atom(ResizerImage)	padding	rect(0rp,0rp,0rp,0rp)	@2968
+apptab_tables	atom(ResizerImage)		rect(1rp,0rp,0rp,0rp)	@2970
+apptab_tables	atom(SortArrow)	width	17rp	@2980
+apptab_tables	ResourceValueClass	background	rect(15rp,0rp,0rp,0rp)	@299e
+apptab_tables	atom(ColHeaderText)	padding	rect(0rp,3rp,0rp,4rp)	@29b0
+apptab_tables	atom(ColHeaderText)		5rp	@29c0
+apptab_tables	TmColHeader	padding	rect(7rp,0rp,0rp,0rp)	@29e8
+apptab_tables	atom(Resizer)	width	5rp	@2a0c
+apptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@2a10
+apptab_tables	atom(ResizerImage)	padding	rect(0rp,0rp,0rp,0rp)	@2a34
+apptab_tables	atom(ResizerImage)		rect(1rp,0rp,0rp,0rp)	@2a3c
+apptab_tables	atom(SortArrow)	width	17rp	@2a4c
+apptab_tables	ResourceValueClass	background	rect(15rp,0rp,0rp,0rp)	@2a6a
+apptab_tables	atom(ColHeaderText)	padding	rect(0rp,3rp,0rp,4rp)	@2a7c
+apptab_tables	atom(ColHeaderText)		5rp	@2a8c
+apptab_tables	TmColHeader	padding	rect(7rp,0rp,0rp,0rp)	@2ab4
+apptab_tables	atom(Resizer)	width	5rp	@2ad8
+apptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@2adc
+apptab_tables	atom(ResizerImage)	padding	rect(0rp,0rp,0rp,0rp)	@2b00
+apptab_tables	atom(ResizerImage)		rect(1rp,0rp,0rp,0rp)	@2b08
+apptab_tables	atom(SortArrow)	width	17rp	@2b18
+apptab_tables	ResourceValueClass	background	rect(15rp,0rp,0rp,0rp)	@2b36
+apptab_tables	atom(ColHeaderText)	padding	rect(0rp,3rp,0rp,4rp)	@2b48
+apptab_tables	atom(ColHeaderText)		5rp	@2b58
+apptab_tables	TmColHeader	padding	rect(7rp,0rp,0rp,0rp)	@2b80
+apptab_tables	atom(Resizer)	width	5rp	@2ba4
+apptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@2ba8
+apptab_tables	atom(ResizerImage)	padding	rect(0rp,0rp,0rp,0rp)	@2bcc
+apptab_tables	atom(ResizerImage)		rect(1rp,0rp,0rp,0rp)	@2bd4
+apptab_tables	atom(SortArrow)	width	17rp	@2be4
+apptab_tables	ResourceValueClass	background	rect(15rp,0rp,0rp,0rp)	@2c02
+apptab_tables	atom(ColHeaderText)	padding	rect(0rp,3rp,0rp,4rp)	@2c14
+apptab_tables	atom(ColHeaderText)		5rp	@2c24
+apptab_tables	TmColHeader	padding	rect(7rp,0rp,0rp,0rp)	@2c4c
+apptab_tables	atom(Resizer)	width	5rp	@2c70
+apptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@2c74
+apptab_tables	atom(ResizerImage)	padding	rect(0rp,0rp,0rp,0rp)	@2c98
+apptab_tables	atom(ResizerImage)		rect(1rp,0rp,0rp,0rp)	@2ca0
+apptab_tables	atom(SortArrow)	width	17rp	@2cb0
+apptab_tables	ResourceValueClass	background	rect(15rp,0rp,0rp,0rp)	@2cce
+apptab_tables	atom(ColHeaderText)	padding	rect(0rp,3rp,0rp,4rp)	@2ce0
+apptab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@2d10
+apptab_tables	atom(Resizer)	width	5rp	@2d34
+apptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@2d38
+apptab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@2d4a
+apptab_tables	atom(SortArrow)	height	10rp	@2d5c
+apptab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@2d60
+apptab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@2d6c
+apptab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@2d7c
+apptab_tables	atom(ColHeaderText)		5rp	@2d88
+apptab_tables	TmColHeader	padding	rect(7rp,0rp,0rp,0rp)	@2db0
+apptab_tables	atom(Resizer)	width	5rp	@2dd4
+apptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@2dd8
+apptab_tables	atom(ResizerImage)	padding	rect(0rp,0rp,0rp,0rp)	@2dfc
+apptab_tables	atom(ResizerImage)		rect(1rp,0rp,0rp,0rp)	@2e04
+apptab_tables	atom(SortArrow)	width	17rp	@2e14
+apptab_tables	ResourceValueClass	background	rect(15rp,0rp,0rp,0rp)	@2e32
+apptab_tables	atom(ColHeaderText)	padding	rect(0rp,3rp,0rp,4rp)	@2e44
+apptab_tables	atom(ColHeaderText)		5rp	@2e54
+apptab_tables	TmColHeader	padding	rect(7rp,0rp,0rp,0rp)	@2e7c
+apptab_tables	atom(Resizer)	width	5rp	@2ea0
+apptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@2ea4
+apptab_tables	atom(ResizerImage)	padding	rect(0rp,0rp,0rp,0rp)	@2ec8
+apptab_tables	atom(ResizerImage)		rect(1rp,0rp,0rp,0rp)	@2ed0
+apptab_tables	atom(SortArrow)	width	17rp	@2ee0
+apptab_tables	ResourceValueClass	background	rect(15rp,0rp,0rp,0rp)	@2efe
+apptab_tables	atom(ColHeaderText)	padding	rect(0rp,3rp,0rp,4rp)	@2f10
+apptab_tables	atom(TmViewData)	p803f	5rp	@2f3a
+apptab_tables	atom(TmGroupHeaderName)	padding	rect(8rp, 10rp, 0rp, 7rp)	@2fac
+apptab_tables	atom(TmGroupHeaderName)	p8028	rect(15rp,0rp,0rp,0rp)	@2fb2
+apptab_tables	atom(TmColType)	padding	rect(4rp,2rp,4rp,3rp)	@2fcc
+apptab_tables	atom(TmColType)		rect(15rp,0rp,0rp,0rp)	@2fd0
+apptab_tables	atom(TmColStatus)	padding	rect(4rp,2rp,4rp,3rp)	@2fe8
+apptab_tables	atom(TmColStatus)		rect(15rp,0rp,0rp,0rp)	@2fec
+apptab_tables	atom(TmColPublisher)	padding	rect(4rp,2rp,4rp,3rp)	@3004
+apptab_tables	atom(TmColPublisher)		rect(15rp,0rp,0rp,0rp)	@3008
+apptab_tables	atom(TmColPid)	padding	rect(4rp,2rp,4rp,3rp)	@3020
+apptab_tables	atom(TmColPid)		rect(15rp,0rp,0rp,0rp)	@3024
+apptab_tables	atom(TmColProcessName)	padding	rect(4rp,2rp,4rp,3rp)	@303c
+apptab_tables	atom(TmColProcessName)		rect(15rp,0rp,0rp,0rp)	@3040
+apptab_tables	atom(TmColCommandLine)	padding	rect(4rp,2rp,4rp,3rp)	@3058
+apptab_tables	atom(TmColCommandLine)		rect(0rp,0rp,6rp,0rp)	@305c
+apptab_tables	atom(TmColCPUPercent)	padding	rect(4rp,2rp,4rp,3rp)	@3074
+apptab_tables	atom(TmColCPUPercent)	borderthickness	rect(0rp,0rp,1rp,0rp)	@3078
+apptab_tables	atom(TmColCPUPercent)		rect(0rp,0rp,6rp,0rp)	@307c
+apptab_tables	atom(TmColMemory)	padding	rect(4rp,2rp,4rp,3rp)	@3094
+apptab_tables	atom(TmColMemory)	borderthickness	rect(0rp,0rp,1rp,0rp)	@3098
+apptab_tables	atom(TmColMemory)		rect(0rp,0rp,6rp,0rp)	@309c
+apptab_tables	atom(TmColDisk)	padding	rect(4rp,2rp,4rp,3rp)	@30b4
+apptab_tables	atom(TmColDisk)	borderthickness	rect(0rp,0rp,1rp,0rp)	@30b8
+apptab_tables	atom(TmColDisk)		rect(0rp,0rp,6rp,0rp)	@30bc
+apptab_tables	atom(TmColNetwork)	padding	rect(4rp,2rp,4rp,3rp)	@30d4
+apptab_tables	atom(TmColNetwork)	borderthickness	rect(0rp,0rp,1rp,0rp)	@30d8
+apptab_tables	atom(TmColNetwork)		rect(0rp,0rp,6rp,0rp)	@30dc
+apptab_tables	atom(TmColGPUPercent)	padding	rect(4rp,2rp,4rp,3rp)	@30f4
+apptab_tables	atom(TmColGPUPercent)	borderthickness	rect(0rp,0rp,1rp,0rp)	@30f8
+apptab_tables	atom(TmColGPUPercent)		rect(15rp,0rp,0rp,0rp)	@30fc
+apptab_tables	atom(TmColGpuEngineName)	padding	rect(4rp,2rp,4rp,3rp)	@3114
+apptab_tables	atom(TmColGpuEngineName)		rect(15rp,0rp,0rp,0rp)	@3118
+apptab_tables	atom(TmColPowerUsage)	padding	rect(4rp,2rp,4rp,3rp)	@3130
+apptab_tables	atom(TmColPowerUsage)		rect(15rp,0rp,0rp,0rp)	@3134
+apptab_tables	atom(TmColPowerUsageTrend)	padding	rect(4rp,2rp,4rp,3rp)	@314c
+apptab_tables	atom(TmGroupHeaderName)	padding	rect(8rp, 10rp, 0rp, 7rp)	@319c
+apptab_tables	atom(TmGroupHeaderName)	p8028	rect(15rp,0rp,0rp,0rp)	@31a2
+apptab_tables	atom(TmColType)	padding	rect(4rp,2rp,4rp,3rp)	@31bc
+apptab_tables	atom(TmColType)		rect(15rp,0rp,0rp,0rp)	@31c0
+apptab_tables	atom(TmColStatus)	padding	rect(4rp,2rp,4rp,3rp)	@31d8
+apptab_tables	atom(TmColStatus)		rect(15rp,0rp,0rp,0rp)	@31dc
+apptab_tables	atom(TmColPublisher)	padding	rect(4rp,2rp,4rp,3rp)	@31f4
+apptab_tables	atom(TmColPublisher)		rect(15rp,0rp,0rp,0rp)	@31f8
+apptab_tables	atom(TmColPid)	padding	rect(4rp,2rp,4rp,3rp)	@3210
+apptab_tables	atom(TmColPid)		rect(15rp,0rp,0rp,0rp)	@3214
+apptab_tables	atom(TmColProcessName)	padding	rect(4rp,2rp,4rp,3rp)	@322c
+apptab_tables	atom(TmColProcessName)		rect(15rp,0rp,0rp,0rp)	@3230
+apptab_tables	atom(TmColCommandLine)	padding	rect(4rp,2rp,4rp,3rp)	@3248
+apptab_tables	atom(TmColCommandLine)		rect(0rp,0rp,6rp,0rp)	@324c
+apptab_tables	atom(TmColCPUPercent)	padding	rect(4rp,2rp,4rp,3rp)	@3264
+apptab_tables	atom(TmColCPUPercent)	borderthickness	rect(0rp,0rp,1rp,0rp)	@3268
+apptab_tables	atom(TmColCPUPercent)		rect(0rp,0rp,6rp,0rp)	@326c
+apptab_tables	atom(TmColMemory)	padding	rect(4rp,2rp,4rp,3rp)	@3284
+apptab_tables	atom(TmColMemory)	borderthickness	rect(0rp,0rp,1rp,0rp)	@3288
+apptab_tables	atom(TmColMemory)		rect(0rp,0rp,6rp,0rp)	@328c
+apptab_tables	atom(TmColDisk)	padding	rect(4rp,2rp,4rp,3rp)	@32a4
+apptab_tables	atom(TmColDisk)	borderthickness	rect(0rp,0rp,1rp,0rp)	@32a8
+apptab_tables	atom(TmColDisk)		rect(0rp,0rp,6rp,0rp)	@32ac
+apptab_tables	atom(TmColNetwork)	padding	rect(4rp,2rp,4rp,3rp)	@32c4
+apptab_tables	atom(TmColNetwork)	borderthickness	rect(0rp,0rp,1rp,0rp)	@32c8
+apptab_tables	atom(TmColNetwork)		rect(0rp,0rp,6rp,0rp)	@32cc
+apptab_tables	atom(TmColGPUPercent)	padding	rect(4rp,2rp,4rp,3rp)	@32e4
+apptab_tables	atom(TmColGPUPercent)	borderthickness	rect(0rp,0rp,1rp,0rp)	@32e8
+apptab_tables	atom(TmColGPUPercent)		rect(15rp,0rp,0rp,0rp)	@32ec
+apptab_tables	atom(TmColGpuEngineName)	padding	rect(4rp,2rp,4rp,3rp)	@3304
+apptab_tables	atom(TmColGpuEngineName)		rect(0rp,0rp,6rp,0rp)	@3308
+apptab_tables	atom(TmColPowerUsage)	padding	rect(4rp,2rp,4rp,3rp)	@3320
+apptab_tables	atom(TmColPowerUsage)	borderthickness	rect(0rp,0rp,1rp,0rp)	@3324
+apptab_tables	atom(TmColPowerUsage)		rect(0rp,0rp,6rp,0rp)	@3328
+apptab_tables	atom(TmColPowerUsageTrend)	padding	rect(4rp,2rp,4rp,3rp)	@3340
+apptab_tables	atom(TmColPowerUsageTrend)	borderthickness	rect(0rp,0rp,1rp,0rp)	@3344
+apptab_tables	atom(TmGroupHeaderName)	padding	rect(8rp, 10rp, 0rp, 7rp)	@3394
+apptab_tables	atom(TmGroupHeaderName)	p8028	rect(15rp,0rp,0rp,0rp)	@339a
+apptab_tables	atom(TmColType)	padding	rect(4rp,2rp,4rp,3rp)	@33b4
+apptab_tables	atom(TmColType)		rect(15rp,0rp,0rp,0rp)	@33b8
+apptab_tables	atom(TmColStatus)	padding	rect(4rp,2rp,4rp,3rp)	@33d0
+apptab_tables	atom(TmColStatus)		rect(15rp,0rp,0rp,0rp)	@33d4
+apptab_tables	atom(TmColPublisher)	padding	rect(4rp,2rp,4rp,3rp)	@33ec
+apptab_tables	atom(TmColPublisher)		rect(15rp,0rp,0rp,0rp)	@33f0
+apptab_tables	atom(TmColPid)	padding	rect(4rp,2rp,4rp,3rp)	@3408
+apptab_tables	atom(TmColPid)		rect(15rp,0rp,0rp,0rp)	@340c
+apptab_tables	atom(TmColProcessName)	padding	rect(4rp,2rp,4rp,3rp)	@3424
+apptab_tables	atom(TmColProcessName)		rect(15rp,0rp,0rp,0rp)	@3428
+apptab_tables	atom(TmColCommandLine)	padding	rect(4rp,2rp,4rp,3rp)	@3440
+apptab_tables	atom(TmColCommandLine)		rect(0rp,0rp,6rp,0rp)	@3444
+apptab_tables	atom(TmColCPUPercent)	padding	rect(4rp,2rp,4rp,3rp)	@345c
+apptab_tables	atom(TmColCPUPercent)	borderthickness	rect(0rp,0rp,1rp,0rp)	@3460
+apptab_tables	atom(TmColCPUPercent)		rect(0rp,0rp,6rp,0rp)	@3464
+apptab_tables	atom(TmColMemory)	padding	rect(4rp,2rp,4rp,3rp)	@347c
+apptab_tables	atom(TmColMemory)	borderthickness	rect(0rp,0rp,1rp,0rp)	@3480
+apptab_tables	atom(TmColMemory)		rect(0rp,0rp,6rp,0rp)	@3484
+apptab_tables	atom(TmColDisk)	padding	rect(4rp,2rp,4rp,3rp)	@349c
+apptab_tables	atom(TmColDisk)	borderthickness	rect(0rp,0rp,1rp,0rp)	@34a0
+apptab_tables	atom(TmColDisk)		rect(0rp,0rp,6rp,0rp)	@34a4
+apptab_tables	atom(TmColNetwork)	padding	rect(4rp,2rp,4rp,3rp)	@34bc
+apptab_tables	atom(TmColNetwork)	borderthickness	rect(0rp,0rp,1rp,0rp)	@34c0
+apptab_tables	atom(TmColNetwork)		rect(0rp,0rp,6rp,0rp)	@34c4
+apptab_tables	atom(TmColGPUPercent)	padding	rect(4rp,2rp,4rp,3rp)	@34dc
+apptab_tables	atom(TmColGPUPercent)	borderthickness	rect(0rp,0rp,1rp,0rp)	@34e0
+apptab_tables	atom(TmColGPUPercent)		rect(15rp,0rp,0rp,0rp)	@34e4
+apptab_tables	atom(TmColGpuEngineName)	padding	rect(4rp,2rp,4rp,3rp)	@34fc
+apptab_tables	atom(TmColGpuEngineName)		rect(0rp,0rp,6rp,0rp)	@3500
+apptab_tables	atom(TmColPowerUsage)	padding	rect(4rp,2rp,4rp,3rp)	@3518
+apptab_tables	atom(TmColPowerUsage)	borderthickness	rect(0rp,0rp,1rp,0rp)	@351c
+apptab_tables	atom(TmColPowerUsage)		rect(0rp,0rp,6rp,0rp)	@3520
+apptab_tables	atom(TmColPowerUsageTrend)	padding	rect(4rp,2rp,4rp,3rp)	@3538
+apptab_tables	atom(TmColPowerUsageTrend)	borderthickness	rect(0rp,0rp,1rp,0rp)	@353c
+startuptab_tables	TmView	padding	rect(0rp,8rp,0rp,0rp)	@35c4
+startuptab_tables	atom(Holder)	p803f	rect(1rp,0rp,0rp,0rp)	@35fe
+startuptab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@3694
+startuptab_tables	atom(Resizer)	width	5rp	@36b8
+startuptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@36bc
+startuptab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@36ce
+startuptab_tables	atom(SortArrow)	height	10rp	@36e0
+startuptab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@36e4
+startuptab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@36f0
+startuptab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@3700
+startuptab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@372c
+startuptab_tables	atom(Resizer)	width	5rp	@3750
+startuptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@3754
+startuptab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@3766
+startuptab_tables	atom(SortArrow)	height	10rp	@3778
+startuptab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@377c
+startuptab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@3788
+startuptab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@3798
+startuptab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@37c4
+startuptab_tables	atom(Resizer)	width	5rp	@37e8
+startuptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@37ec
+startuptab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@37fe
+startuptab_tables	atom(SortArrow)	height	10rp	@3810
+startuptab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@3814
+startuptab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@3820
+startuptab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@3830
+startuptab_tables	atom(ColHeaderText)		5rp	@383c
+startuptab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@385c
+startuptab_tables	atom(Resizer)	width	5rp	@3888
+startuptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@388c
+startuptab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@389e
+startuptab_tables	atom(SortArrow)	height	10rp	@38b0
+startuptab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@38b4
+startuptab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@38c0
+startuptab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@38d0
+startuptab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@38fc
+startuptab_tables	atom(Resizer)	width	5rp	@3920
+startuptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@3924
+startuptab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@3936
+startuptab_tables	atom(SortArrow)	height	10rp	@3948
+startuptab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@394c
+startuptab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@3958
+startuptab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@3968
+startuptab_tables	atom(ColHeaderText)		5rp	@3974
+startuptab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@3994
+startuptab_tables	atom(Resizer)	width	5rp	@39c0
+startuptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@39c4
+startuptab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@39d6
+startuptab_tables	atom(SortArrow)	height	10rp	@39e8
+startuptab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@39ec
+startuptab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@39f8
+startuptab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@3a08
+startuptab_tables	atom(ColHeaderText)		5rp	@3a14
+startuptab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@3a34
+startuptab_tables	atom(Resizer)	width	5rp	@3a60
+startuptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@3a64
+startuptab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@3a76
+startuptab_tables	atom(SortArrow)	height	10rp	@3a88
+startuptab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@3a8c
+startuptab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@3a98
+startuptab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@3aa8
+startuptab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@3ad4
+startuptab_tables	atom(Resizer)	width	5rp	@3af8
+startuptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@3afc
+startuptab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@3b0e
+startuptab_tables	atom(SortArrow)	height	10rp	@3b20
+startuptab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@3b24
+startuptab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@3b30
+startuptab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@3b40
+startuptab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@3b6c
+startuptab_tables	atom(Resizer)	width	5rp	@3b90
+startuptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@3b94
+startuptab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@3ba6
+startuptab_tables	atom(SortArrow)	height	10rp	@3bb8
+startuptab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@3bbc
+startuptab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@3bc8
+startuptab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@3bd8
+startuptab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@3c04
+startuptab_tables	atom(Resizer)	width	5rp	@3c28
+startuptab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@3c2c
+startuptab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@3c3e
+startuptab_tables	atom(SortArrow)	height	10rp	@3c50
+startuptab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@3c54
+startuptab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@3c60
+startuptab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@3c70
+startuptab_tables	atom(TmViewData)	p803f	5rp	@3c96
+startuptab_tables	TmScrollViewer	p803f	rect(15rp,0rp,0rp,0rp)	@3cce
+startuptab_tables	StaticLabel	padding	rect(0rp,8rp,0rp,0rp)	@3ce8
+userstab_tables	TmView	padding	rect(0rp,8rp,0rp,0rp)	@3d5c
+userstab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@3dd0
+userstab_tables	atom(Resizer)	width	5rp	@3df4
+userstab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@3df8
+userstab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@3e0a
+userstab_tables	atom(SortArrow)	height	10rp	@3e1c
+userstab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@3e20
+userstab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@3e2c
+userstab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@3e3c
+userstab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@3e68
+userstab_tables	atom(Resizer)	width	5rp	@3e8c
+userstab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@3e90
+userstab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@3ea2
+userstab_tables	atom(SortArrow)	height	10rp	@3eb4
+userstab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@3eb8
+userstab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@3ec4
+userstab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@3ed4
+userstab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@3f00
+userstab_tables	atom(Resizer)	width	5rp	@3f24
+userstab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@3f28
+userstab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@3f3a
+userstab_tables	atom(SortArrow)	height	10rp	@3f4c
+userstab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@3f50
+userstab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@3f5c
+userstab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@3f6c
+userstab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@3f98
+userstab_tables	atom(Resizer)	width	5rp	@3fbc
+userstab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@3fc0
+userstab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@3fd2
+userstab_tables	atom(SortArrow)	height	10rp	@3fe4
+userstab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@3fe8
+userstab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@3ff4
+userstab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@4004
+userstab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@4030
+userstab_tables	atom(Resizer)	width	5rp	@4054
+userstab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@4058
+userstab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@406a
+userstab_tables	atom(SortArrow)	height	10rp	@407c
+userstab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@4080
+userstab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@408c
+userstab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@409c
+userstab_tables	atom(ColHeaderText)		5rp	@40a8
+userstab_tables	TmColHeader	padding	rect(7rp,0rp,0rp,0rp)	@40d0
+userstab_tables	atom(Resizer)	width	5rp	@40f4
+userstab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@40f8
+userstab_tables	atom(ResizerImage)	padding	rect(0rp,0rp,0rp,0rp)	@411c
+userstab_tables	atom(ResizerImage)		rect(1rp,0rp,0rp,0rp)	@4124
+userstab_tables	atom(SortArrow)	width	17rp	@4134
+userstab_tables	ResourceValueClass	background	rect(15rp,0rp,0rp,0rp)	@4152
+userstab_tables	atom(ColHeaderText)	padding	rect(0rp,3rp,0rp,4rp)	@4164
+userstab_tables	atom(ColHeaderText)		5rp	@4174
+userstab_tables	TmColHeader	padding	rect(7rp,0rp,0rp,0rp)	@419c
+userstab_tables	atom(Resizer)	width	5rp	@41c0
+userstab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@41c4
+userstab_tables	atom(ResizerImage)	padding	rect(0rp,0rp,0rp,0rp)	@41e8
+userstab_tables	atom(ResizerImage)		rect(1rp,0rp,0rp,0rp)	@41f0
+userstab_tables	atom(SortArrow)	width	17rp	@4200
+userstab_tables	ResourceValueClass	background	rect(15rp,0rp,0rp,0rp)	@421e
+userstab_tables	atom(ColHeaderText)	padding	rect(0rp,3rp,0rp,4rp)	@4230
+userstab_tables	atom(ColHeaderText)		5rp	@4240
+userstab_tables	TmColHeader	padding	rect(7rp,0rp,0rp,0rp)	@4268
+userstab_tables	atom(Resizer)	width	5rp	@428c
+userstab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@4290
+userstab_tables	atom(ResizerImage)	padding	rect(0rp,0rp,0rp,0rp)	@42b4
+userstab_tables	atom(ResizerImage)		rect(1rp,0rp,0rp,0rp)	@42bc
+userstab_tables	atom(SortArrow)	width	17rp	@42cc
+userstab_tables	ResourceValueClass	background	rect(15rp,0rp,0rp,0rp)	@42ea
+userstab_tables	atom(ColHeaderText)	padding	rect(0rp,3rp,0rp,4rp)	@42fc
+userstab_tables	atom(ColHeaderText)		5rp	@430c
+userstab_tables	TmColHeader	padding	rect(7rp,0rp,0rp,0rp)	@4334
+userstab_tables	atom(Resizer)	width	5rp	@4358
+userstab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@435c
+userstab_tables	atom(ResizerImage)	padding	rect(0rp,0rp,0rp,0rp)	@4380
+userstab_tables	atom(ResizerImage)		rect(1rp,0rp,0rp,0rp)	@4388
+userstab_tables	atom(SortArrow)	width	17rp	@4398
+userstab_tables	ResourceValueClass	background	rect(15rp,0rp,0rp,0rp)	@43b6
+userstab_tables	atom(ColHeaderText)	padding	rect(0rp,3rp,0rp,4rp)	@43c8
+userstab_tables	atom(ColHeaderText)		5rp	@43d8
+userstab_tables	TmColHeader	padding	rect(7rp,0rp,0rp,0rp)	@4400
+userstab_tables	atom(Resizer)	width	5rp	@4424
+userstab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@4428
+userstab_tables	atom(ResizerImage)	padding	rect(0rp,0rp,0rp,0rp)	@444c
+userstab_tables	atom(ResizerImage)		rect(1rp,0rp,0rp,0rp)	@4454
+userstab_tables	atom(SortArrow)	width	17rp	@4464
+userstab_tables	ResourceValueClass	background	rect(15rp,0rp,0rp,0rp)	@4482
+userstab_tables	atom(ColHeaderText)	padding	rect(0rp,3rp,0rp,4rp)	@4494
+userstab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@44c4
+userstab_tables	atom(Resizer)	width	5rp	@44e8
+userstab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@44ec
+userstab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@44fe
+userstab_tables	atom(SortArrow)	height	10rp	@4510
+userstab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@4514
+userstab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@4520
+userstab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@4530
+userstab_tables	atom(TmViewData)	p803f	5rp	@4556
+apphistorytab_tables	TmView	padding	rect(0rp,8rp,0rp,0rp)	@45fc
+apphistorytab_tables	TmView	padding	rect(4rp,8rp,0rp,8rp)	@4620
+apphistorytab_tables	TmView		rect(0rp,0rp,6rp,0rp)	@4624
+apphistorytab_tables	BodyText	padding	rect(2rp,0rp,0rp,0rp)	@4630
+apphistorytab_tables	link	margin	rect(0rp,2rp,0rp,0rp)	@4658
+apphistorytab_tables	link	padding	rect(4rp,0rp,4rp,0rp)	@465c
+apphistorytab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@46e0
+apphistorytab_tables	atom(Resizer)	width	5rp	@4704
+apphistorytab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@4708
+apphistorytab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@471a
+apphistorytab_tables	atom(SortArrow)	height	10rp	@472c
+apphistorytab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@4730
+apphistorytab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@473c
+apphistorytab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@474c
+apphistorytab_tables	atom(ColHeaderText)		5rp	@4758
+apphistorytab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@4778
+apphistorytab_tables	atom(Resizer)	width	5rp	@47a4
+apphistorytab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@47a8
+apphistorytab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@47ba
+apphistorytab_tables	atom(SortArrow)	height	10rp	@47cc
+apphistorytab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@47d0
+apphistorytab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@47dc
+apphistorytab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@47ec
+apphistorytab_tables	atom(ColHeaderText)		5rp	@47f8
+apphistorytab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@4818
+apphistorytab_tables	atom(Resizer)	width	5rp	@4844
+apphistorytab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@4848
+apphistorytab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@485a
+apphistorytab_tables	atom(SortArrow)	height	10rp	@486c
+apphistorytab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@4870
+apphistorytab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@487c
+apphistorytab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@488c
+apphistorytab_tables	atom(ColHeaderText)		5rp	@4898
+apphistorytab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@48b8
+apphistorytab_tables	atom(Resizer)	width	5rp	@48e4
+apphistorytab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@48e8
+apphistorytab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@48fa
+apphistorytab_tables	atom(SortArrow)	height	10rp	@490c
+apphistorytab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@4910
+apphistorytab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@491c
+apphistorytab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@492c
+apphistorytab_tables	atom(ColHeaderText)		5rp	@4938
+apphistorytab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@4958
+apphistorytab_tables	atom(Resizer)	width	5rp	@4984
+apphistorytab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@4988
+apphistorytab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@499a
+apphistorytab_tables	atom(SortArrow)	height	10rp	@49ac
+apphistorytab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@49b0
+apphistorytab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@49bc
+apphistorytab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@49cc
+apphistorytab_tables	atom(ColHeaderText)		5rp	@49d8
+apphistorytab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@49f8
+apphistorytab_tables	atom(Resizer)	width	5rp	@4a24
+apphistorytab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@4a28
+apphistorytab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@4a3a
+apphistorytab_tables	atom(SortArrow)	height	10rp	@4a4c
+apphistorytab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@4a50
+apphistorytab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@4a5c
+apphistorytab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@4a6c
+apphistorytab_tables	atom(ColHeaderText)		5rp	@4a78
+apphistorytab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@4a98
+apphistorytab_tables	atom(Resizer)	width	5rp	@4ac4
+apphistorytab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@4ac8
+apphistorytab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@4ada
+apphistorytab_tables	atom(SortArrow)	height	10rp	@4aec
+apphistorytab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@4af0
+apphistorytab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@4afc
+apphistorytab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@4b0c
+apphistorytab_tables	atom(ColHeaderText)		5rp	@4b18
+apphistorytab_tables	TmColHeader	padding	rect(4rp,0rp,0rp,0rp)	@4b38
+apphistorytab_tables	atom(Resizer)	width	5rp	@4b64
+apphistorytab_tables	atom(Resizer)	padding	rect(0rp,2rp,0rp,0rp)	@4b68
+apphistorytab_tables	atom(ResizerImage)	background	rect(0rp,0rp,6rp,0rp)	@4b7a
+apphistorytab_tables	atom(SortArrow)	height	10rp	@4b8c
+apphistorytab_tables	atom(SortArrow)	padding	rect(0rp,2rp,6rp,0rp)	@4b90
+apphistorytab_tables	atom(SortArrow)		rect(1rp,0rp,0rp,0rp)	@4b9c
+apphistorytab_tables	atom(ColHeaderText)	padding	rect(0rp,0rp,0rp,4rp)	@4bac
+apphistorytab_tables	atom(TmViewData)	p803f	5rp	@4bd2
+apphistorytab_tables	TmScrollViewer	p803f	rect(15rp,0rp,0rp,0rp)	@4c0a
+apphistorytab_tables	StaticLabel	padding	rect(0rp,8rp,0rp,0rp)	@4c24
+performancetab_graphs	atom(dashSidebarScrollViewer)	padding	rect(3rp,7rp,0rp,0rp)	@4c78
+performancetab_graphs	atom(dashSidebarDivider)	padding	rect(0rp,7rp,0rp,0rp)	@4d04
+performancetab_graphs	atom(dashSidebarDivider)	height	45rp	@4d14
+performancetab_graphs	atom(dashSidebarDivider)	width	8rp	@4d18
+performancetab_graphs	atom(dashSidebarDivider)	height	45rp	@4d34
+performancetab_graphs	atom(dashSidebarDivider)	width	8rp	@4d38
+dashSidebarEntryViewer	atom(dashSidebarEntry)	padding	rect(0rp,0rp,3rp,0rp)	@4d6c
+dashSidebarCpuButton	sidebarData		rect(1rp,0rp,0rp,0rp)	@4dfc
+dashSidebarCpuButton	sidebarData	padding	rect(5rp,0rp,0rp,0rp)	@4e08
+dashSidebarNetButton	sidebarLabel	p8026	rect(15rp,0rp,0rp,0rp)	@502a
+dashSidebarGpuButton	sidebarData		rect(1rp,0rp,0rp,0rp)	@5150
+dashSidebarGpuButton	sidebarData	padding	rect(5rp,0rp,0rp,0rp)	@515c
+performancetab_tables	(style)	padding	rect(17rp,0rp,0rp,0rp)	@5180
+performancetab_tables	atom(detailInfo)	width	402rp	@51bc
+performancetab_tables	atom(detailInfo)	padding	rect(0rp,10rp,24rp,20rp)	@51c0
+performancetab_tables	atom(chartAndTitle)	padding	rect(0rp,0rp,0rp,10rp)	@51d4
+performancetab_tables	atom(chartInfo)	padding	rect(2rp,0rp,0rp,0rp)	@520c
+performancetab_tables	atom(chartInfo)	margin	rect(0rp,5rp,0rp,0rp)	@5220
+performancetab_tables	atom(dataInfo)	padding	rect(2rp,0rp,0rp,0rp)	@523c
+performancetab_tables	atom(dataInfo)		rect(15rp,0rp,0rp,0rp)	@5240
+performancetab_tables	atom(dynamicInfo)		rect(0rp,0rp,6rp,0rp)	@525c
+performancetab_tables	atom(staticInfo)	padding	rect(10rp,0rp,0rp,0rp)	@526c
+static_cpu	atom(static_cpu)	p8026	rect(1rp,0rp,0rp,0rp)	@52b2
+static_cpu	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@52c8
+static_cpu	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@52e6
+static_cpu	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@52fc
+static_cpu	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@531a
+static_cpu	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@5330
+static_cpu	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@534e
+static_cpu	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@5364
+static_cpu	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@5382
+static_cpu	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@5398
+static_cpu	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@53b6
+static_cpu	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@53cc
+static_cpu	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@53ea
+static_cpu	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@5400
+static_cpu	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@541e
+static_cpu	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@5434
+static_cpu	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@5452
+static_cpu	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@5468
+static_cpu	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@5486
+static_cpu	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@549c
+static_cpu	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@54ba
+static_cpu	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@54d0
+static_cpu	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@54ee
+static_cpu	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@5504
+dynamic_cpu	dynamicData	margin	rect(20rp,0rp,0rp,0rp)	@5580
+dynamic_cpu	dynamicData	margin	rect(0rp,8rp,0rp,0rp)	@55bc
+dynamic_cpu	dynamicData	margin	rect(20rp,0rp,0rp,0rp)	@5600
+dynamic_cpu	dynamicData	margin	rect(20rp,0rp,0rp,0rp)	@5638
+dynamic_cpu	dynamicData	margin	rect(0rp,8rp,0rp,0rp)	@5674
+cpu_chart	atom(chartArea)	p802a	rect(15rp,0rp,0rp,0rp)	@572a
+cpu_chart	atom(logicalCpuHost)	height	80rp	@579c
+cpu_chart	atom(heatMapCpuHost)	height	80rp	@5818
+cpu_chart	cpuHeatGrid	borderthickness	rect(1rp,1rp,1rp,1rp)	@5860
+cpu_chart	atom(numaCpuHost)	height	80rp	@58d0
+cpuBlock	(style)	height	17rp	@5978
+cpuBlock	(style)	borderthickness	rect(0rp,0rp,0rp,1rp)	@597c
+cpuBlock	(style)	borderthickness	rect(0rp,0rp,1rp,0rp)	@598c
+cpuBlock	(style)		rect(15rp,0rp,0rp,0rp)	@5990
+cpuBlock	atom(cpuBlockData)	borderthickness	rect(1rp,1rp,1rp,1rp)	@59a4
+cpuBlock	atom(cpuBlockData)	padding	rect(5rp,0rp,5rp,0rp)	@59a8
+static_memory	atom(static_memory)	p8026	rect(1rp,0rp,0rp,0rp)	@59d6
+static_memory	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@59ec
+static_memory	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@5a0a
+static_memory	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@5a20
+static_memory	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@5a3e
+static_memory	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@5a54
+static_memory	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@5a72
+static_memory	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@5a88
+static_memory	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@5aa6
+static_memory	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@5abc
+dynamic_memory	dynamicData	margin	rect(20rp,0rp,0rp,0rp)	@5b38
+dynamic_memory	dynamicData	margin	rect(0rp,8rp,0rp,0rp)	@5b74
+dynamic_memory	dynamicData	margin	rect(20rp,0rp,0rp,0rp)	@5bb8
+dynamic_memory	dynamicData	margin	rect(0rp,8rp,0rp,0rp)	@5bf4
+dynamic_memory	dynamicData	margin	rect(20rp,0rp,0rp,0rp)	@5c38
+memory_chart	atom(chartArea)	p802a	rect(15rp,0rp,0rp,0rp)	@5cd2
+memory_chart	atom(memAvailabilityBar)	margin	rect(0rp,6rp,0rp,0rp)	@5d50
+memory_chart	atom(memAvailabilityBar)	padding	rect(0rp,0rp,0rp,14rp)	@5d54
+memory_chart	atom(memAvailabilityBar)		rect(15rp,0rp,0rp,0rp)	@5d64
+memory_chart	lheader	padding	rect(0rp,0rp,0rp,5rp)	@5d74
+static_disk	atom(static_disk)	p8026	rect(1rp,0rp,0rp,0rp)	@5e02
+static_disk	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@5e18
+static_disk	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@5e36
+static_disk	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@5e4c
+static_disk	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@5e6a
+static_disk	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@5e80
+static_disk	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@5e9e
+static_disk	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@5eb4
+static_disk	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@5ed2
+static_disk	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@5ee8
+dynamic_disk_server	dynamicData	margin	rect(0rp,8rp,0rp,0rp)	@5fc4
+dynamic_disk_server	dynamicData	margin	rect(20rp,0rp,0rp,0rp)	@6008
+dynamic_disk_client	dynamicData	margin	rect(20rp,0rp,0rp,0rp)	@60a0
+dynamic_disk_client	dynamicData	margin	rect(0rp,8rp,0rp,0rp)	@60dc
+disk_chart	atom(chartArea)	p802a	rect(1rp,0rp,0rp,0rp)	@61de
+disk_chart	rheader	padding	rect(0rp,6rp,0rp,0rp)	@624c
+disk_chart	atom(chartArea)	p802a	rect(1rp,0rp,0rp,0rp)	@628e
+disk_server_chart	atom(chartArea)	p802a	rect(1rp,0rp,0rp,0rp)	@6356
+disk_server_chart	rheader	padding	rect(0rp,6rp,0rp,0rp)	@63c4
+disk_server_chart	atom(chartArea)	p802a	rect(1rp,0rp,0rp,0rp)	@640a
+static_network	atom(static_network)	p8026	rect(1rp,0rp,0rp,0rp)	@6492
+static_network	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@64a8
+static_network	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@64c6
+static_network	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@64dc
+static_network	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@64fa
+static_network	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@6510
+static_network	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@652e
+static_network	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@6544
+static_network	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@6562
+static_network	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@6578
+static_network	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@6596
+static_network	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@65ac
+static_network	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@65ca
+static_network	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@65e0
+static_network	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@65fe
+static_network	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@6614
+dynamic_network	dynamicData	margin	rect(0rp,8rp,0rp,0rp)	@66a8
+net_chart	atom(chartArea)	p802a	rect(1rp,0rp,0rp,0rp)	@6756
+static_gpu	atom(static_gpu)	p8026	rect(1rp,0rp,0rp,0rp)	@67da
+static_gpu	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@67f0
+static_gpu	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@680e
+static_gpu	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@6824
+static_gpu	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@6842
+static_gpu	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@6858
+static_gpu	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@6876
+static_gpu	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@688c
+static_gpu	staticData	p8026	rect(1rp,0rp,0rp,0rp)	@68aa
+static_gpu	staticLabel	margin	rect(0rp,0rp,10rp,0rp)	@68c0
+dynamic_gpu	dynamicData	margin	rect(0rp,8rp,0rp,0rp)	@693c
+dynamic_gpu	atom(gpuTotalMemory)		rect(1rp,0rp,0rp,0rp)	@6944
+dynamic_gpu	dynamicData	margin	rect(20rp,0rp,0rp,0rp)	@6980
+dynamic_gpu	atom(gpuDedicatedMemRoot)		rect(1rp,0rp,0rp,0rp)	@6994
+dynamic_gpu	dynamicData	margin	rect(0rp,8rp,0rp,0rp)	@69cc
+dynamic_gpu	atom(gpuSharedMemRoot)		rect(1rp,0rp,0rp,0rp)	@69d4
+dynamic_gpu	dynamicData	margin	rect(0rp,8rp,0rp,0rp)	@6a0c
+gpu_chart	atom(gpuMemoryCharts)	margin	rect(0rp,5rp,0rp,5rp)	@6a7c
+singleEngineGpuView	dashSidebarActionButton	padding	rect(0rp,0rp,0rp,0rp)	@6ad0
+singleEngineGpuView	atom(chartArea)	p802a	rect(15rp,0rp,0rp,0rp)	@6b16
+gpuEngineChartTemplate	(style)	padding	rect(2rp,2rp,2rp,2rp)	@6b78
+gpuEngineChartTemplate	dashSidebarActionButton	padding	rect(0rp,0rp,0rp,0rp)	@6ba8

@@ -1,0 +1,5 @@
+=== SRUM 三条路径实测 ===
+
+--- 路径1: SruQueryStatsEx ---
+LoadLibrary: 00007FFA680E0000 (err=2)
+SruQueryStatsEx = 00007FFA680E2250, SruFreeRecordSet = 00007FFA680E20D0

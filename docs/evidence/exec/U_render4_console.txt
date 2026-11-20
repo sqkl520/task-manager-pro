@@ -1,0 +1,118 @@
+########## ItemsView::Header part 1, states 1..12 (forced) ##########
+  p=1 s=1  #FFFFFFx6132 #E5E5E5x28
+           top=#FFFFFF mid=#FFFFFF bot=#FFFFFF L=#FFFFFF R=#E5E5E5
+  p=1 s=2  #D9EBF9x6160
+           top=#D9EBF9 mid=#D9EBF9 bot=#D9EBF9 L=#D9EBF9 R=#D9EBF9
+  p=1 s=3  #BCDCF4x6160
+           top=#BCDCF4 mid=#BCDCF4 bot=#BCDCF4 L=#BCDCF4 R=#BCDCF4
+  p=1 s=4  #FFFFFFx6132 #E5E5E5x28
+           top=#FFFFFF mid=#FFFFFF bot=#FFFFFF L=#FFFFFF R=#E5E5E5
+  p=1 s=5  #D9EBF9x6160
+           top=#D9EBF9 mid=#D9EBF9 bot=#D9EBF9 L=#D9EBF9 R=#D9EBF9
+  p=1 s=6  #BCDCF4x6160
+           top=#BCDCF4 mid=#BCDCF4 bot=#BCDCF4 L=#BCDCF4 R=#BCDCF4
+  p=1 s=7  #FFFFFFx6132 #E5E5E5x28
+           top=#FFFFFF mid=#FFFFFF bot=#FFFFFF L=#FFFFFF R=#E5E5E5
+  p=1 s=8  #D9EBF9x6160
+           top=#D9EBF9 mid=#D9EBF9 bot=#D9EBF9 L=#D9EBF9 R=#D9EBF9
+  p=1 s=9  #BCDCF4x6160
+           top=#BCDCF4 mid=#BCDCF4 bot=#BCDCF4 L=#BCDCF4 R=#BCDCF4
+  p=1 s=10  #FFFFFFx6132 #E5E5E5x28
+           top=#FFFFFF mid=#FFFFFF bot=#FFFFFF L=#FFFFFF R=#E5E5E5
+  p=1 s=11  #D9EBF9x6160
+           top=#D9EBF9 mid=#D9EBF9 bot=#D9EBF9 L=#D9EBF9 R=#D9EBF9
+  p=1 s=12  #BCDCF4x6160
+           top=#BCDCF4 mid=#BCDCF4 bot=#BCDCF4 L=#BCDCF4 R=#BCDCF4
+
+########## HEADER class part 1, states 1..6 ##########
+  p=1 s=1  #FFFFFFx6132 #E5E5E5x28
+           top=#FFFFFF mid=#FFFFFF bot=#FFFFFF L=#FFFFFF R=#E5E5E5
+  p=1 s=2  #D9EBF9x6160
+           top=#D9EBF9 mid=#D9EBF9 bot=#D9EBF9 L=#D9EBF9 R=#D9EBF9
+  p=1 s=3  #BCDCF4x6160
+           top=#BCDCF4 mid=#BCDCF4 bot=#BCDCF4 L=#BCDCF4 R=#BCDCF4
+  p=1 s=4  #FFFFFFx6132 #E5E5E5x28
+           top=#FFFFFF mid=#FFFFFF bot=#FFFFFF L=#FFFFFF R=#E5E5E5
+  p=1 s=5  #D9EBF9x6160
+           top=#D9EBF9 mid=#D9EBF9 bot=#D9EBF9 L=#D9EBF9 R=#D9EBF9
+  p=1 s=6  #BCDCF4x6160
+           top=#BCDCF4 mid=#BCDCF4 bot=#BCDCF4 L=#BCDCF4 R=#BCDCF4
+
+########## Tab TABITEM states 1..5 (forced) ##########
+  TABITEM   s=1  #F0F0F0x2975 #D9D9D9x145
+            top=#D9D9D9 mid=#F0F0F0 bot=#F0F0F0 L=#F0F0F0 R=#D9D9D9
+  TABITEM   s=2  #D8EAF9x2975 #D9D9D9x145
+            top=#D9D9D9 mid=#D8EAF9 bot=#D8EAF9 L=#D8EAF9 R=#D9D9D9
+  TABITEM   s=3  #FFFFFFx2952 #D9D9D9x168
+            top=#D9D9D9 mid=#FFFFFF bot=#FFFFFF L=#D9D9D9 R=#D9D9D9
+  TABITEM   s=4  #ECECECx2975 #D9D9D9x145
+            top=#D9D9D9 mid=#ECECEC bot=#ECECEC L=#ECECEC R=#D9D9D9
+  TABITEM   s=5  #FFFFFFx2975 #0078D7x145
+            top=#0078D7 mid=#FFFFFF bot=#FFFFFF L=#FFFFFF R=#0078D7
+
+########## Tab TOPTABITEM states 1..5 ##########
+  TOPTABITEM s=1  #F0F0F0x2975 #D9D9D9x145
+            top=#D9D9D9 mid=#F0F0F0 bot=#F0F0F0 L=#F0F0F0 R=#D9D9D9
+  TOPTABITEM s=2  #D8EAF9x2975 #D9D9D9x145
+            top=#D9D9D9 mid=#D8EAF9 bot=#D8EAF9 L=#D8EAF9 R=#D9D9D9
+  TOPTABITEM s=3  #FFFFFFx2952 #D9D9D9x168
+            top=#D9D9D9 mid=#FFFFFF bot=#FFFFFF L=#D9D9D9 R=#D9D9D9
+  TOPTABITEM s=4  #ECECECx2975 #D9D9D9x145
+            top=#D9D9D9 mid=#ECECEC bot=#ECECEC L=#ECECEC R=#D9D9D9
+  TOPTABITEM s=5  #FFFFFFx2975 #0078D7x145
+            top=#0078D7 mid=#FFFFFF bot=#FFFFFF L=#FFFFFF R=#0078D7
+
+########## ItemsView::ListView GROUPHEADER (part 6) states 1..12 ##########
+  p=6 s=1  #FFFFFFx6160
+  p=6 s=2  #E5F3FFx6160
+  p=6 s=3  #FFFFFFx6160
+  p=6 s=4  #E5F3FFx6160
+  p=6 s=5  #FFFFFFx6160
+  p=6 s=6  #E5F3FFx6160
+  p=6 s=7  #FFFFFFx6160
+  p=6 s=8  #E5F3FFx6160
+  p=6 s=9  #FFFFFFx6160
+  p=6 s=10  #E5F3FFx6160
+  p=6 s=11  #CCE8FFx6160
+  p=6 s=12  #CCE8FFx5668 #99D1FFx492
+
+########## Button states 1..5 (Toolbar) ##########
+  p=1 s=1  #E1E1E1x1720 #FFFFFFx224 #ADADADx216
+           top=#FFFFFF mid=#E1E1E1 bot=#FFFFFF L=#FFFFFF R=#FFFFFF
+  p=1 s=2  #E5F1FBx1719 #FFFFFFx224 #0078D7x216 #CEE5F7x1
+           top=#FFFFFF mid=#E5F1FB bot=#FFFFFF L=#FFFFFF R=#FFFFFF
+  p=1 s=3  #CCE4F7x1720 #FFFFFFx224 #005499x216
+           top=#FFFFFF mid=#CCE4F7 bot=#FFFFFF L=#FFFFFF R=#FFFFFF
+  p=1 s=4  #CCCCCCx1720 #FFFFFFx224 #BFBFBFx216
+           top=#FFFFFF mid=#CCCCCC bot=#FFFFFF L=#FFFFFF R=#FFFFFF
+  p=1 s=5  #E1E1E1x1512 #0078D7x424 #FFFFFFx224
+           top=#FFFFFF mid=#E1E1E1 bot=#FFFFFF L=#FFFFFF R=#FFFFFF
+
+########## ScrollBar forced ##########
+  p=1 s=1  #F0F0F0x739 #FFFFFFx40 #606060x21
+  p=1 s=2  #DADADAx699 #F0F0F0x40 #FFFFFFx40 #000000x21
+  p=1 s=3  #606060x699 #FFFFFFx61 #F0F0F0x40
+  p=1 s=4  #F0F0F0x739 #FFFFFFx40 #BFBFBFx21
+  p=2 s=1  #CDCDCDx760 #F0F0F0x20 #FFFFFFx20
+  p=2 s=2  #A6A6A6x760 #F0F0F0x20 #FFFFFFx20
+  p=2 s=3  #606060x760 #F0F0F0x20 #FFFFFFx20
+  p=2 s=4  #F0F0F0x780 #FFFFFFx20
+  p=3 s=1  #CDCDCDx720 #F0F0F0x40 #FFFFFFx40
+  p=3 s=2  #A6A6A6x720 #F0F0F0x40 #FFFFFFx40
+  p=3 s=3  #606060x720 #F0F0F0x40 #FFFFFFx40
+  p=3 s=4  #F0F0F0x760 #FFFFFFx40
+  p=4 s=1  #F0F0F0x780 #FFFFFFx20
+  p=4 s=2  #F0F0F0x780 #FFFFFFx20
+  p=4 s=3  #F0F0F0x780 #FFFFFFx20
+  p=4 s=4  #F0F0F0x780 #FFFFFFx20
+  p=6 s=1  #F0F0F0x760 #FFFFFFx40
+  p=6 s=2  #F0F0F0x760 #FFFFFFx40
+  p=6 s=3  #F0F0F0x760 #FFFFFFx40
+  p=6 s=4  #F0F0F0x760 #FFFFFFx40
+
+########## TaskManager part 2 (group header) full states ##########
+  TaskManager p=2 s=0  #EAD5A0x5668 #000000x492
+  TaskManager p=2 s=1  #EAD5A0x5668 #000000x492
+  TaskManager p=2 s=2  #EAD5A0x5668 #000000x492
+  TaskManager p=2 s=3  #EAD5A0x5668 #000000x492
+  TaskManager p=2 s=4  #EAD5A0x5668 #000000x492
