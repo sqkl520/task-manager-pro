@@ -450,6 +450,19 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
             SetCursor(LoadCursorW(nullptr, IDC_SIZEWE));
             return 0;
         }
+
+        // 【滚动条区域不显示手型】HitTestRow 只看 y、不看 x，所以鼠标停在
+        // 列表右侧的滚动条上时也会命中某一行、进而被下面的判据设成 IDC_HAND。
+        // 但滚动条不是可点的"项"，原版那里是普通箭头（拖滑块时可能变）。
+        // 这一条必须排在下面那个 IDC_HAND 判据之前。
+        {
+            const int sbLeft = ScrollBarLeft();
+            if (x >= sbLeft) {
+                SetCursor(LoadCursorW(nullptr, IDC_ARROW));
+                return 0;
+            }
+        }
+
         SetCursor(LoadCursorW(nullptr,
             (t != TabId::Count || hc >= 0 || r >= 0) ? IDC_HAND : IDC_ARROW));
         return 0;
@@ -477,7 +490,10 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
             // 用户看得到箭头却点不动，是「画了没接」的典型断链。
             // 箭头区高 16px，位于轨道最上和最下。
             if (th.right > th.left && x >= th.left && x < th.right) {
-                const int btnH = 16;
+                // 【17 而不是 16】按钮高是 SM_CXVSCROLL = 17（tmwindow_list.cpp
+                // 的 kScrollBtnH）。这里原来写死 16，点击箭头最下面 1px 会落空，
+                // 落到"点轨道翻页"的分支上去。两处必须同源。
+                const int btnH = 17;
                 // 【子行 22】行高不再相等，`scrollY_ ± kRowHeight` 会累积漂移
                 // （每越过一个子行就多滚 6px），几次之后箭头就把行滚到半截上。
                 // 改成"减去/加上当前那一行自己的行高"：这样无论行高怎么变，

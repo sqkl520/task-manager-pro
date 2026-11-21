@@ -505,6 +505,29 @@ void PagesView::RefreshServices() {
         }
     }
     enrichCursor_ = 0;
+
+    // 【重启服务的后半程】RestartServiceAsync 只做了「停」，把服务名记在
+    // pendingRestart_。这里在下一轮刷新时发现它确实停了，再启动它。
+    // 这样「重启」全程不阻塞 UI 线程——原来是用 Sleep(600) 同步等待，
+    // 点一下整个窗口 0.6 秒不响应消息，标题栏显示「(未响应)」。
+    if (!pendingRestart_.empty()) {
+        for (size_t i = 0; i < services_.size(); ++i) {
+            if (_wcsicmp(services_[i].name.c_str(), pendingRestart_.c_str()) != 0) continue;
+            // canStart 为真 = 已经停了（SCM 说可以启动）。还在跑就再等一轮：
+            // 停止是异步的，通常 1~3 秒才到位。
+            if (!services_[i].canStart) break;
+            StartService(static_cast<int>(i));
+            pendingRestart_.clear();
+            break;
+        }
+    }
+}
+
+void PagesView::RestartServiceAsync(int index) {
+    if (index < 0 || index >= static_cast<int>(services_.size())) return;
+    // 先记下名字（停止后行序可能变，索引不可信），再异步停
+    pendingRestart_ = services_[index].name;
+    StopService(index);
 }
 
 bool PagesView::EnrichServicesBatch(int maxCount) {

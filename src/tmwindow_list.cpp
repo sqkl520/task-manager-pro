@@ -2189,6 +2189,13 @@ int TmWindow::ViewportHeight() const {
     return rcList_.bottom - rcList_.top;
 }
 
+int TmWindow::ScrollBarLeft() const {
+    // 与 ScrollThumbRect / PaintScrollBar 同一套几何：列表右界内缩 3px，
+    // 再往左 SM_CXVSCROLL(17)。三处必须一致，否则光标判定的边界
+    // 会和看到的滚动条错开。
+    return rcList_.right - 3 - kScrollBarW;
+}
+
 RECT TmWindow::ScrollThumbRect() const {
     RECT none{ 0, 0, 0, 0 };
     const int total = ContentHeight();

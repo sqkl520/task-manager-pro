@@ -471,6 +471,10 @@ private:
     void PaintScrollBar(HDC hdc);
     // 滚动条滑块矩形（用于命中测试和绘制）
     RECT ScrollThumbRect() const;
+    // 滚动条轨道左沿（含 3px 右侧留白与 SM_CXVSCROLL 宽）。
+    // 光标判定要用它把滚动条区域排除出去——HitTestRow 只看 y 不看 x，
+    // 鼠标停在滚动条上也会命中某一行。
+    int ScrollBarLeft() const;
     // 内容总高度与可视高度
     int ContentHeight() const;
     int ViewportHeight() const;

@@ -57,6 +57,10 @@ public:
     bool ToggleStartup(int index);
     bool StartService(int index);
     bool StopService(int index);
+    // 重启服务：先异步停、记下名字，下一轮 RefreshServices 发现它停了再启动。
+    // 【为什么不在窗口过程里 Sleep】那条路径在 UI 线程上同步执行，Sleep(600)
+    // 会让整个窗口 0.6 秒不处理消息，标题栏直接显示「(未响应)」。
+    void RestartServiceAsync(int index);
 
     // 服务描述/组是渐进填充的：每次 Fill 调用补一批（规格实测每个 2.8ms，
     // 306 个全补要 857ms，绝不能一次做完）
@@ -112,6 +116,9 @@ private:
     int scroll_ = 0;
     int currentTab_ = -1;   // TabId 的值，-1 = 还没同步过
     int enrichCursor_ = 0;
+    // 「重启服务」第二阶段用：待启动的服务短名。非空表示上一轮已发出停止，
+    // 正在等它真的停下来。见 PagesView::RestartServiceAsync。
+    std::wstring pendingRestart_;
 
     // 图标缓存（按 exe 路径）
     //

@@ -1019,9 +1019,14 @@ void TmWindow::OnMenuCommand(UINT id) {
         int s = pagesView_.SelectedService();
         if (s >= 0) {
             pagesView_.StopService(s);
-            // 停服务是异步的，给它一点时间再启动
-            Sleep(600);
-            pagesView_.StartService(s);
+            // 【不能在 UI 线程 Sleep】原来这里是 `Sleep(600)` 等异步停止完成，
+            // 而这条命令就在窗口过程里同步执行——点一下「重启」，整个窗口
+            // 0.6 秒不响应消息，标题栏会显示「(未响应)」。用户报的"卡死"
+            // 有一部分就是它。
+            //
+            // 改成让服务页自己把「重启」排进待办：StopService 之后记下该服务名，
+            // 由页面在下一次刷新时发现它已停止再启动。UI 线程立刻返回。
+            pagesView_.RestartServiceAsync(s);
         }
         return;
     }
