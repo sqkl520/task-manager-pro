@@ -452,6 +452,35 @@ bool TmWindow::ClickColumnHeaderForTest(int col) {
     return sortCol_ != beforeCol || sortDesc_ != beforeDesc;
 }
 
+// 次要页表头排序（自测用）。切到该页、点第 col 列。
+bool TmWindow::ClickPageHeaderForTest(int tabId, int col) {
+    if (tabId < 0 || tabId >= static_cast<int>(TabId::Count)) return false;
+    ShowPage(tabId);
+    pagesView_.SetCurrentTab(tabId);   // 让 PagesView 知道该排哪一页
+    return pagesView_.ClickHeader(col);
+}
+
+// 次要页首行文本（自测用）。升降序两次调它，内容不同才说明排序真生效了。
+std::wstring TmWindow::FirstRowTextForTest(int tabId) {
+    if (tabId < 0 || tabId >= static_cast<int>(TabId::Count)) return {};
+    switch (tabId) {
+    case 3: {   // 启动
+        const auto& v = pagesView_.StartupItems();
+        return v.empty() ? std::wstring() : v[0].name;
+    }
+    case 4: {   // 用户
+        const auto& v = pagesView_.UserItemsForCommand();
+        return v.empty() ? std::wstring() : v[0].userName;
+    }
+    case 6: {   // 服务
+        const auto& v = pagesView_.ServiceItems();
+        return v.empty() ? std::wstring() : v[0].name;
+    }
+    default:
+        return {};
+    }
+}
+
 uint32_t TmWindow::RowPidForTest(int row) const {
     if (row < 0 || row >= static_cast<int>(rows_.size())) return 0;
     return rows_[row].kind == ViewRow::ProcessRow ? rows_[row].pid : 0;

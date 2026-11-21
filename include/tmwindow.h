@@ -130,6 +130,12 @@ public:
     // 且这次点击真的改变了排序状态（sortCol_ 变成 col 或方向翻转）。
     // col 若为隐藏列（不占位、命中不到），返回 false。
     bool ClickColumnHeaderForTest(int col);
+    // 四个次要页的表头排序（自测用）。
+    // 【判据要落在数据上】只看「排序列变了没有」是不够的——那是状态翻转，
+    // 数据没重排也会 PASS。所以配一个 FirstRowTextForTest 让调用方比对
+    // 升降序两次的首行内容。
+    bool ClickPageHeaderForTest(int tabId, int col);
+    std::wstring FirstRowTextForTest(int tabId);
     // 当前排序列 / 是否降序。自测用它校验「点击后排序真的变了」。
     int SortColumnForTest() const { return sortCol_; }
     bool SortDescendingForTest() const { return sortDesc_; }

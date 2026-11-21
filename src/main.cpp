@@ -367,6 +367,41 @@ int RunSelfTest() {
         }
     }
 
+    // ---- 次要页表头排序自测 ----
+    //
+    // 这一项是针对「表头是纯装饰、点了没反应」加的。判据不是「点了有回显」，
+    // 而是**首行的内容真的变了** —— 只看状态字段翻没翻，等于又造一个假自测。
+    log.W(L"\n=== 次要页表头排序 ===\n");
+    {
+        struct SortCase { int tab; const wchar_t* page; };
+        const SortCase sc[] = { {3, L"启动"}, {4, L"用户"}, {6, L"服务"} };
+        for (const auto& c : sc) {
+            g_win->ShowPage(c.tab);
+            Sleep(60);
+
+            // 按第 0 列连点两次：第一次升序、第二次降序。
+            // 只有两次的首行内容不同，才说明排序真的作用到数据上了。
+            const bool ok1 = g_win->ClickPageHeaderForTest(c.tab, 0);
+            Sleep(40);
+            const std::wstring firstAsc = g_win->FirstRowTextForTest(c.tab);
+            const bool ok2 = g_win->ClickPageHeaderForTest(c.tab, 0);
+            Sleep(40);
+            const std::wstring firstDesc = g_win->FirstRowTextForTest(c.tab);
+
+            char detail[220];
+            sprintf_s(detail, "%d/%d firstRowChanged=%d",
+                      ok1 ? 1 : 0, ok2 ? 1 : 0,
+                      (firstAsc != firstDesc) ? 1 : 0);
+            // 行数不足 2 的页无法体现顺序差异，按 SKIP 处理而不是 FAIL
+            if (firstAsc.empty() || firstDesc.empty()) {
+                Mark(-1, (std::wstring(L"表头排序 ") + c.page).c_str(), detail);
+            } else {
+                Mark((ok1 && ok2 && firstAsc != firstDesc) ? 1 : 0,
+                     (std::wstring(L"表头排序 ") + c.page).c_str(), detail);
+            }
+        }
+    }
+
     // ---- 右键菜单自测：逐个页面构建菜单并统计项数 ----
     log.W(L"\n=== 右键菜单自测 ===\n");
     struct TabCase { int idx; const wchar_t* name; };
