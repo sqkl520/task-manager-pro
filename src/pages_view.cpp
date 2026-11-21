@@ -612,6 +612,20 @@ void PagesView::PaintStartup(HDC hdc) const {
     HFONT old = static_cast<HFONT>(SelectObject(hdc, fontBody_));
     SetBkMode(hdc, TRANSPARENT);
 
+    // 【裁剪】行区之外的像素一律不画 —— 与进程页 PaintRows 同一类缺陷。
+    //
+    // `scroll_` 上一轮从「行号」改成了「像素」（ScrollBy: `scroll_ += lines * kRowHeight`），
+    // 同时 `maxScroll = contentH - viewH` 也改成像素口径。麻烦在于
+    // `viewH = bounds_.bottom - bounds_.top - kHeaderHeight` 一般**不是**
+    // kRowHeight 的整数倍，所以滚到底（或任何被钳到 maxScroll 的位置）时
+    // `scroll_` 带一个非整行的余数，第一行的 y 就小于 `rc.top + kHeaderHeight`。
+    //
+    // 下面的守卫 `if (y + kRowHeight <= rc.top + kHeaderHeight) continue;`
+    // 只跳过**整行都在表头之上**的情况，半行重叠时照样往下画；
+    // 而 FillRow / DrawIconEx / Text 都是直接落 DC 的，行底色会把表头盖住。
+    const int savedDC = SaveDC(hdc);
+    IntersectClipRect(hdc, rc.left, rc.top + kHeaderHeight, rc.right, rc.bottom);
+
     int y = rc.top + kHeaderHeight - scroll_;
     const int listBottom = rc.bottom;
 
@@ -671,6 +685,7 @@ void PagesView::PaintStartup(HDC hdc) const {
     }
 
     SelectObject(hdc, old);
+    RestoreDC(hdc, savedDC);   // 与函数开头的 SaveDC / IntersectClipRect 配对
 }
 
 bool PagesView::OnClickStartup(int x, int y) {
@@ -711,6 +726,12 @@ void PagesView::PaintUsers(HDC hdc) const {
 
     HFONT old = static_cast<HFONT>(SelectObject(hdc, fontBody_));
     SetBkMode(hdc, TRANSPARENT);
+
+    // 【裁剪】同 PaintStartup：`scroll_` 是像素且 maxScroll 一般不是行高整数倍，
+    // 本页的行循环**连整行跳过都没有**（只有 `if (y >= rc.bottom) break;`），
+    // 所以第一行只要带一点向上偏移就会直接把表头盖掉。
+    const int savedDC = SaveDC(hdc);
+    IntersectClipRect(hdc, rc.left, rc.top + kHeaderHeight, rc.right, rc.bottom);
 
     int y = rc.top + kHeaderHeight - scroll_;
 
@@ -787,6 +808,7 @@ void PagesView::PaintUsers(HDC hdc) const {
     }
 
     SelectObject(hdc, old);
+    RestoreDC(hdc, savedDC);   // 与函数开头的 SaveDC / IntersectClipRect 配对
 }
 
 bool PagesView::OnClickUsers(int x, int y) {
@@ -826,6 +848,11 @@ void PagesView::PaintServices(HDC hdc) const {
 
     HFONT old = static_cast<HFONT>(SelectObject(hdc, fontBody_));
     SetBkMode(hdc, TRANSPARENT);
+
+    // 【裁剪】同 PaintStartup：滚动量是像素，半行重叠的守卫挡不住行底色。
+    const int savedDC = SaveDC(hdc);
+    IntersectClipRect(hdc, tableRc.left, tableRc.top + kHeaderHeight,
+                      tableRc.right, tableRc.bottom);
 
     int y = tableRc.top + kHeaderHeight - scroll_;
 
@@ -885,6 +912,7 @@ void PagesView::PaintServices(HDC hdc) const {
     }
 
     SelectObject(hdc, old);
+    RestoreDC(hdc, savedDC);   // 与函数开头的 SaveDC / IntersectClipRect 配对
 }
 
 bool PagesView::OnClickServices(int x, int y) {
@@ -1167,35 +1195,72 @@ void PagesView::OnHover(int x, int y) {
     hover_ = (idx >= 0 && idx < rowCount) ? idx : -1;
 }
 
+// 当前页的数据行数。四个次要页各有一份独立数据源，这里只做分发。
+// 无表格的页（性能页 / 进程页 / 详细信息页）返回 0。
+int PagesView::CurRowCount() const {
+    switch (currentTab_) {
+        case 3: return static_cast<int>(startup_.size());    // TabId::Startup
+        case 4: return static_cast<int>(users_.size());      // TabId::Users
+        case 6: return static_cast<int>(services_.size());   // TabId::Services
+        case 2: return static_cast<int>(appHistory_.size()); // TabId::AppHistory
+        default: return 0;
+    }
+}
+
+// 数据区高度（像素）= 页边界高 - 列头高。
+int PagesView::CurViewHeight() const {
+    const int h = static_cast<int>(bounds_.bottom - bounds_.top) - kHeaderHeight;
+    return h > 0 ? h : 0;
+}
+
+// 可滚到的最大像素偏移。
+//
+// 【与绘制同源】四页的绘制都是 `y = rc.top + kHeaderHeight - scroll_`，
+// 行高统一 kRowHeight，所以内容总高就是 rowCount × kRowHeight。
+// 这里算出来的 maxScroll 与 ScrollBy / ScrollByPixels 的钳制、以及
+// 绘制侧"最后一行能完整露出"三者用的是同一个式子。
+int PagesView::MaxScrollPixels() const {
+    if (currentTab_ < 0) return 0;
+    const int contentH = CurRowCount() * kRowHeight;
+    const int viewH = CurViewHeight();
+    return (contentH > viewH) ? (contentH - viewH) : 0;
+}
+
+// 精确像素位移。滚轮 / 触控板 / 触屏 / 惯性定时器全部走这里 ——
+// 它是 scroll_ 的**唯一写入口**之外的第二道闸（SetScrollPixels 是第三道）。
+void PagesView::ScrollByPixels(int px) {
+    if (px == 0) return;
+    SetScrollPixels(scroll_ + px);
+}
+
+// 直接设定滚动偏移（钳制到 [0, maxScroll]）。
+// 【为什么要有不按行取整的入口】惯性滑行的速度是 px/帧 的浮点数，
+// 一帧可能只有 1~2px；若每一次都换算成整数行，这些位移会被全部吃掉，
+// 表现为"甩一把没反应、只滚一格"。
+void PagesView::SetScrollPixels(int px) {
+    const int maxScroll = MaxScrollPixels();
+    int v = px;
+    if (v < 0) v = 0;
+    if (v > maxScroll) v = maxScroll;
+    if (v == scroll_) return;
+    scroll_ = v;
+
+    // 滚动后原悬停行已经不在原位，直接清掉，等下一次 WM_MOUSEMOVE 重算
+    hover_ = -1;
+}
+
 void PagesView::ScrollBy(int lines) {
     if (currentTab_ < 0 || lines == 0) return;
 
-    int rowCount = 0;
-    switch (currentTab_) {
-        case 3: rowCount = static_cast<int>(startup_.size());    break;
-        case 4: rowCount = static_cast<int>(users_.size());      break;
-        case 6: rowCount = static_cast<int>(services_.size());   break;
-        case 2: rowCount = static_cast<int>(appHistory_.size()); break;
-        default: return;
-    }
-
-    // 【像素单位】scroll_ 现在是像素。滚轮传进来的是"行数"，这里乘行高。
+    // 【像素单位】scroll_ 是像素。滚轮传进来的是"行数"，这里乘行高。
     //
     // 原来 scroll_ 是行号、绘制却直接减（当像素用），滚一整行只移动 1 像素；
     // 而 maxScroll 是行数，永远无法停在两行之间。两头都不对。
     //
     // 现在：内容和视口都用像素算，maxScroll 可以不是 kRowHeight 的整数倍，
     // 滚到底时最后一行能完整露出，不会像原来那样留 22px 空白。
-    const int viewH = bounds_.bottom - bounds_.top - kHeaderHeight;
-    const int contentH = rowCount * kRowHeight;
-    const int maxScroll = (contentH > viewH) ? (contentH - viewH) : 0;
-
-    scroll_ += lines * kRowHeight;
-    if (scroll_ < 0) scroll_ = 0;
-    if (scroll_ > maxScroll) scroll_ = maxScroll;
-
-    // 滚动后原悬停行已经不在原位，直接清掉，等下一次 WM_MOUSEMOVE 重算
-    hover_ = -1;
+    // 钳制逻辑统一在 SetScrollPixels 里，这里不再重复一份（两处各写一遍必漂移）。
+    ScrollByPixels(lines * kRowHeight);
 }
 
 } // namespace tmp

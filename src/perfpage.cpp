@@ -286,6 +286,10 @@ void PerfPage::SetData(std::shared_ptr<const PerfSnapshot> snap) {
 
         // GPU 各引擎历史。槽位顺序固定为 3D / Copy / Video Encode / Video Decode，
         // 和 PaintGpuPage 里的 wanted[] 一一对应。
+        // 【多卡】同时记两份：
+        //   gpuEngine  = 所有卡的合并视图（每种引擎类型取最忙的那张卡），
+        //                给"没有实例概念"的绘制路径兜底；
+        //   gpuEngineI = 逐卡明细，选中 GPU 1 时画的就是 GPU 1 自己的引擎曲线。
         const int wantedTypes[PerfHistory::kEngineSlots] = { 1, 6, 3, 2 };
         for (int e = 0; e < PerfHistory::kEngineSlots; ++e) {
             double v = 0.0;
@@ -294,13 +298,36 @@ void PerfPage::SetData(std::shared_ptr<const PerfSnapshot> snap) {
             }
             hist_.gpuEngine[e][slot] = v;
         }
+        for (int i = 0; i < ng; ++i) {
+            // gpuAdapters 与 gpus 同下标；取不到就整行清零（不画别张卡的数据）
+            const std::vector<GpuEngineSample>* src = nullptr;
+            if (i < static_cast<int>(snap_->gpuAdapters.size()))
+                src = &snap_->gpuAdapters[i].engines;
+            for (int e = 0; e < PerfHistory::kEngineSlots; ++e) {
+                double v = 0.0;
+                if (src) {
+                    for (const auto& eng : *src) {
+                        if (eng.engineType == wantedTypes[e]) { v = eng.utilPercent; break; }
+                    }
+                }
+                hist_.gpuEngineI[i][e][slot] = v;
+            }
+        }
     }
 
     itemsDirty_ = true;
 }
 
+void PerfPage::EnsureSidebarItems() {
+    if (itemsDirty_) RebuildSidebarItems();   // RebuildSidebarItems 内部清 itemsDirty_
+}
+
 void PerfPage::RebuildSidebarItems() {
     items_.clear();
+    // 无论有没有快照，重建过就是干净的：置 false 必须在这里做，
+    // 不能只放在调用点（否则一条 return 早退就会让 itemsDirty_ 永远为真，
+    // 每帧都重建一次侧栏项）。
+    itemsDirty_ = false;
     if (!snap_) return;
 
     // 每张卡片 = 1 张迷你图表（sheet=chart，60rp×45rp）+ 若干行文字。
@@ -386,15 +413,29 @@ void PerfPage::RebuildSidebarItems() {
                            kChartLineNet });
     }
 
-    // ---- GPU（2 行）----
+    // ---- GPU（多卡：每张真实 GPU 一张卡片）----
+    //
+    // 【UIFILE 声明】dashSidebarGpuEntry 的文字元素比 CPU/内存卡多：
+    //   sidebar_gpu_name / adapter / util / temp（S_duispec.md §3.2 元素树）
+    // 也就是说「GPU 0」和「适配器名」在原版里是**两个独立元素**，不是拼成
+    // 一行 "GPU 0 - NVIDIA ..."。所以这里：
+    //   第 1 行 name   = "GPU N"（MUI 实测 `GPU %d`）
+    //   第 2 行 sub    = "12%  3.0 GB"（利用率 + 专用显存）
+    //   第 3 行 detail = 适配器名（对应原版的 adapter 元素；temp 我们没有数据，不编造）
+    // 卡片高由 hasLine3 自动变成 kSidebarCardH3，只影响 GPU 卡。
     for (size_t i = 0; i < snap_->gpus.size() && i < 4; ++i) {
         const auto& g = snap_->gpus[i];
         wchar_t gb[32];
         _snwprintf_s(gb, _TRUNCATE, L"%.1f GB", g.dedicatedBytes / 1073741824.0);
+
+        // 适配器名取自同下标的 gpuAdapters（与 gpus 同源同序）
+        const wchar_t* adapterName = L"";
+        if (i < snap_->gpuAdapters.size()) adapterName = snap_->gpuAdapters[i].name.c_str();
+
         items_.push_back({
             g.name,
             W(L"%.0f%%  %s", g.utilPercent, gb),
-            L"",
+            adapterName,
             PerfView::Gpu, static_cast<int>(i),
             kChartLineGpu                  // 【主题实测 GetThemeColor】同 CPU：CHARTVIEW part 2 FILL = #117DBB
         });
@@ -609,10 +650,10 @@ void PerfPage::DrawText2(HDC hdc, const wchar_t* s, RECT* rc, UINT fmt, COLORREF
 // ============ 左侧列表 ============
 
 void PerfPage::PaintSidebar(HDC hdc) const {
-    if (itemsDirty_) {
-        const_cast<PerfPage*>(this)->RebuildSidebarItems();
-        const_cast<PerfPage*>(this)->itemsDirty_ = false;
-    }
+    // 【必须用 const_cast 的 const 方法】Paint 是 const，但侧栏项是按快照
+    // 生成的可变缓存（items_ 声明为 mutable）。重建逻辑统一在非 const 的
+    // EnsureSidebarItems 里，这里只负责"保证已经重建过"。
+    const_cast<PerfPage*>(this)->EnsureSidebarItems();
 
     RECT side{ bounds_.left, bounds_.top,
                bounds_.left + kSidebarWidth, bounds_.bottom };
@@ -2075,25 +2116,29 @@ void PerfPage::PaintGpuPage(HDC hdc, const RECT& rc) const {
     // 【UIFILE 声明】gpuchart / gpuEngineChartTemplate 的尺寸：80rp × 80rp、padding rect(2rp,2rp,2rp,2rp)
     //   引擎名（3D / Copy / Video Encode / Video Decode）来自 taskmgr.exe 的连续字符串表。
 
-    const auto& a = snap_ ? snap_->gpuAdapter : GpuAdapterInfo{};
+    // 【多卡】取**当前选中那张卡**的适配器信息，不是永远第一张。
+    // gpuAdapters 与 gpus 同下标（perfdata.cpp 里同时填充），所以用同一个 gi。
+    // 拿不到时退回 gpuAdapter（= 第一张卡）保持旧行为。
+    const int giSel0 = snap_ ? ClampInstance((std::min)(static_cast<int>(snap_->gpus.size()),
+                                                       hist_.gpuCount)) : -1;
+    static const GpuAdapterInfo kEmptyAdapter{};
+    const GpuAdapterInfo& a =
+        (snap_ && giSel0 >= 0 && giSel0 < static_cast<int>(snap_->gpuAdapters.size()))
+            ? snap_->gpuAdapters[giSel0]
+            : (snap_ ? snap_->gpuAdapter : kEmptyAdapter);
 
     // 标题：`GPU N` + 适配器名。
     // 右上「利用率: X%」撤掉 —— UIFILE 的 dynamic_gpu 里没有对应元素。
     // 【P0-7】GPU 序号跟着侧栏选中项走，不再恒写 `GPU 0`。
-    // 适配器名优先取该实例自己的 name（snap_->gpus[gi].name），
-    // 取不到才退回 gpuAdapter.name —— 后者是 gpuinfo 收集到的**单个**适配器，
-    // 多卡机器上用它会给第二块卡显示第一块卡的名字。
-    const int gi = snap_ ? ClampInstance((std::min)(static_cast<int>(snap_->gpus.size()),
-                                                    hist_.gpuCount)) : -1;
+    // 【多卡修复】适配器名必须取该实例自己的（snap_->gpuAdapters[gi].name）。
+    // 旧代码优先用 snap_->gpus[gi].name —— 那个字段现在是 "GPU 0"/"GPU 1" 的
+    // 卡片标题，不再装适配器名，于是副标题会重复成 "GPU 0"。
+    const int gi = giSel0;
     {
         wchar_t titleBuf[64];
         swprintf_s(titleBuf, L"GPU %d", gi >= 0 ? gi : 0);
         const wchar_t* sub = L"";
-        if (snap_ && gi >= 0 && !snap_->gpus[gi].name.empty()) {
-            sub = snap_->gpus[gi].name.c_str();
-        } else if (!a.name.empty()) {
-            sub = a.name.c_str();
-        }
+        if (!a.name.empty()) sub = a.name.c_str();
         PaintTitleBlock(hdc, rc, titleBuf, sub, L"");
     }
 
@@ -2175,6 +2220,10 @@ void PerfPage::PaintGpuPage(HDC hdc, const RECT& rc) const {
     const int nSlots = static_cast<int>(sizeof(wanted) / sizeof(wanted[0]));
     const int chartBottomLimit = rc.bottom - 6;
 
+    // 【多卡】本页绘制哪一个实例的引擎数据。
+    // 传 -1 表示"用合并视图"（没有实例概念的历史路径）。
+    const int engInst = (gi >= 0 && gi < hist_.gpuCount) ? gi : -1;
+
     // ---- 单个引擎视图：整块留给占用最高的那个引擎 ----
     if (singleEng) {
         // 选哪个引擎：当前占用最高的。全部为 0 时退回 3D（枚举里 3D 永远是第一格），
@@ -2184,7 +2233,12 @@ void PerfPage::PaintGpuPage(HDC hdc, const RECT& rc) const {
         for (int i = 0; i < nSlots; ++i) {
             double u = 0.0;
             if (snap_) {
-                for (const auto& e : snap_->gpuEngines) {
+                // 【多卡】只看**当前选中的那张卡**的引擎，否则单引擎视图可能
+                // 放大的是另一张卡的引擎。
+                const std::vector<GpuEngineSample>* list = &snap_->gpuEngines;
+                if (gi >= 0 && gi < static_cast<int>(snap_->gpuAdapters.size()))
+                    list = &snap_->gpuAdapters[gi].engines;
+                for (const auto& e : *list) {
                     if (e.engineType == wanted[i].type) { u = e.utilPercent; break; }
                 }
             }
@@ -2193,7 +2247,8 @@ void PerfPage::PaintGpuPage(HDC hdc, const RECT& rc) const {
         RECT big{ rc.left + Rpx(kChartPad), rc.top + 56,
                   gpuPropLeft - Rpx(12), chartBottomLimit };
         if (big.bottom > big.top + 60) {
-            PaintEngineChart(hdc, big, wanted[bestSlot].type, wanted[bestSlot].label);
+            PaintEngineChart(hdc, big, wanted[bestSlot].type, wanted[bestSlot].label,
+                             engInst);
         }
         return;
     }
@@ -2204,9 +2259,8 @@ void PerfPage::PaintGpuPage(HDC hdc, const RECT& rc) const {
                L"100%", L"0", kChartLineGpu);
 
     // ---- 专用 / 共享 GPU 内存 ----
-    // 【已知限制】这里仍取 gpuAdapter（采集层只收集**一个**适配器的显存明细，
-    //   src/gpuinfo.cpp 不在本次可改范围内）。侧栏多张 GPU 卡时，显存数字只对
-    //   采集到的那一块成立 —— 这一点写在报告里，不假装是按实例取的。
+    // 【多卡已接线】a 是**当前选中那张卡**的 GpuAdapterInfo（见本函数开头），
+    //   所以显存数字跟着侧栏选中的 GPU 卡片走，不再永远显示第一张卡。
     // 【UIFILE 声明】Win10 在曲线下方有两个数字块：gpuDedicatedMemRoot / gpuSharedMemRoot
     //   （dynamic_gpu 段），两者在 UIFILE 里 `0x802a` 参数都是 rect(1rp,0rp,0rp,0rp)，
     //   没有 height —— 高度由内容撑出。gpuMemoryCharts 的 margin = rect(0rp,5rp,0rp,5rp)（@0x6b26）。
@@ -2260,15 +2314,17 @@ void PerfPage::PaintGpuPage(HDC hdc, const RECT& rc) const {
             int cy = engTop + (i / 2) * (engH + 8);
             RECT slot{ cx, cy, cx + colW, cy + engH };
             if (slot.bottom > rc.bottom) break;
-            PaintEngineChart(hdc, slot, wanted[i].type, wanted[i].label);
+            PaintEngineChart(hdc, slot, wanted[i].type, wanted[i].label, engInst);
         }
     }
 }
 
 // 单个 GPU 引擎的小图。Win10 的「多个引擎」视图里每格就是这个结构：
 // 左上角引擎名，右侧当前百分比，下面一条**历史面积图**（不是一条水平线）。
+// inst >= 0 时画该实例自己的引擎历史（hist_.gpuEngineI[inst]），
+// inst < 0 时回退到合并视图（hist_.gpuEngine）。
 void PerfPage::PaintEngineChart(HDC hdc, const RECT& rc, int engineType,
-                               const wchar_t* label) const {
+                               const wchar_t* label, int inst) const {
     // 底色与主图一致改成纯白：同一页上主图已是 #FFFFFF（原版实测），
     // 引擎格若还是 #F1F6FA 会出现两块不同底色。
     Fill(hdc, rc, RGB(0xFF, 0xFF, 0xFF));
@@ -2277,7 +2333,11 @@ void PerfPage::PaintEngineChart(HDC hdc, const RECT& rc, int engineType,
     double util = 0.0;
     bool found = false;
     if (snap_) {
-        for (const auto& e : snap_->gpuEngines) {
+        // 【多卡】inst 有效时只查该实例自己的引擎列表
+        const std::vector<GpuEngineSample>* list = &snap_->gpuEngines;
+        if (inst >= 0 && inst < static_cast<int>(snap_->gpuAdapters.size()))
+            list = &snap_->gpuAdapters[inst].engines;
+        for (const auto& e : *list) {
             if (e.engineType == engineType) { util = e.utilPercent; found = true; break; }
         }
     }
@@ -2313,10 +2373,15 @@ void PerfPage::PaintEngineChart(HDC hdc, const RECT& rc, int engineType,
         }
 
         if (slot >= 0) {
+            // 【多卡】选历史数组：实例有效时用该实例自己的引擎历史。
+            const double* histArr = hist_.gpuEngine[slot];
+            if (inst >= 0 && inst < PerfHistory::kMaxInstances)
+                histArr = hist_.gpuEngineI[inst][slot];
+
             // 自适应量程：取历史最大值向上留 25%，下限 5%
             double mx = 0.0;
             for (int i = 0; i < hist_.count; ++i) {
-                double v = hist_.At(hist_.gpuEngine[slot], i);
+                double v = hist_.At(histArr, i);
                 if (v > mx) mx = v;
             }
             double ceilv = (mx > 0.5) ? (mx * 1.25) : 5.0;
@@ -2326,7 +2391,7 @@ void PerfPage::PaintEngineChart(HDC hdc, const RECT& rc, int engineType,
             std::vector<POINT> pts;
             pts.reserve(n);
             for (int i = 0; i < n; ++i) {
-                double v = hist_.At(hist_.gpuEngine[slot], i);
+                double v = hist_.At(histArr, i);
                 double t = v / ceilv;
                 if (t > 1) t = 1;
                 if (t < 0) t = 0;
@@ -2432,6 +2497,8 @@ int PerfPage::ClampInstance(int count) const {
 bool PerfPage::OnClick(int x, int y) {
     if (x < bounds_.left || x >= bounds_.left + kSidebarWidth) return false;
     if (y < bounds_.top + Rpx(kSidebarTopPad)) return false;
+    // 同 OnHover：点击可能早于本帧绘制，必须保证 items_ 就位。
+    EnsureSidebarItems();
     // 卡片高度分 61/68 两档且无间隙，必须逐项累加
     int cy = bounds_.top + Rpx(kSidebarTopPad);
     for (size_t i = 0; i < items_.size(); ++i) {
@@ -2458,6 +2525,9 @@ bool PerfPage::OnClick(int x, int y) {
 }
 
 void PerfPage::OnHover(int x, int y) {
+    // 【必须在这里也保证 items_ 已建】OnHover 是 WM_MOUSEMOVE 进来的，
+    // 可能早于本帧的 PaintSidebar。不保证的话 items_ 为空 → hover 恒不亮。
+    EnsureSidebarItems();
     int idx = -1;
     if (x >= bounds_.left && x < bounds_.left + kSidebarWidth &&
         y >= bounds_.top + Rpx(kSidebarTopPad)) {

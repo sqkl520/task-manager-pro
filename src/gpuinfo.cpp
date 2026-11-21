@@ -134,6 +134,49 @@
 //    是最大的一笔可省开销。进程退出的判据改用"该进程所有 node 查询全部失败"
 //    —— docs/evidence/gpuinfo_probe14.cpp 实测进程退出后 PROCESS_ADAPTER 与
 //    PROCESS_NODE 一律返回 0xC000000D，判据可靠。
+//
+// 11) 多 GPU（核显 + 独显）：**旧实现只保留一个适配器，这是「核显看不到」的根因**。
+//    旧判据是"ADAPTERREGISTRYINFO.AdapterString 非空"，而这个名字在多卡机器上
+//    极不稳定：本机 4 个适配器只有 NVIDIA 能读到它，其余 3 个一律返回
+//    0xC0000034。于是任何"读不到名字"的真实 GPU（核显、第二块独显）都被整块丢弃。
+//
+//    修正后的筛选链（docs/evidence/gpuinfo_probe15.cpp 逐项实测，本机 4 个适配器）：
+//      ADAPTERTYPE(15)  → SoftwareDevice        过滤 Microsoft Basic Render Driver
+//                                                  （实测 0x105，Render=1 Software=1）
+//      ADAPTERTYPE(15)  → !RenderSupported      过滤纯显示适配器（ToDesk / GameViewer）
+//                                                  （二者均 0x142：Render=0 Display=1 Indirect=1）
+//      T_ADAPTER(0)     → NodeCount>0           没有引擎的适配器无法采集
+//      名字回退链：ADAPTERREGISTRYINFO(8) → DRIVER_DESCRIPTION(65) → "GPU N"
+//
+//    关于名字源 (65) KMTQAITYPE_DRIVER_DESCRIPTION（Win10 1809+）：实测 4/4 成功，
+//    且给的是**该适配器自己的**名字：
+//      [0] GameViewer Virtual Display Adapter   [1] Todesk Virtual Display Adapter
+//      [2] NVIDIA GeForce discrete GPU        [3] Microsoft Basic Render Driver
+//    另一个看似可行的 (41) PHYSICALADAPTERPNPKEY 的 **software** 键不能用来取名：
+//    它返回 Class\{4d36e968-...}\NNNN，而本机 adapter[0]/[1] 与 adapter[2] 返回的是
+//    **同一个** \0000（DriverDesc = NVIDIA），用它会把虚拟显示器全叫成 NVIDIA。
+//    （它可以用来取 DriverVersion，但本模块仍走原来的 Class 扫描 + DriverDesc 匹配，
+//      因为那条路径已在本机 4 个子键上验证过。）
+//
+//    为什么必须排除虚拟显示适配器（不是"嫌多"，是"是假的"）：
+//    实测 ToDesk / GameViewer 的 T_ADAPTER 与 NVIDIA **逐字段相同**
+//    （NodeCount=14 / NbSegments=3 / VidPnSources=4，且 PNP 键同为
+//      PCI\VEN_10DE&DEV_1E84...），它们的逐进程统计也逐卡相同。
+//    它们不是独立 GPU，而是同一 VidMM 后端的镜像；收进来会让侧栏出现 3 个
+//    名字不同、数字完全相同的 "GPU"，而且总利用率不变 —— 正是本项目最忌讳的
+//    「假功能」。用脚本把这条过滤关掉实测确认过（3 个适配器输出完全相同）。
+//
+//    原版任务管理器的行为可旁证：它的 GPU 数据源是 PDH
+//    \GPU Adapter Memory(luid_...)\Dedicated Usage，实测本机该计数器只有
+//    **2 个实例**（NVIDIA 与 Basic Render），ToDesk / GameViewer 完全不出现
+//    （docs/evidence/gpuinfo_probe16.cpp）。即原版不列虚拟显示适配器。
+//
+//    多卡成本：每轮 D3DKMT 查询次数 = Σ_k(nodeCount_k × 2 + segmentCount_k)。
+//    实测（docs/evidence/bench_gpuinfo.cpp 用本仓库同一编译选项）：
+//      1 张卡：Collect() 稳态 p50 0.699 / avg 1.265 ms（旧实现 0.61 / 1.01）
+//      3 张卡：单轮 4~7 ms。所以 Init 时用 kMaxAdapters=4 封顶 ——
+//              4 张真实 GPU 已覆盖所有家用场景（核显 + 独显 + 双卡），
+//              再多就让渡给"不采集"而不是让一轮超预算。
 // ============================================================================
 
 #include "gpuinfo.h"
@@ -394,6 +437,7 @@ constexpr uint32_t kQaiAdapterAddress      = 6;
 constexpr uint32_t kQaiAdapterRegistryInfo = 8;
 constexpr uint32_t kQaiAdapterType         = 15;
 constexpr uint32_t kQaiNodeMetadata        = 25;
+constexpr uint32_t kQaiDriverDescription   = 65;
 
 // ---- 导出函数类型 ----
 using PFN_D3DKMT_ENUMADAPTERS2    = NTSTATUS (NTAPI*)(D3DKMT_ENUMADAPTERS2_LOCAL*);
@@ -498,8 +542,48 @@ bool ReadRegU64(HKEY key, const wchar_t* name, uint64_t& out) {
 }
 
 // ---------------------------------------------------------------------------
-// pid 枚举：优先 NtQuerySystemInformation(SystemProcessInformation)，
-// 失败再退回 EnumProcesses。
+// 无名适配器的命名回退链
+//
+// 背景：ADAPTERREGISTRYINFO(8) 在本机只对 NVIDIA 返回名字，其余适配器一律
+// 0xC0000034（STATUS_OBJECT_NAME_NOT_FOUND）。若因此跳过适配器，核显和多卡
+// 机器上的第二块卡就整个消失 —— 这正是「核显看不到」的根因。
+//
+// 实测各候选源（docs/evidence/gpuinfo_probe15.cpp，本机 4 个适配器逐个打印）：
+//   (a) KMTQAITYPE_PHYSICALADAPTERPNPKEY(41, software)  4/4 成功
+//       返回 Class\{4d36e968-...}\NNNN，其 DriverDesc 就是显示名。
+//       注意：**同一驱动的所有适配器指向同一个 Class 子键**（本机 adapter[0]
+//       GameViewer 与 adapter[1] ToDesk 都返回 \0000，而 \0000 的 DriverDesc
+//       是 NVIDIA），所以它只能用来取驱动版本，**不能用来取名字**。
+//   (b) KMTQAITYPE_DRIVER_DESCRIPTION(65)               4/4 成功，**这是正解**
+//       adapter[0] = "GameViewer Virtual Display Adapter"
+//       adapter[1] = "Todesk Virtual Display Adapter"
+//       adapter[2] = "NVIDIA GeForce discrete GPU"
+//       adapter[3] = "Microsoft Basic Render Driver"
+//       注意它给的是**该适配器自己的**显示名，与 (a) 的 Class 子键无关。
+//       Win10 1809+ 才有；旧系统返回失败时走 (c)。
+//   (c) KMTQAITYPE_ADAPTERREGISTRYINFO(8)               1/4 成功（NVIDIA）
+//   (d) 占位名 "GPU N"
+//
+// 顺序：先用 (c)（老系统/老驱动上它最准，且是单卡时代的唯一来源），
+//       失败再用 (b)，再失败用 (d)。绝不因为读不到名字就丢掉适配器。
+// ---------------------------------------------------------------------------
+
+// 读 KMTQAITYPE_DRIVER_DESCRIPTION(65)。失败返回空串。
+std::wstring QueryDriverDescription(PFN_D3DKMT_QUERYADAPTERINFO qai, uint32_t hAdapter) {
+    // D3DKMT_DRIVER_DESCRIPTION = { WCHAR DriverDescription[4096]; }
+    // SDK 里没有额外的长度字段，`PrivateDriverDataSize` 必须是整个结构大小。
+    std::vector<wchar_t> buf(4096, L'\0');
+    D3DKMT_QUERYADAPTERINFO_LOCAL q{};
+    q.hAdapter = hAdapter;
+    q.Type = kQaiDriverDescription;
+    q.pPrivateDriverData = buf.data();
+    q.PrivateDriverDataSize = static_cast<uint32_t>(buf.size() * sizeof(wchar_t));
+    if (!NtOk(qai(&q))) return std::wstring();
+    buf.back() = L'\0';
+    if (buf[0] == L'\0') return std::wstring();
+    return std::wstring(buf.data());
+}
+
 // 实测本机 616 进程：
 //   NtQSI(5)        avg 14.6 / p50 13.4 / p95 24.2 / max 42.9 ms
 //   EnumProcesses   avg 47.3 / p50 33.4 / p95 125.8 / max 144.9 ms
@@ -580,35 +664,68 @@ struct GpuInfoCollector::Impl {
     PFN_D3DKMT_QUERYSTATISTICS  QueryStatistics = nullptr;
     PFN_D3DKMT_CLOSEADAPTER     CloseAdapter = nullptr;
 
-    // 选中的真实 GPU
-    LUID     gpuLuid{};
-    uint32_t gpuAdapterHandle = 0;
-    uint32_t nodeCount = 0;
-    uint32_t segmentCount = 0;
+    // ------------------------------------------------------------------
+    // 多卡：每张真实 GPU 一个槽位，取代原来的 gpuLuid / gpuAdapterHandle 单值。
+    //
+    // 为什么必须多槽：原来的筛选条件里 "ADAPTERREGISTRYINFO.AdapterString 非空"
+    // 在本机只有 NVIDIA 能命中，其余 3 个适配器返回 0xC0000034（名字读不到），
+    // 于是核显 / 第二块独显会被无名条件整块丢掉。实测本机：
+    //   [0] GameViewer 虚拟显示 AdapterString 空
+    //   [1] ToDesk     虚拟显示 AdapterString 空
+    //   [2] NVIDIA      AdapterString 有值
+    //   [3] Basic Render AdapterString 空（软件渲染器）
+    // （docs/evidence/gpuinfo_probe15.cpp 的实测输出）
+    // ------------------------------------------------------------------
+    struct AdapterSlot {
+        LUID     luid{};
+        uint32_t hAdapter = 0;
+        uint32_t nodeCount = 0;
+        uint32_t segmentCount = 0;
+        std::wstring name;
+        uint64_t dedicatedTotal = 0;
+        uint64_t sharedTotal = 0;
 
-    // node 号 -> 引擎分组下标（分组按引擎类型聚合；-1 = 元数据读失败，不参与聚合）
-    int nodeGroup[kMaxNodes] = {};
+        // node 号 -> 引擎分组下标（-1 = 该 node 元数据读失败）
+        int nodeGroup[kMaxNodes] = {};
+        struct Group {
+            int engineType = 0;
+            std::vector<int> nodes;
+        };
+        std::vector<Group> groups;
 
-    // 分组信息
-    struct Group {
-        int engineType = 0;
-        std::vector<int> nodes;
+        // 上一轮差分基线
+        int64_t prevNodeGlobal[kMaxNodes] = {};
+        int64_t prevNodeProcSum[kMaxNodes] = {};
+
+        // 累计发现的有 GPU 记录的进程数（本卡口径）
+        int processCount = 0;
+
+        void ResetBaseline() {
+            std::fill(prevNodeGlobal, prevNodeGlobal + kMaxNodes, 0);
+            std::fill(prevNodeProcSum, prevNodeProcSum + kMaxNodes, 0);
+        }
     };
-    std::vector<Group> groups;
+    std::vector<AdapterSlot> adapters;
+
+    // 枚举阶段超过这个数量就放弃后续适配器：
+    // 每个适配器每人轮要 1 次 T_ADAPTER + nodeCount 次 T_NODE + segmentCount 次
+    // T_SEGMENT。实测单次 D3DKMT 查询约 0.03~1 ms，若被虚拟显示器塞满几十个
+    // 适配器，一轮就会超预算。4 张真实 GPU 已覆盖所有家用场景（核显 + 独显 +
+    // 双卡 SLI/CrossFire）；超过则只取前 kMaxAdapters 张，其余记日志跳过。
+    static constexpr size_t kMaxAdapters = 4;
 
     // ---- 进程句柄缓存 ----
+    // 一个进程可能同时命中多张卡（跨卡进程），所以每项记录哪些卡有记录。
+    // 注意这里**不存** node 数：多卡时每张卡的 nodeCount 可以不同，
+    // 统一用 adapterMask 里的卡号去 adapters[ai].nodeCount 取，避免两套真值。
     struct ProcEntry {
         uint32_t pid = 0;
         HANDLE   handle = nullptr;
-        uint32_t nodes = 0;          // 该进程参与统计的 node 数
+        uint32_t adapterMask = 0;    // bit i = 第 i 个槽位有该进程的记录
     };
     std::vector<ProcEntry> procs;
 
-    // ---- 基线 / 上一轮 ----
-    // 全局 node 时间与"逐进程 node 时间求和"各留一份上一轮值用于差分。
-    int64_t prevNodeGlobal[kMaxNodes] = {};
-    int64_t prevNodeProcSum[kMaxNodes] = {};
-    bool    hasBaseline = false;
+    bool     hasBaseline = false;
     double  prevTimestamp = 0.0;
 
     // pid 枚举缓存与节流。
@@ -640,24 +757,23 @@ struct GpuInfoCollector::Impl {
         }
     }
 
-    // 静态内存总量（Init 时读一次）
-    uint64_t dedicatedTotal = 0;
-    uint64_t sharedTotal = 0;
+    // 静态内存总量不再在 Impl 级保存：多卡时每张卡一份，
+    // 存在 AdapterSlot::dedicatedTotal / sharedTotal（单一真值源）。
 
-    bool QueryNodeGlobal(uint32_t node, int64_t& out) {
+    bool QueryNodeGlobal(const AdapterSlot& a, uint32_t node, int64_t& out) {
         D3DKMT_QUERYSTATISTICS q{};
         q.Type = kStatsNode;
-        q.AdapterLuid = gpuLuid;
+        q.AdapterLuid = a.luid;
         q.QueryNodeId = node;
         if (!NtOk(QueryStatistics(&q))) return false;
         out = q.QueryResult.NodeInformation.GlobalInformation.RunningTime;
         return true;
     }
 
-    bool QueryProcessNode(HANDLE h, uint32_t node, int64_t& out) {
+    bool QueryProcessNode(const AdapterSlot& a, HANDLE h, uint32_t node, int64_t& out) {
         D3DKMT_QUERYSTATISTICS q{};
         q.Type = kStatsProcessNode;
-        q.AdapterLuid = gpuLuid;
+        q.AdapterLuid = a.luid;
         q.hProcess = h;
         q.QueryProcessNodeId = node;
         if (!NtOk(QueryStatistics(&q))) return false;
@@ -671,6 +787,32 @@ struct GpuInfoCollector::Impl {
         }
         procs.clear();
     }
+
+    // 读每张卡的显存占用（segment resident）。
+    // 口径见文件头第 4 条：Aperture==0 的 BytesResident 之和 = 专用占用，
+    // Aperture!=0 的 = 共享占用。
+    // 代价：每卡每 segment 一次 D3DKMTQueryStatistics（实测 3 个 segment 0.016 ms）。
+    // out 必须与 adapters 等长（由调用方保证）。
+    void RefreshMemoryUsage(std::vector<GpuAdapterInfo>* out) {
+        for (size_t ai = 0; ai < adapters.size(); ++ai) {
+            const AdapterSlot& a = adapters[ai];
+            uint64_t dedUse = 0, shrUse = 0;
+            for (uint32_t s = 0; s < a.segmentCount; ++s) {
+                D3DKMT_QUERYSTATISTICS qs{};
+                qs.Type = kStatsSegment;
+                qs.AdapterLuid = a.luid;
+                qs.QuerySegmentId = s;
+                if (!NtOk(QueryStatistics(&qs))) continue;
+                const auto& si = qs.QueryResult.SegmentInformation;
+                if (si.Aperture) shrUse += si.BytesResident;
+                else             dedUse += si.BytesResident;
+            }
+            if (out && ai < out->size()) {
+                (*out)[ai].dedicatedInUse = dedUse;
+                (*out)[ai].sharedInUse = shrUse;
+            }
+        }
+    }
 };
 
 GpuInfoCollector::GpuInfoCollector() : impl_(new Impl()) {}
@@ -678,10 +820,14 @@ GpuInfoCollector::GpuInfoCollector() : impl_(new Impl()) {}
 GpuInfoCollector::~GpuInfoCollector() {
     if (!impl_) return;
     impl_->ReleaseProcs();
-    if (impl_->CloseAdapter && impl_->gpuAdapterHandle) {
-        uint32_t h = impl_->gpuAdapterHandle;
-        impl_->CloseAdapter(&h);
+    // 多卡：逐个关闭枚举时打开的适配器句柄（旧实现只有一个）
+    if (impl_->CloseAdapter) {
+        for (const auto& a : impl_->adapters) {
+            uint32_t h = a.hAdapter;
+            if (h) impl_->CloseAdapter(&h);
+        }
     }
+    impl_->adapters.clear();
     if (impl_->gdi32) FreeLibrary(impl_->gdi32);
     delete impl_;
     impl_ = nullptr;
@@ -698,9 +844,53 @@ void GpuInfoCollector::ResetHistory() {
     }
 }
 
+// 合并视图：所有适配器的同名引擎取最忙的那一张卡。
+//
+// 为什么取 max 不相加：引擎利用率是时间片占比，两张卡各 60% 时相加得 120%
+// 是无意义的；任务管理器的总利用率也是"最忙的引擎/最忙的卡"。
+// 这张表的用途是喂给只认识单一引擎列表的旧调用方（perfdata.cpp 的
+// gpuEngines 与 GPU 页的 4 个引擎小图），逐卡明细在 adapters_[i].engines。
+void GpuInfoCollector::BuildMergedEngines() {
+    engines_.clear();
+
+    // 顺序：按引擎类型的显示顺序（3D 优先），不是按首次出现顺序 ——
+    // 否则多卡时「核显只有 3D、独显有全部引擎」会让顺序随卡序变化。
+    // 收集出现过的 engineType
+    std::vector<int> types;
+    for (const auto& a : adapters_) {
+        for (const auto& e : a.engines) {
+            if (std::find(types.begin(), types.end(), e.engineType) == types.end())
+                types.push_back(e.engineType);
+        }
+    }
+    std::sort(types.begin(), types.end(), [](int a, int b) {
+        return EngineDisplayOrder(a) < EngineDisplayOrder(b);
+    });
+
+    for (int t : types) {
+        GpuEngineSample s;
+        s.engineType = t;
+        s.name = EngineTypeDisplayName(t);
+        int nodes = 0;
+        for (const auto& a : adapters_) {
+            for (const auto& e : a.engines) {
+                if (e.engineType != t) continue;
+                // nodeCount 相加是对的：这是"有多少个 node 参与该引擎"
+                nodes += e.nodeCount;
+                if (e.utilPercent > s.utilPercent) {
+                    s.utilPercent = e.utilPercent;
+                    s.runningDelta = e.runningDelta;
+                }
+            }
+        }
+        s.nodeCount = nodes;
+        engines_.push_back(std::move(s));
+    }
+}
+
 bool GpuInfoCollector::Init() {
     available_ = false;
-    adapter_ = GpuAdapterInfo{};
+    adapters_.clear();
     engines_.clear();
     history_.clear();
     totalUtil_ = 0.0;
@@ -708,7 +898,7 @@ bool GpuInfoCollector::Init() {
 
     if (!impl_) impl_ = new Impl();
     impl_->ReleaseProcs();
-    impl_->groups.clear();
+    impl_->adapters.clear();
     impl_->hasBaseline = false;
     impl_->needPidEnum = true;
     impl_->needCacheBuild = false;
@@ -730,10 +920,31 @@ bool GpuInfoCollector::Init() {
     if (!impl_->EnumAdapters2 || !impl_->QueryAdapterInfo || !impl_->QueryStatistics)
         return false;
 
-    // ---- 2. 枚举适配器，选出真实 GPU ----
-    // 判据：ADAPTERREGISTRYINFO.AdapterString 非空 且 ADAPTER 统计 NodeCount>0。
-    // 实测本机 4 个适配器里只有 NVIDIA 那个能读到名字（其余 3 个返回
-    // STATUS_OBJECT_NAME_NOT_FOUND 0xC0000034），软件渲染器也没有名字。
+    // ---- 2. 枚举所有真实 GPU ----
+    //
+    // 与旧实现的三个差别（旧实现是「选中一个就 break」）：
+    //   ① 不再因为 AdapterString 为空就跳过 —— 名字改走 QueryDriverDescription，
+    //      实在拿不到才用 "GPU N" 占位。这是「核显看不到」的直接修复。
+    //   ② 收集全部通过的适配器，不再 break。
+    //   ③ 保留 SoftwareDevice 排除（Microsoft Basic Render Driver）。
+    //
+    // 另加一条旧实现没有的判据：**排除纯显示适配器**（ToDesk / GameViewer 这类）。
+    // 实测依据（docs/evidence/gpuinfo_probe15.cpp）：
+    //   ToDesk     ADAPTERTYPE=0x142 → RenderSupported=0 DisplaySupported=1 Indirect=1
+    //   GameViewer 同上
+    //   NVIDIA     ADAPTERTYPE=0x30B → RenderSupported=1 DisplaySupported=1 Indirect=0
+    //   BasicRender ADAPTERTYPE=0x105 → RenderSupported=1 SoftwareDevice=1
+    // 这三个虚拟显示适配器的 T_ADAPTER 统计与 NVIDIA **逐字段相同**
+    // （NodeCount=14 / NbSegments=3 与 DID 同为 PCI\VEN_10DE&DEV_1E84），
+    // 也就是说它们不是独立 GPU，而是同一 VidMM 后端的镜像；若收进来，侧栏会
+    // 出现 3 个名字不同、数字完全相同的 "GPU"，且总利用率不会变——纯属假项。
+    // 判据用 RenderSupported==0（这些适配器根本不做渲染/计算）而不是靠名字猜，
+    // 因为名字是可本地化/可改的，位标志是驱动报的。
+    //
+    // 原版任务管理器的行为可以旁证：它的 GPU 数据源是 PDH 的
+    // \GPU Adapter Memory(luid_...)\Dedicated Usage，实测本机该计数器只有
+    // **2 个实例**（NVIDIA 与 Basic Render），ToDesk/GameViewer 完全不出现
+    // （docs/evidence/gpuinfo_probe16.cpp）。也就是说原版**不列**虚拟显示适配器。
     {
         D3DKMT_ADAPTERINFO_LOCAL raw[16]{};
         D3DKMT_ENUMADAPTERS2_LOCAL ea{};
@@ -743,190 +954,236 @@ bool GpuInfoCollector::Init() {
         if (!NtOk(impl_->EnumAdapters2(&ea))) return false;
         const uint32_t count = ea.NumAdapters < 16 ? ea.NumAdapters : 16;
 
-        wchar_t chosenName[MAX_PATH] = L"";
         for (uint32_t i = 0; i < count; ++i) {
+            if (impl_->adapters.size() >= Impl::kMaxAdapters) break;
+
+            // 2a. 排除软件渲染器（原有逻辑，保留）。
+            // 注意：必须**先判软件设备再判名字**，因为 Basic Render Driver 在
+            // 用 DriverDescription 回退后也能读到名字，光看名字会把它当真实 GPU。
+            D3DKMT_ADAPTERTYPE_LOCAL at{};
+            D3DKMT_QUERYADAPTERINFO_LOCAL qt{};
+            qt.hAdapter = raw[i].hAdapter;
+            qt.Type = kQaiAdapterType;
+            qt.pPrivateDriverData = &at;
+            qt.PrivateDriverDataSize = sizeof(at);
+            const bool haveType = NtOk(impl_->QueryAdapterInfo(&qt));
+            if (haveType && at.SoftwareDevice) continue;
+
+            // 2b. 排除不做渲染的纯显示适配器（虚拟显示器）。
+            if (haveType && !at.RenderSupported) continue;
+
+            // 2c. 统计可用性：NodeCount>0 是硬条件（否则没有引擎可采）。
+            D3DKMT_QUERYSTATISTICS qa{};
+            qa.Type = kStatsAdapter;
+            qa.AdapterLuid = raw[i].AdapterLuid;
+            if (!NtOk(impl_->QueryStatistics(&qa))) continue;
+            uint32_t nodes = qa.QueryResult.AdapterInformation.NodeCount;
+            if (nodes == 0) continue;
+
+            Impl::AdapterSlot slot;
+            slot.luid = raw[i].AdapterLuid;
+            slot.hAdapter = raw[i].hAdapter;
+            slot.nodeCount = nodes > kMaxNodes ? kMaxNodes : nodes;
+            uint32_t segs = qa.QueryResult.AdapterInformation.NbSegments;
+            slot.segmentCount = segs > kMaxSegments ? kMaxSegments : segs;
+
+            // 2d. 取名：ADAPTERREGISTRYINFO → DRIVER_DESCRIPTION → 占位名。
             D3DKMT_ADAPTERREGISTRYINFO_LOCAL reg{};
             D3DKMT_QUERYADAPTERINFO_LOCAL q1{};
             q1.hAdapter = raw[i].hAdapter;
             q1.Type = kQaiAdapterRegistryInfo;
             q1.pPrivateDriverData = &reg;
             q1.PrivateDriverDataSize = sizeof(reg);
-            if (!NtOk(impl_->QueryAdapterInfo(&q1))) continue;
-            if (reg.AdapterString[0] == L'\0') continue;
+            if (NtOk(impl_->QueryAdapterInfo(&q1)) && reg.AdapterString[0] != L'\0') {
+                reg.AdapterString[_countof(reg.AdapterString) - 1] = L'\0';
+                slot.name = reg.AdapterString;
+            }
+            if (slot.name.empty()) {
+                // Win10 1809+ 的 KMTQAITYPE_DRIVER_DESCRIPTION，实测对本机
+                // 全部 4 个适配器都可读（含 NVIDIA 本身）。
+                slot.name = QueryDriverDescription(impl_->QueryAdapterInfo, raw[i].hAdapter);
+            }
+            // 仍为空则留给第 4 步用"过滤后下标"生成占位名 "GPU N"。
 
-            // 排除纯软件设备（本机 Microsoft Basic Render Driver 也没名字，
-            // 这里是双保险）
-            D3DKMT_ADAPTERTYPE_LOCAL at{};
-            D3DKMT_QUERYADAPTERINFO_LOCAL q2{};
-            q2.hAdapter = raw[i].hAdapter;
-            q2.Type = kQaiAdapterType;
-            q2.pPrivateDriverData = &at;
-            q2.PrivateDriverDataSize = sizeof(at);
-            if (NtOk(impl_->QueryAdapterInfo(&q2)) && at.SoftwareDevice) continue;
+            D3DKMT_SEGMENTSIZEINFO_LOCAL ss{};
+            D3DKMT_QUERYADAPTERINFO_LOCAL qs{};
+            qs.hAdapter = raw[i].hAdapter;
+            qs.Type = kQaiGetSegmentSize;
+            qs.pPrivateDriverData = &ss;
+            qs.PrivateDriverDataSize = sizeof(ss);
+            if (NtOk(impl_->QueryAdapterInfo(&qs))) {
+                slot.dedicatedTotal = ss.DedicatedVideoMemorySize;
+                slot.sharedTotal = ss.SharedSystemMemorySize;
+            }
 
-            D3DKMT_QUERYSTATISTICS qa{};
-            qa.Type = kStatsAdapter;
-            qa.AdapterLuid = raw[i].AdapterLuid;
-            if (!NtOk(impl_->QueryStatistics(&qa))) continue;
-            if (qa.QueryResult.AdapterInformation.NodeCount == 0) continue;
-
-            impl_->gpuLuid = raw[i].AdapterLuid;
-            impl_->gpuAdapterHandle = raw[i].hAdapter;
-            impl_->nodeCount = qa.QueryResult.AdapterInformation.NodeCount;
-            if (impl_->nodeCount > kMaxNodes) impl_->nodeCount = kMaxNodes;
-            impl_->segmentCount = qa.QueryResult.AdapterInformation.NbSegments;
-            if (impl_->segmentCount > kMaxSegments) impl_->segmentCount = kMaxSegments;
-            wcsncpy_s(chosenName, reg.AdapterString, _TRUNCATE);
-            adapter_.name = reg.AdapterString;
-            break;
+            impl_->adapters.push_back(std::move(slot));
         }
-        if (impl_->nodeCount == 0) return false;
-        (void)chosenName;
+        if (impl_->adapters.empty()) return false;
     }
 
-    adapter_.nodeCount = impl_->nodeCount;
-    adapter_.segmentCount = impl_->segmentCount;
+    // ---- 3. 逐适配器：node 元数据 → 引擎分组 ----
+    for (auto& slot : impl_->adapters) {
+        slot.groups.clear();
+        for (uint32_t n = 0; n < kMaxNodes; ++n) slot.nodeGroup[n] = -1;
 
-    // ---- 3. 每个 node 的引擎元数据（pack=1 关键，见文件头第 2 条）----
-    // 任何单个 node 失败不会让整模块退化：该 node 记 -1 并被排除在聚合外。
-    for (uint32_t n = 0; n < impl_->nodeCount; ++n) {
-        impl_->nodeGroup[n] = -1;
+        for (uint32_t n = 0; n < slot.nodeCount; ++n) {
+            D3DKMT_NODEMETADATA_LOCAL nm{};
+            nm.NodeOrdinalAndAdapterIndex = n;   // 物理适配器 0 + node 号
+            D3DKMT_QUERYADAPTERINFO_LOCAL q{};
+            q.hAdapter = slot.hAdapter;
+            q.Type = kQaiNodeMetadata;
+            q.pPrivateDriverData = &nm;
+            q.PrivateDriverDataSize = sizeof(nm);
+            if (!NtOk(impl_->QueryAdapterInfo(&q))) continue;
 
-        D3DKMT_NODEMETADATA_LOCAL nm{};
-        nm.NodeOrdinalAndAdapterIndex = n;   // 物理适配器 0 + node 号
-        D3DKMT_QUERYADAPTERINFO_LOCAL q{};
-        q.hAdapter = impl_->gpuAdapterHandle;
-        q.Type = kQaiNodeMetadata;
-        q.pPrivateDriverData = &nm;
-        q.PrivateDriverDataSize = sizeof(nm);
-        if (!NtOk(impl_->QueryAdapterInfo(&q))) continue;
+            int type = static_cast<int>(nm.NodeData.EngineType);
+            if (type < 0 || type > 8) type = kEngineOther;
 
-        int type = static_cast<int>(nm.NodeData.EngineType);
-        if (type < 0 || type > 8) type = kEngineOther;
-
-        // 找到/创建该引擎类型的分组
-        int gi = -1;
-        for (size_t g = 0; g < impl_->groups.size(); ++g) {
-            if (impl_->groups[g].engineType == type) { gi = static_cast<int>(g); break; }
+            int gi = -1;
+            for (size_t g = 0; g < slot.groups.size(); ++g) {
+                if (slot.groups[g].engineType == type) { gi = static_cast<int>(g); break; }
+            }
+            if (gi < 0) {
+                Impl::AdapterSlot::Group grp;
+                grp.engineType = type;
+                slot.groups.push_back(grp);
+                gi = static_cast<int>(slot.groups.size()) - 1;
+            }
+            slot.groups[gi].nodes.push_back(static_cast<int>(n));
+            slot.nodeGroup[n] = gi;
         }
-        if (gi < 0) {
-            Impl::Group grp;
-            grp.engineType = type;
-            impl_->groups.push_back(grp);
-            gi = static_cast<int>(impl_->groups.size()) - 1;
+
+        // 元数据全失败的适配器不编造引擎名，整卡丢弃（和旧实现一致：
+        // 没有引擎就无法给 UI 任何可信数字）。
+        // 注意这会连带丢弃它的统计槽位，所以这里用 erase 后的迭代器。
+        if (slot.groups.empty()) {
+            // 标记为待删（nodeCount=0 表示无效），收集完统一删除
+            slot.nodeCount = 0;
+            continue;
         }
-        impl_->groups[gi].nodes.push_back(static_cast<int>(n));
-        impl_->nodeGroup[n] = gi;
-    }
 
-    if (impl_->groups.empty()) {
-        // 元数据全失败时仍然可降级为"整卡一个引擎"，但那样总使用率还能用；
-        // 这里选择不编造引擎名，只保留按 node 的原始聚合，不进入 engines_。
-        return false;
-    }
-
-    // 分组按显示顺序排序，同时重建 nodeGroup 映射
-    std::sort(impl_->groups.begin(), impl_->groups.end(),
-              [](const Impl::Group& a, const Impl::Group& b) {
-                  return EngineDisplayOrder(a.engineType) < EngineDisplayOrder(b.engineType);
-              });
-    for (size_t g = 0; g < impl_->groups.size(); ++g) {
-        for (int n : impl_->groups[g].nodes) impl_->nodeGroup[n] = static_cast<int>(g);
-    }
-
-    // ---- 4. 适配器静态信息 ----
-    // 4a. 显存总量
-    {
-        D3DKMT_SEGMENTSIZEINFO_LOCAL ss{};
-        D3DKMT_QUERYADAPTERINFO_LOCAL q{};
-        q.hAdapter = impl_->gpuAdapterHandle;
-        q.Type = kQaiGetSegmentSize;
-        q.pPrivateDriverData = &ss;
-        q.PrivateDriverDataSize = sizeof(ss);
-        if (NtOk(impl_->QueryAdapterInfo(&q))) {
-            impl_->dedicatedTotal = ss.DedicatedVideoMemorySize;
-            impl_->sharedTotal = ss.SharedSystemMemorySize;
-            adapter_.dedicatedTotal = ss.DedicatedVideoMemorySize;
-            adapter_.sharedTotal = ss.SharedSystemMemorySize;
+        std::sort(slot.groups.begin(), slot.groups.end(),
+                  [](const Impl::AdapterSlot::Group& a,
+                     const Impl::AdapterSlot::Group& b) {
+                      return EngineDisplayOrder(a.engineType) < EngineDisplayOrder(b.engineType);
+                  });
+        for (size_t g = 0; g < slot.groups.size(); ++g) {
+            for (int n : slot.groups[g].nodes) slot.nodeGroup[n] = static_cast<int>(g);
         }
     }
+    impl_->adapters.erase(
+        std::remove_if(impl_->adapters.begin(), impl_->adapters.end(),
+                       [](const Impl::AdapterSlot& s) { return s.nodeCount == 0; }),
+        impl_->adapters.end());
+    if (impl_->adapters.empty()) return false;
 
-    // 4b. 物理位置（PCI 总线/设备/功能）
-    {
-        D3DKMT_ADAPTERADDRESS_LOCAL ad{};
-        D3DKMT_QUERYADAPTERINFO_LOCAL q{};
-        q.hAdapter = impl_->gpuAdapterHandle;
-        q.Type = kQaiAdapterAddress;
-        q.pPrivateDriverData = &ad;
-        q.PrivateDriverDataSize = sizeof(ad);
-        if (NtOk(impl_->QueryAdapterInfo(&q))) {
-            adapter_.pciBus = ad.BusNumber;
-            adapter_.pciDevice = ad.DeviceNumber;
-            adapter_.pciFunction = ad.FunctionNumber;
-            wchar_t buf[96];
-            swprintf_s(buf, L"PCI 总线 %u，设备 %u，功能 %u",
-                       ad.BusNumber, ad.DeviceNumber, ad.FunctionNumber);
-            adapter_.physicalLocation = buf;
-        }
-    }
+    // ---- 4. 逐适配器：静态信息 + 构造 GpuAdapterInfo ----
+    adapters_.clear();
+    adapters_.reserve(impl_->adapters.size());
 
-    // 4c. 注册表：驱动版本/日期 + qwMemorySize（用于推导硬件保留内存）
+    // 注册表 Class\{4d36e968-...} 只扫一次，所有适配器共用（本机 4 个子键）。
+    // 结构：DriverDesc → {ver, date, qwMem}
+    struct RegClassEntry {
+        std::wstring desc;
+        std::wstring ver;
+        std::wstring date;
+        uint64_t     qwMem = 0;
+    };
+    std::vector<RegClassEntry> regEntries;
     {
         static const wchar_t* kDisplayClass =
             L"SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}";
         HKEY hClass = nullptr;
         if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, kDisplayClass, 0, KEY_READ, &hClass) == ERROR_SUCCESS) {
-            uint64_t bestQwMem = 0;
-            std::wstring bestVer, bestDate;
-            bool haveMatch = false;
-
             for (int i = 0; i < 32; ++i) {
                 wchar_t subName[16];
                 swprintf_s(subName, L"%04d", i);
                 HKEY hSub = nullptr;
                 if (RegOpenKeyExW(hClass, subName, 0, KEY_READ, &hSub) != ERROR_SUCCESS) continue;
 
-                std::wstring desc, ver, date;
-                uint64_t qwMem = 0;
-                const bool okDesc = ReadRegString(hSub, L"DriverDesc", desc);
-                ReadRegString(hSub, L"DriverVersion", ver);
-                ReadRegString(hSub, L"DriverDate", date);
-                ReadRegU64(hSub, L"HardwareInformation.qwMemorySize", qwMem);
+                RegClassEntry e;
+                const bool okDesc = ReadRegString(hSub, L"DriverDesc", e.desc);
+                ReadRegString(hSub, L"DriverVersion", e.ver);
+                ReadRegString(hSub, L"DriverDate", e.date);
+                ReadRegU64(hSub, L"HardwareInformation.qwMemorySize", e.qwMem);
                 RegCloseKey(hSub);
 
-                if (!okDesc) continue;
-                if (_wcsicmp(desc.c_str(), adapter_.name.c_str()) != 0) continue;
-
-                // 同名多条时优先取有 qwMemorySize 的那条
-                if (!haveMatch || (qwMem > bestQwMem)) {
-                    bestVer = ver;
-                    bestDate = date;
-                    bestQwMem = qwMem;
-                    haveMatch = true;
-                }
+                if (okDesc && !e.desc.empty()) regEntries.push_back(std::move(e));
             }
             RegCloseKey(hClass);
-
-            if (haveMatch) {
-                adapter_.driverVersion = bestVer;
-                adapter_.driverDate = NormalizeDriverDate(bestDate.c_str());
-                // 硬件保留内存 = 注册表报告的总量 - VidMM 可用专用显存
-                if (bestQwMem > impl_->dedicatedTotal)
-                    adapter_.hwReserved = bestQwMem - impl_->dedicatedTotal;
-            }
         }
     }
 
-    // ---- 5. 构建引擎列表（使用率留 0，等第一轮 Collect 填）----
-    engines_.clear();
-    engines_.reserve(impl_->groups.size());
-    for (const auto& g : impl_->groups) {
-        GpuEngineSample s;
-        s.engineType = g.engineType;
-        s.name = EngineTypeDisplayName(g.engineType);
-        s.nodeCount = static_cast<int>(g.nodes.size());
-        engines_.push_back(std::move(s));
+    for (size_t i = 0; i < impl_->adapters.size(); ++i) {
+        Impl::AdapterSlot& slot = impl_->adapters[i];
+
+        GpuAdapterInfo info;
+        if (slot.name.empty()) {
+            // 最后的兜底：编号占位名。用**过滤后的下标**而不是原始枚举下标，
+            // 避免出现 "GPU 2" 而侧栏只有一项的错位感。
+            wchar_t ph[32];
+            swprintf_s(ph, L"GPU %zu", i);
+            info.name = ph;
+        } else {
+            info.name = slot.name;
+        }
+        info.nodeCount = slot.nodeCount;
+        info.segmentCount = slot.segmentCount;
+        info.dedicatedTotal = slot.dedicatedTotal;
+        info.sharedTotal = slot.sharedTotal;
+
+        // 4a. 物理位置（PCI 总线/设备/功能）
+        {
+            D3DKMT_ADAPTERADDRESS_LOCAL ad{};
+            D3DKMT_QUERYADAPTERINFO_LOCAL q{};
+            q.hAdapter = slot.hAdapter;
+            q.Type = kQaiAdapterAddress;
+            q.pPrivateDriverData = &ad;
+            q.PrivateDriverDataSize = sizeof(ad);
+            if (NtOk(impl_->QueryAdapterInfo(&q))) {
+                info.pciBus = ad.BusNumber;
+                info.pciDevice = ad.DeviceNumber;
+                info.pciFunction = ad.FunctionNumber;
+                wchar_t buf[96];
+                swprintf_s(buf, L"PCI 总线 %u，设备 %u，功能 %u",
+                           ad.BusNumber, ad.DeviceNumber, ad.FunctionNumber);
+                info.physicalLocation = buf;
+            }
+        }
+
+        // 4b. 注册表：按 DriverDesc 与适配器名不区分大小写匹配。
+        // 同名多条时优先取有 qwMemorySize 那条（本机 NVIDIA 有 4 个同名子键）。
+        {
+            const RegClassEntry* best = nullptr;
+            for (const auto& e : regEntries) {
+                if (_wcsicmp(e.desc.c_str(), info.name.c_str()) != 0) continue;
+                if (!best || e.qwMem > best->qwMem) best = &e;
+            }
+            if (best) {
+                info.driverVersion = best->ver;
+                info.driverDate = NormalizeDriverDate(best->date.c_str());
+                if (best->qwMem > slot.dedicatedTotal)
+                    info.hwReserved = best->qwMem - slot.dedicatedTotal;
+            }
+        }
+
+        // 4c. 逐适配器的引擎列表（使用率留 0，等第一轮 Collect 填）
+        info.engines.reserve(slot.groups.size());
+        for (const auto& g : slot.groups) {
+            GpuEngineSample s;
+            s.engineType = g.engineType;
+            s.name = EngineTypeDisplayName(g.engineType);
+            s.nodeCount = static_cast<int>(g.nodes.size());
+            info.engines.push_back(std::move(s));
+        }
+
+        adapters_.push_back(std::move(info));
     }
+
+    // ---- 5. 合并视图：旧调用方只认识「一份引擎列表」 ----
+    // 规则：每个引擎类型取**所有适配器里最忙的那张卡**。这与 TotalUtilPercent()
+    // 的「取最大不相加」口径一致，也是任务管理器在「GPU 页」上显示的总利用率。
+    BuildMergedEngines();
     ResetHistory();
 
     // ---- 6. 首次进程扫描交给 Collect 的状态机 ----
@@ -1021,7 +1278,10 @@ void GpuInfoCollector::CollectInternal(const uint32_t* pids, size_t count, doubl
             useCount = impl_->cachedPids.size();
         }
 
-        // 建立句柄缓存：只保留有 GPU 记录的进程
+        // 建立句柄缓存：只保留有 GPU 记录的进程。
+        // 多卡：一个进程可能同时出现在多张卡上（跨卡进程），
+        // 所以对每个 pid 逐卡查 PROCESS_ADAPTER，命中任一卡的进程才保留。
+        const size_t kAdapterCount = impl_->adapters.size();
         for (size_t i = 0; i < useCount; ++i) {
             const uint32_t pid = usePids[i];
             if (pid == 0) continue;
@@ -1030,64 +1290,67 @@ void GpuInfoCollector::CollectInternal(const uint32_t* pids, size_t count, doubl
             HANDLE h = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
             if (!h) continue;
 
-            D3DKMT_QUERYSTATISTICS qa{};
-            qa.Type = kStatsProcessAdapter;
-            qa.AdapterLuid = impl_->gpuLuid;
-            qa.hProcess = h;
-            if (!NtOk(impl_->QueryStatistics(&qa))) {
-                CloseHandle(h);
-                continue;
-            }
-            // PROCESS_ADAPTER 的 NodeCount 实测就是该进程参与的 node 数
-            // （本机 38 个 GPU 进程全部报 14，等于适配器 NodeCount）。
-            uint32_t nodes = qa.QueryResult.ProcessAdapterInformation.NodeCount;
-            if (nodes > impl_->nodeCount) nodes = impl_->nodeCount;
-            if (nodes == 0) {
-                CloseHandle(h);
-                continue;
-            }
-
             Impl::ProcEntry e;
             e.pid = pid;
             e.handle = h;
-            e.nodes = nodes;
+            e.adapterMask = 0;
+
+            for (size_t ai = 0; ai < kAdapterCount && ai < 32; ++ai) {
+                D3DKMT_QUERYSTATISTICS qa{};
+                qa.Type = kStatsProcessAdapter;
+                qa.AdapterLuid = impl_->adapters[ai].luid;
+                qa.hProcess = h;
+                if (!NtOk(impl_->QueryStatistics(&qa))) continue;
+                // PROCESS_ADAPTER 的 NodeCount 实测就是该进程参与的 node 数
+                // （本机 38 个 GPU 进程全部报 14，等于适配器 NodeCount）。
+                // 这里只用它判断"该卡上有没有这个进程"，具体 node 数一律取
+                // adapters[ai].nodeCount（单一真值源）。
+                if (qa.QueryResult.ProcessAdapterInformation.NodeCount == 0) continue;
+                e.adapterMask |= (1u << ai);
+            }
+
+            if (e.adapterMask == 0) {
+                // 该进程不在任何一张真实 GPU 上有记录，关掉句柄
+                CloseHandle(h);
+                continue;
+            }
             impl_->procs.push_back(e);
         }
 
-        adapter_.processCount = static_cast<int>(impl_->procs.size());
-
-        // 记基线（全局 node + 逐进程 node 求和）
-        std::fill(impl_->prevNodeGlobal, impl_->prevNodeGlobal + kMaxNodes, 0);
-        std::fill(impl_->prevNodeProcSum, impl_->prevNodeProcSum + kMaxNodes, 0);
-        for (uint32_t n = 0; n < impl_->nodeCount; ++n) {
-            int64_t v = 0;
-            if (impl_->QueryNodeGlobal(n, v)) impl_->prevNodeGlobal[n] = v;
+        // 逐卡统计"有 GPU 记录的进程数"
+        for (size_t ai = 0; ai < impl_->adapters.size(); ++ai) {
+            int n = 0;
+            for (const auto& p : impl_->procs) {
+                if (p.adapterMask & (1u << ai)) ++n;
+            }
+            impl_->adapters[ai].processCount = n;
+            if (ai < adapters_.size()) adapters_[ai].processCount = n;
         }
-        for (const auto& p : impl_->procs) {
-            for (uint32_t n = 0; n < p.nodes; ++n) {
+
+        // 记基线（逐卡：全局 node + 逐进程 node 求和）
+        for (auto& a : impl_->adapters) {
+            a.ResetBaseline();
+            for (uint32_t n = 0; n < a.nodeCount; ++n) {
                 int64_t v = 0;
-                if (impl_->QueryProcessNode(p.handle, n, v)) impl_->prevNodeProcSum[n] += v;
+                if (impl_->QueryNodeGlobal(a, n, v)) a.prevNodeGlobal[n] = v;
+            }
+        }
+        // 逐进程、逐卡累加进程侧基线。
+        for (size_t ai = 0; ai < impl_->adapters.size(); ++ai) {
+            Impl::AdapterSlot& a = impl_->adapters[ai];
+            for (const auto& p : impl_->procs) {
+                if (!(p.adapterMask & (1u << ai))) continue;
+                for (uint32_t n = 0; n < a.nodeCount; ++n) {
+                    int64_t v = 0;
+                    if (impl_->QueryProcessNode(a, p.handle, n, v)) a.prevNodeProcSum[n] += v;
+                }
             }
         }
         impl_->prevTimestamp = QpcNowSeconds();
         impl_->hasBaseline = true;
 
-        // 顺带读一次显存（3 个 segment 只要 0.016 ms），这样第一轮就有占用值
-        {
-            uint64_t dedUse = 0, shrUse = 0;
-            for (uint32_t s = 0; s < impl_->segmentCount; ++s) {
-                D3DKMT_QUERYSTATISTICS qs{};
-                qs.Type = kStatsSegment;
-                qs.AdapterLuid = impl_->gpuLuid;
-                qs.QuerySegmentId = s;
-                if (!NtOk(impl_->QueryStatistics(&qs))) continue;
-                const auto& si = qs.QueryResult.SegmentInformation;
-                if (si.Aperture) shrUse += si.BytesResident;
-                else             dedUse += si.BytesResident;
-            }
-            adapter_.dedicatedInUse = dedUse;
-            adapter_.sharedInUse = shrUse;
-        }
+        // 顺带读一次显存（每卡 3 个 segment 只要 0.016 ms），第一轮就有占用值
+        impl_->RefreshMemoryUsage(&adapters_);
 
         lastCollectMs_ = (QpcNowSeconds() - t0) * 1000.0;
         return;   // 本轮建基线，不产出使用率（上一轮的值仍可读）
@@ -1100,112 +1363,145 @@ void GpuInfoCollector::CollectInternal(const uint32_t* pids, size_t count, doubl
     }
 
     // ------------------------------------------------------------------
-    // 2. 正常情况下：查全局 node + 逐进程 node，做差分
+    // 2. 正常情况下：逐卡查全局 node + 逐进程 node，做差分
+    //
+    // 【多卡成本】每一轮的 D3DKMT 查询次数 =
+    //     Σ_k ( nodeCount_k × 2        // 全局 T_NODE + 逐进程 T_PROCESS_NODE
+    //           + segmentCount_k )      // 显存
+    // 实测单次 ~0.03 ms（本机 14 node × 2 + 3 segment ≈ 31 次 ≈ 0.9 ms/卡）。
+    // 本机只有 1 张真实 GPU 时与旧实现完全一致；2 张卡约 1.8~2 ms，
+    // 4 张卡约 4 ms —— 仍在一轮 5 ms 预算内。
+    // 适配器数量在 Init 时已被 kMaxAdapters=4 封顶，不存在"虚拟显示器塞满
+    // 几十个适配器"导致的线性膨胀。
     // ------------------------------------------------------------------
-    int64_t nodeGlobal[kMaxNodes] = {};
-    int64_t nodeProcSum[kMaxNodes] = {};
 
-    for (uint32_t n = 0; n < impl_->nodeCount; ++n) {
-        int64_t v = 0;
-        if (impl_->QueryNodeGlobal(n, v)) nodeGlobal[n] = v;
-    }
-
-    // 顺带清理已退出的进程。实测（docs/evidence/gpuinfo_probe14.cpp）进程退出后
-    // D3DKMT PROCESS_ADAPTER / PROCESS_NODE 全部返回 0xC000000D，所以
-    // "所有 node 都查不到" 就是可靠的退出判据，不需要额外的 GetProcessTimes
-    // （那 38 次调用实测 p99 达 23.5 ms，是稳态路径里最大的一笔可省开销）。
-    // 句柄绑定的是进程对象本身，pid 被复用也不会把旧数据算到新进程头上，
-    // 因为句柄指向的仍是已退出那个对象，它的所有查询都会失败。
-    size_t writeIdx = 0;
-    for (size_t readIdx = 0; readIdx < impl_->procs.size(); ++readIdx) {
-        Impl::ProcEntry& p = impl_->procs[readIdx];
-        if (!p.handle) continue;
-
-        int64_t sum[kMaxNodes] = {};
-        bool any = false;
-        for (uint32_t n = 0; n < p.nodes; ++n) {
-            int64_t v = 0;
-            if (impl_->QueryProcessNode(p.handle, n, v)) {
-                sum[n] = v;
-                any = true;
-            }
-        }
-        if (!any) {
-            CloseHandle(p.handle);
-            p.handle = nullptr;
-            continue;
-        }
-        for (uint32_t n = 0; n < p.nodes; ++n) nodeProcSum[n] += sum[n];
-        if (writeIdx != readIdx) impl_->procs[writeIdx] = p;
-        ++writeIdx;
-    }
-    impl_->procs.resize(writeIdx);
-    adapter_.processCount = static_cast<int>(impl_->procs.size());
-
-    // ---- 每引擎使用率 ----
     const double now = QpcNowSeconds();
     double dt = impl_->hasBaseline ? (now - impl_->prevTimestamp) : 0.0;
     if (dt < 0.0) dt = 0.0;
     const double denom = dt * 1.0e7;   // RunningTime 单位 100ns
 
-    // 每个分组累计
-    std::vector<int64_t> groupDelta(impl_->groups.size(), 0);
+    // 顺带清理已退出的进程。实测（docs/evidence/gpuinfo_probe14.cpp）进程退出后
+    // D3DKMT PROCESS_ADAPTER / PROCESS_NODE 全部返回 0xC000000D，所以
+    // "该进程在所有卡上都查不到" 就是可靠的退出判据，不需要额外的 GetProcessTimes
+    // （那 38 次调用实测 p99 达 23.5 ms，是稳态路径里最大的一笔可省开销）。
+    // 句柄绑定的是进程对象本身，pid 被复用也不会把旧数据算到新进程头上，
+    // 因为句柄指向的仍是已退出那个对象，它的所有查询都会失败。
 
-    for (uint32_t n = 0; n < impl_->nodeCount; ++n) {
-        const int gi = impl_->nodeGroup[n];
-        if (gi < 0) continue;
+    // 每卡一份逐进程 node 求和。维度：kMaxAdapters × kMaxNodes（栈上，小）。
+    int64_t procSum[Impl::kMaxAdapters][kMaxNodes] = {};
+    // 每卡的全局 node 时间
+    int64_t globalNode[Impl::kMaxAdapters][kMaxNodes] = {};
 
-        int64_t dGlobal = nodeGlobal[n] - impl_->prevNodeGlobal[n];
-        int64_t dProc   = nodeProcSum[n] - impl_->prevNodeProcSum[n];
-        if (dGlobal < 0) dGlobal = 0;
-        if (dProc < 0) dProc = 0;
-        // 见文件头第 3 条：本机 3D 节点的全局计数恒为 0，必须取两者较大值
-        const int64_t d = dGlobal > dProc ? dGlobal : dProc;
-        groupDelta[gi] += d;
-    }
-
-    // 写回引擎
-    if (engines_.size() == impl_->groups.size()) {
-        for (size_t g = 0; g < impl_->groups.size(); ++g) {
-            engines_[g].runningDelta = static_cast<uint64_t>(groupDelta[g]);
-            double pct = (denom > 0.0) ? static_cast<double>(groupDelta[g]) / denom * 100.0 : 0.0;
-            if (pct < 0.0) pct = 0.0;
-            if (pct > 100.0) pct = 100.0;
-            engines_[g].utilPercent = pct;
+    const size_t kAdapterCount = impl_->adapters.size();
+    for (size_t ai = 0; ai < kAdapterCount; ++ai) {
+        const auto& a = impl_->adapters[ai];
+        for (uint32_t n = 0; n < a.nodeCount; ++n) {
+            int64_t v = 0;
+            if (impl_->QueryNodeGlobal(a, n, v)) globalNode[ai][n] = v;
         }
     }
 
-    // 总使用率 = 最忙的引擎（与任务管理器一致）
-    double busiest = 0.0;
-    for (const auto& e : engines_) {
-        if (e.utilPercent > busiest) busiest = e.utilPercent;
-    }
-    totalUtil_ = busiest;
+    size_t writeIdx = 0;
+    for (size_t readIdx = 0; readIdx < impl_->procs.size(); ++readIdx) {
+        Impl::ProcEntry& p = impl_->procs[readIdx];
+        if (!p.handle) continue;
 
-    // 保存本轮原始值
-    for (uint32_t n = 0; n < impl_->nodeCount; ++n) {
-        impl_->prevNodeGlobal[n] = nodeGlobal[n];
-        impl_->prevNodeProcSum[n] = nodeProcSum[n];
+        bool anyAlive = false;
+        for (size_t ai = 0; ai < kAdapterCount; ++ai) {
+            if (!(p.adapterMask & (1u << ai))) continue;
+            const auto& a = impl_->adapters[ai];
+            bool anyOnThisCard = false;
+            for (uint32_t n = 0; n < a.nodeCount; ++n) {
+                int64_t v = 0;
+                if (impl_->QueryProcessNode(a, p.handle, n, v)) {
+                    procSum[ai][n] += v;
+                    anyOnThisCard = true;
+                }
+            }
+            if (anyOnThisCard) anyAlive = true;
+            // 该卡上已无记录（进程退出）时清掉这一位，避免掩码长期虚高
+            else p.adapterMask &= ~(1u << ai);
+        }
+        if (!anyAlive) {
+            CloseHandle(p.handle);
+            p.handle = nullptr;
+            continue;
+        }
+        if (writeIdx != readIdx) impl_->procs[writeIdx] = p;
+        ++writeIdx;
+    }
+    impl_->procs.resize(writeIdx);
+
+    // 逐卡统计"有 GPU 记录的进程数"
+    for (size_t ai = 0; ai < kAdapterCount; ++ai) {
+        int n = 0;
+        for (const auto& p : impl_->procs) {
+            if (p.adapterMask & (1u << ai)) ++n;
+        }
+        impl_->adapters[ai].processCount = n;
+        if (ai < adapters_.size()) adapters_[ai].processCount = n;
+    }
+
+    // ---- 逐卡：每引擎使用率 ----
+    for (size_t ai = 0; ai < kAdapterCount && ai < adapters_.size(); ++ai) {
+        Impl::AdapterSlot& a = impl_->adapters[ai];
+        GpuAdapterInfo& info = adapters_[ai];
+
+        std::vector<int64_t> groupDelta(a.groups.size(), 0);
+
+        for (uint32_t n = 0; n < a.nodeCount; ++n) {
+            const int gi = a.nodeGroup[n];
+            if (gi < 0) continue;
+
+            int64_t dGlobal = globalNode[ai][n] - a.prevNodeGlobal[n];
+            int64_t dProc   = procSum[ai][n] - a.prevNodeProcSum[n];
+            if (dGlobal < 0) dGlobal = 0;
+            if (dProc < 0) dProc = 0;
+            // 见文件头第 3 条：本机 3D 节点的全局计数恒为 0，必须取两者较大值
+            const int64_t d = dGlobal > dProc ? dGlobal : dProc;
+            groupDelta[gi] += d;
+        }
+
+        // 写回该卡的引擎列表
+        if (info.engines.size() == a.groups.size()) {
+            for (size_t g = 0; g < a.groups.size(); ++g) {
+                info.engines[g].runningDelta = static_cast<uint64_t>(groupDelta[g]);
+                double pct = (denom > 0.0)
+                    ? static_cast<double>(groupDelta[g]) / denom * 100.0 : 0.0;
+                if (pct < 0.0) pct = 0.0;
+                if (pct > 100.0) pct = 100.0;
+                info.engines[g].utilPercent = pct;
+            }
+        }
+
+        // 本卡总使用率 = 本卡最忙的引擎
+        double busiest = 0.0;
+        for (const auto& e : info.engines) {
+            if (e.utilPercent > busiest) busiest = e.utilPercent;
+        }
+        info.totalUtilPercent = busiest;
+
+        // 保存本轮原始值
+        for (uint32_t n = 0; n < a.nodeCount; ++n) {
+            a.prevNodeGlobal[n] = globalNode[ai][n];
+            a.prevNodeProcSum[n] = procSum[ai][n];
+        }
     }
     impl_->prevTimestamp = now;
     impl_->hasBaseline = true;
 
-    // ---- 显存占用（segment resident，见文件头第 4 条）----
-    {
-        uint64_t dedUse = 0, shrUse = 0;
-        for (uint32_t s = 0; s < impl_->segmentCount; ++s) {
-            D3DKMT_QUERYSTATISTICS qs{};
-            qs.Type = kStatsSegment;
-            qs.AdapterLuid = impl_->gpuLuid;
-            qs.QuerySegmentId = s;
-            if (!NtOk(impl_->QueryStatistics(&qs))) continue;
-            const auto& si = qs.QueryResult.SegmentInformation;
-            if (si.Aperture) shrUse += si.BytesResident;
-            else             dedUse += si.BytesResident;
-        }
-        adapter_.dedicatedInUse = dedUse;
-        adapter_.sharedInUse = shrUse;
+    // ---- 合并视图 + 总使用率 ----
+    // 合并视图必须在逐卡写完引擎值之后重建（BuildMergedEngines 是纯聚合）。
+    BuildMergedEngines();
+    // 总使用率 = 所有卡里最忙的引擎（不相加：利用率是时间片占比）
+    double overall = 0.0;
+    for (const auto& a : adapters_) {
+        if (a.totalUtilPercent > overall) overall = a.totalUtilPercent;
     }
+    totalUtil_ = overall;
+
+    // ---- 显存占用（segment resident，见文件头第 4 条）----
+    impl_->RefreshMemoryUsage(&adapters_);
 
     // ---- 历史曲线 ----
     for (size_t g = 0; g < history_.size() && g < engines_.size(); ++g) {
@@ -1220,12 +1516,18 @@ void GpuInfoCollector::CollectInternal(const uint32_t* pids, size_t count, doubl
 
 std::wstring GpuInfoCollector::ProbeDirectXVersion() {
     // 未 Init（或 Init 失败）时直接降级返回空，绝不做那 500~1000 ms 的设备创建。
-    if (!available_) return std::wstring();
+    if (!available_ || adapters_.empty()) return std::wstring();
 
     // 只做一次。实测 480~1000 ms（瓶颈是加载 NVIDIA 用户态驱动），
     // 绝不能放进 Init/Collect。这里用 LoadLibrary + GetProcAddress，
     // 不引入 d3d11.lib 链接依赖。
-    if (!adapter_.directXVersion.empty()) return adapter_.directXVersion;
+    //
+    // 【多卡限制】只探测**第一张卡**。逐卡探测需要 N × 500~1000 ms
+    // （双卡就是 1~2 s），而 D3D11CreateDevice(nullptr, HARDWARE) 只会选中
+    // 系统默认卡，无法顺手拿到第二张卡的 feature level；要逐卡探测必须先用
+    // DXGI 枚举出 IDXGIAdapter 再按 LUID 匹配，代码量与收益不成比例。
+    // 因此第二张卡起的 directXVersion 保持空串，UI 显示 "—"（不编造）。
+    if (!adapters_[0].directXVersion.empty()) return adapters_[0].directXVersion;
 
     // D3D_FEATURE_LEVEL 数值（d3dcommon.h；WIN32_LEAN_AND_MEAN 下不 include 该头）
     constexpr uint32_t kFL12_1 = 0xC100;
@@ -1287,8 +1589,8 @@ std::wstring GpuInfoCollector::ProbeDirectXVersion() {
     }
     if (!ver) return std::wstring();
 
-    adapter_.directXVersion = ver;
-    return adapter_.directXVersion;
+    adapters_[0].directXVersion = ver;
+    return adapters_[0].directXVersion;
 }
 
 } // namespace tmp

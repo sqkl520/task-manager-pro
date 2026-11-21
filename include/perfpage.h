@@ -246,6 +246,10 @@ struct PerfHistory {
     // 槽位固定 4 个：3D / Copy / Video Encode / Video Decode
     static constexpr int kEngineSlots = 4;
     double gpuEngine[kEngineSlots][kPoints] = {};
+    // 【多卡】逐适配器的引擎历史：[实例][引擎槽][点]。
+    // 旧版只有上面那张合并表，于是核显 + 独显时点开 GPU 1 看到的是"两张卡里
+    // 更忙的那个"的引擎曲线，和标题上的 GPU 1 对不上。8×4×60×8B = 15 KB。
+    double gpuEngineI[kMaxInstances][kEngineSlots][kPoints] = {};
     // 最近一轮快照里实测到的实例数（≤ kMaxInstances）。
     // 用于越界回退：侧栏选中项失效时不能拿越界下标去画。
     int diskCount = 0;
@@ -296,6 +300,12 @@ public:
     bool OnClick(int x, int y);
     bool HitTestChartToggle(int x, int y) const;
     void OnHover(int x, int y);
+    // 当前悬停的侧栏卡片下标（items_ 的索引），-1 = 无。
+    int HoverItem() const { return hoverItem_; }
+    // 清空悬停态。鼠标移出窗口时由 TmWindow::ClearAllHover 调用 ——
+    // 没有这一步时 OnHover 不再被调用，hoverItem_ 会永久保持最后的值，
+    // 卡片一直亮着悬停色（项目历史上的「hover 泄漏」）。
+    void ClearHover() { hoverItem_ = -1; }
 
     void Paint(HDC hdc) const;
 
@@ -347,7 +357,8 @@ private:
     void PaintHistCell(HDC hdc, const RECT& cell, const double* vals, int n,
                        const wchar_t* label) const;
     // 单个 GPU 引擎的小面积图（GPU 页「多个引擎」视图）
-    void PaintEngineChart(HDC hdc, const RECT& rc, int engineType, const wchar_t* label) const;
+    void PaintEngineChart(HDC hdc, const RECT& rc, int engineType, const wchar_t* label,
+                          int inst = -1) const;
     void PaintStatsRows(HDC hdc, const RECT& rc) const;
     void PaintStatsRowsGeneric(HDC hdc, const RECT& rc) const;
     void PaintTitleBlock(HDC hdc, const RECT& rc, const wchar_t* title,
@@ -387,6 +398,16 @@ private:
         COLORREF chartColor;    // 该卡片迷你图表的曲线颜色（每类不同）
     };
     void RebuildSidebarItems();
+    // 保证 items_ 是当前快照对应的那一份。
+    //
+    // 【为什么要有这个入口】原来 items_ 只在 PaintSidebar 里惰性重建：
+    //   `if (itemsDirty_) { RebuildSidebarItems(); itemsDirty_ = false; }`
+    // 而 OnHover / OnClick 直接遍历 items_ 做命中测试。于是**第一帧绘制之前**
+    // 鼠标移到侧栏上时，items_ 还是空的 —— 悬停不亮、点击选不中。
+    // 实际交互里这条窗口很窄（鼠标进入窗口通常已经画过一帧），
+    // 但它同时也让「自测用 FakeMouseMove 直接投消息」这类路径完全失效，
+    // 且顺序依赖本身就是不该有的隐式契约。三处调用点统一走这里。
+    void EnsureSidebarItems();
     // 卡片左侧的迷你历史图表
     void PaintSidebarMiniChart(HDC hdc, const RECT& rc, const SidebarItem& it) const;
 

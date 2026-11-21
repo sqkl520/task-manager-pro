@@ -102,7 +102,12 @@ struct PerfSnapshot {
     // GPU 页专用（gpuinfo 走 D3DKMT，不是 PDH）
     double gpuTotalPercent = 0.0;
     std::vector<GpuEngineSample> gpuEngines;   // 3D / Copy / Video Encode / Video Decode ...
-    GpuAdapterInfo gpuAdapter;                 // 驱动版本 / 显存 / 物理位置 ...
+    GpuAdapterInfo gpuAdapter;                 // 驱动版本 / 显存 / 物理位置 ...（第一张卡）
+
+    // 多卡：全部真实 GPU 的适配器信息（含各自的引擎明细与显存）。
+    // gpuAdapter 保留为 gpus[0] 的兼容别名，旧调用点不用改。
+    // 顺序与 gpus 一致（同一张卡在两边是同一下标）。
+    std::vector<GpuAdapterInfo> gpuAdapters;
 
     // 磁盘/网络的聚合值（不走 PDH 通配符）
     double diskTotalMBps = 0.0;

@@ -350,6 +350,35 @@ constexpr COLORREF kLineCard      = RGB(229, 229, 229);
 //     CPU 热力网格线 = #117DBB（TASKMANAGER p38）
 //   卡片边框本身没有 API 值，保留仅为保持视觉连续。
 
+// ---------- 悬停（HOT）配色：工具条按钮 / 命令按钮 / 菜单栏项 ----------
+//
+// 【本组三个值全部来自系统API实测，不是自创】
+// 出处：`DrawThemeBackground` 离屏渲染进 32bpp DIB 后逐像素取样，
+//   原始数据 docs/specs/T_uxspec.md §3.1（BP_PUSHBUTTON）与 §3.2（TP_BUTTON），
+//   汇总见同文件 §8.3 的常量表（kButtonBgHot / kButtonBorderHot / kToolbarBtnHot）。
+//
+// 【为什么工具条按钮和命令按钮要分两个色】
+// 原版它们是两种不同的控件：底部「简略信息 / 打开资源监视器 / 打开服务」
+// 是 **TP_BUTTON 工具条按钮**（无边框、HOT 时整块浅蓝 #E5F3FF）；
+// 「结束任务 / 断开连接」是 **BP_PUSHBUTTON 命令按钮**（有边框、HOT 时
+// 填充变 #E5F1FB 且边框变亮蓝 #0078D7）。两者 HOT 值不同，不能合并。
+constexpr COLORREF kToolbarBtnHot = RGB(0xE5, 0xF3, 0xFF);
+//   【系统API实测】TP_BUTTON s2 HOT 白底渲染色 = #E5F3FF
+//   （= #0089FF @ 10% over #FFFFFF，与列表行悬停是同一套叠加模型，T §3.2）。
+constexpr COLORREF kButtonBgHot = RGB(0xE5, 0xF1, 0xFB);
+//   【系统API实测】BP_PUSHBUTTON s2 HOT 填充 = #E5F1FB（T §3.1）。
+//   注意与上面的 #E5F3FF 差在 G/B 通道，是**两个不同控件**的实测值，不是笔误。
+constexpr COLORREF kButtonBorderHot = RGB(0x00, 0x78, 0xD7);
+//   【系统API实测】BP_PUSHBUTTON s2 HOT 边框 = #0078D7 = COLOR_HIGHLIGHT
+//   （R_sysmetrics.md §6.1 / T §3.1），也是 UX 指南的 kHighlight。
+constexpr COLORREF kMenuBarHot = RGB(0xE5, 0xF3, 0xFF);
+//   【无实测依据，借用工具条 HOT 值】菜单栏「文件/选项/查看」的悬停在原版里
+//   由**系统菜单栏**自己绘制（MF_ 标准菜单，非自绘），没有可取的渲染样本：
+//   DrawThemeBackground 的 MENU 类 part 只有下拉项，不含顶层菜单栏项。
+//   本项目的菜单栏由 SetMenu 交给系统绘制（见 RebuildMenu），我们**不拥有**
+//   那几百像素，所以这个常量当前只服务于「若将来改成自绘/owner-draw」的路径。
+//   值取 #E5F3FF，与 TP_BUTTON s2 同一族，不另发明颜色。
+
 // ---------- 曲线颜色（性能页 / 迷你图） ----------
 // 【系统API实测】四条主色全部来自 CHARTVIEW 主题类（GetThemeColor），
 // 且与 TASKMANAGER p38 交叉吻合（U §3.1 / T §6.2）：

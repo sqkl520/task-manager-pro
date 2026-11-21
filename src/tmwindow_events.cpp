@@ -4,6 +4,7 @@
 #include <windowsx.h>
 #include <shellapi.h>
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 
 #pragma comment(lib, "gdi32.lib")
@@ -29,16 +30,24 @@ void TmWindow::PaintAll(HDC hdc, const RECT& client) {
     RECT full{ 0, 0, W, H };
     FillSolid(memDC_, full, kBgWindow);
 
-    PaintTabBar(memDC_);
+    // 【简略信息】rcTabs_ 是零高矩形时不画页签栏。
+    //
+    // 为什么要在调用点判而不是让 TabBar::Paint 自己判：TabBar::Paint 先对
+    // bounds_ 做 FillRect（零高矩形 FillRect 无害），但它会画出每个页签的
+    // 边框和文字 —— 那些矩形的 top/bottom 都等于 0，画出来是一条贴着上沿的
+    // 杂线。所以必须在调用点挡住。
+    if (rcTabs_.bottom > rcTabs_.top) PaintTabBar(memDC_);
 
     switch (tabs_.Current()) {
     case TabId::Processes:
-        // 【简略信息】simpleView_ 打开时 BuildLayout 把 rcCards_ 压成零高矩形。
+        // 【简略信息】simpleView_ 打开时 rcCards_ 压成零高矩形。
         // PaintCards 拿到零高矩形会在 cardsTop-1 处画出一条孤立横线（DrawFrame
         // 不判空），所以整段跳过。PaintCards 自己的首行是 `if (!snap_) return;`，
         // 不归本模块改，这里在调用点挡住即可。
         if (rcCards_.bottom > rcCards_.top) PaintCards(memDC_);
-        PaintColumnHeader(memDC_);
+        // 【简略信息】rcColHeader_ 零高时同样跳过列头（见 BuildLayout 的说明：
+        // 30024 的简略列表没有 TmColHeader 实例）。
+        if (rcColHeader_.bottom > rcColHeader_.top) PaintColumnHeader(memDC_);
         PaintRows(memDC_);
         PaintScrollBar(memDC_);
         break;
@@ -263,6 +272,530 @@ void TmWindow::LoadPageData(TabId t) {
     }
 }
 
+// ============ 滚动系统 ============
+//
+// 四套输入、一份状态：
+//   鼠标滚轮    WM_MOUSEWHEEL，delta 是 120 整数倍 → 立即滚 3 行 + 阻尼惯性
+//   触控板两指  WM_MOUSEWHEEL，delta 不是 120 整数倍 → 按比例精确位移，静默后惯性
+//   滚动条拖动  WM_LBUTTONDOWN/WM_MOUSEMOVE        → 直接精确位移，**无惯性**
+//   触屏滑动    WM_GESTURE / GID_PAN               → 跟手精确位移，抬手带惯性
+//
+// 【为什么把"哪个列表"抽成 ScrollTarget】
+// 三种列表的偏移量（scrollY_ / detailScrollY_ / pagesView_.scroll_）各有各的
+// 单位历史和钳制口径。四套输入如果各自 switch(tabs_.Current()) 一遍，就会
+// 有四份互不一致的判据 —— 本项目已经因为"绘制一个原点、命中最写一个原点"
+// 踩过 16px 错位。现在输入只负责算出**像素位移**，落点统一由
+// ApplyScrollDelta 处理，钳制只有一处。
+
+TmWindow::ScrollTarget TmWindow::CurrentScrollTarget() {
+    switch (tabs_.Current()) {
+    case TabId::Processes:
+        return ScrollTarget::ProcessList;
+    case TabId::Details:
+        return ScrollTarget::DetailList;
+    case TabId::Startup:
+    case TabId::Users:
+    case TabId::Services:
+    case TabId::AppHistory:
+        // PagesView 自己不知道当前是哪一页 —— 它的 currentTab_ 只在绘制/点击时
+        // 被同步。这里顺手同步一次，保证读写的确实是"用户看见的那张表"。
+        pagesView_.SetCurrentTab(static_cast<int>(tabs_.Current()));
+        return ScrollTarget::PagesTable;
+    default:
+        // 性能页：图表不是列表，没有滚动语义。返回 None 让所有输入
+        // 安全地变成 no-op（原来滚轮会偷偷改进程页的 scrollY_，切回去才发现位置变了）。
+        return ScrollTarget::None;
+    }
+}
+
+int TmWindow::ScrollOffset(ScrollTarget t) const {
+    switch (t) {
+    case ScrollTarget::ProcessList: return scrollY_;
+    case ScrollTarget::DetailList:  return detailScrollY_;
+    case ScrollTarget::PagesTable:  return pagesView_.ScrollPixels();
+    default:                        return 0;
+    }
+}
+
+int TmWindow::MaxScrollOffset(ScrollTarget t) const {
+    switch (t) {
+    case ScrollTarget::ProcessList: {
+        // 与 ClampScroll 同一口径（ContentHeight 内部按 RowHeightFor 逐行累加）
+        const int total = ContentHeight();
+        const int view = ViewportHeight();
+        return (std::max)(0, total - view);
+    }
+    case ScrollTarget::DetailList: {
+        const int total = static_cast<int>(detailRows_.size()) * kRowHeight;
+        return (std::max)(0, total - DetailViewportHeight());
+    }
+    case ScrollTarget::PagesTable:
+        return pagesView_.MaxScrollPixels();
+    default:
+        return 0;
+    }
+}
+
+int TmWindow::ScrollViewportPx(ScrollTarget t) const {
+    switch (t) {
+    case ScrollTarget::ProcessList: return ViewportHeight();
+    case ScrollTarget::DetailList:  return DetailViewportHeight();
+    case ScrollTarget::PagesTable: {
+        const RECT& b = pagesView_.Bounds();
+        const int h = static_cast<int>(b.bottom - b.top) - theme::kHeaderHeight;
+        return h > 0 ? h : 0;
+    }
+    default: return 0;
+    }
+}
+
+int TmWindow::ScrollRowPx(ScrollTarget t) const {
+    switch (t) {
+    case ScrollTarget::ProcessList:
+        // 【子行 22】进程页行高不统一，取视口首行的实际行高当"一行"，
+        // 否则在子行区"滚三行"会变成四行。
+        return FirstVisibleRowHeight();
+    default:
+        // 详细信息页与四个次要页行高统一 kRowHeight（各自的绘制全程用它）
+        return kRowHeight;
+    }
+}
+
+int TmWindow::FirstVisibleRowHeight() const {
+    int acc = 0;
+    for (size_t i = 0; i < rows_.size(); ++i) {
+        const int rh = RowHeightFor(rows_[i].kind == ViewRow::GroupHeaderRow,
+                                    rows_[i].indentLevel);
+        if (scrollY_ < acc + rh) return rh;
+        acc += rh;
+    }
+    return kRowHeight;
+}
+
+int TmWindow::DetailViewportHeight() const {
+    // 实现在 tmwindow_details.cpp —— 那里有 listTop/listBot 的唯一定义点。
+    // 在这里照着抄一份 `rcContent_.bottom - 2 - (top + kHeaderHeight)` 是
+    // 本项目反复踩过的坑（两套原点差 16px），所以只保留一个声明。
+    return DetailListHeight();
+}
+
+void TmWindow::SetScrollOffset(ScrollTarget t, int v) {
+    const int maxS = MaxScrollOffset(t);
+    if (v < 0) v = 0;
+    if (v > maxS) v = maxS;
+    switch (t) {
+    case ScrollTarget::ProcessList:
+        if (scrollY_ == v) return;
+        scrollY_ = v;
+        break;
+    case ScrollTarget::DetailList:
+        if (detailScrollY_ == v) return;
+        detailScrollY_ = v;
+        break;
+    case ScrollTarget::PagesTable: {
+        // PagesView 内部自己钳制并清 hover_。**但重绘要在这里做** ——
+        // PagesView 不是窗口，它不会自己 InvalidateRect。原来滚轮分支末尾
+        // 有一次统一的 InvalidateAll，现在位移走这个函数，漏掉就会
+        // "触控板滑动数据变了、屏幕一动不动"。
+        const int before = pagesView_.ScrollPixels();
+        pagesView_.SetScrollPixels(v);
+        if (pagesView_.ScrollPixels() != before) InvalidateAll();
+        return;
+    }
+    default:
+        return;
+    }
+    InvalidateAll();
+}
+
+int TmWindow::ApplyScrollDelta(ScrollTarget t, int deltaPx) {
+    if (t == ScrollTarget::None || deltaPx == 0) return 0;
+    const int before = ScrollOffset(t);
+    SetScrollOffset(t, before + deltaPx);
+    return ScrollOffset(t) - before;
+}
+
+bool TmWindow::ClampScrollTarget(ScrollTarget t) {
+    // 【谁在调】惯性/触控板的每一帧末尾，以及 WM_SIZE / WM_DPICHANGED
+    // 之后。返回 true 表示这一帧被边界钳制过。
+    //
+    // 注意：ApplyScrollDelta → SetScrollOffset 内部已经在钳制了，所以
+    // 这个函数不是"唯一钳制点"，而是**探测点** —— 惯性定时器用它判断
+    // "这一帧是不是撞墙了"，从而决定要不要立刻清零速度。
+    // 名实不符会误导后来者，故在这里写清楚。
+    if (t == ScrollTarget::None) return false;
+    const int before = ScrollOffset(t);
+    const int maxS = MaxScrollOffset(t);
+    int v = before;
+    if (v < 0) v = 0;
+    if (v > maxS) v = maxS;
+    if (v != before) {
+        SetScrollOffset(t, v);
+        return true;    // 撞到边界（被钳过）
+    }
+    return false;
+}
+
+// ---- 速度采样 ----
+
+void TmWindow::ResetScrollSamples() {
+    scrollSampleCount_ = 0;
+    scrollGesturePos_ = 0.0;
+    preciseScrollFrac_ = 0.0;
+    lastScrollSampleTick_ = 0;
+}
+
+void TmWindow::PushScrollSample(double pos, DWORD now) {
+    // 距上次采样超过 250ms 视为"新手势"（手指中途离开过），
+    // 否则上次的位移会被算进这一把的速度里，甩一把方向会错。
+    if (lastScrollSampleTick_ != 0 && now - lastScrollSampleTick_ > 250) {
+        scrollSampleCount_ = 0;
+    }
+    if (scrollSampleCount_ >= kScrollSampleMax) {
+        for (int i = 1; i < kScrollSampleMax; ++i) {
+            scrollSamples_[i - 1] = scrollSamples_[i];
+        }
+        --scrollSampleCount_;
+    }
+    scrollSamples_[scrollSampleCount_].t = now;
+    scrollSamples_[scrollSampleCount_].pos = pos;
+    ++scrollSampleCount_;
+    lastScrollSampleTick_ = now;
+}
+
+// 从采样窗口估速度，单位 px/帧（正 = 向下滚）。
+//
+// 【为什么取跨 ≥30ms 的样本对而不是最后两点】相邻两帧的位移可能只有 1~2px，
+// 定时器抖动（16ms 实际可能是 12 或 21ms）会让速度估出 ±50% 的偏差，
+// 表现为"甩一下速度忽大忽小、偶尔还反向"。跨 30ms 以上取平均就稳得多。
+double TmWindow::EstimateScrollVelocity(DWORD now) const {
+    if (scrollSampleCount_ < 2) return 0.0;
+    const ScrollSample& last = scrollSamples_[scrollSampleCount_ - 1];
+    // 最后一次采样已经过去太久 → 手指早就停了，不该再甩出去
+    if (last.t != 0 && now - last.t > 250) return 0.0;
+
+    for (int i = scrollSampleCount_ - 2; i >= 0; --i) {
+        const DWORD dt = last.t - scrollSamples_[i].t;
+        if (dt == 0) continue;
+        if (dt < 30 && i > 0) continue;   // 太近，再往前找一个更早的样本
+        const double dpos = last.pos - scrollSamples_[i].pos;
+        return dpos / static_cast<double>(dt) * static_cast<double>(kInertiaTickMs);
+    }
+    return 0.0;
+}
+
+// ---- 惯性 ----
+
+void TmWindow::StartScrollInertia(double velocity) {
+    const ScrollTarget t = CurrentScrollTarget();
+    if (t == ScrollTarget::None) { StopScrollInertia(); return; }
+
+    if (velocity > kScrollMaxVelocity)  velocity = kScrollMaxVelocity;
+    if (velocity < -kScrollMaxVelocity) velocity = -kScrollMaxVelocity;
+
+    // 速度不够就干脆不滑。否则会先启动定时器、下一帧立刻停，
+    // 每甩一下白白多一次 SetTimer/KillTimer 和一次重绘。
+    if (std::fabs(velocity) < kScrollStopVelocity) { StopScrollInertia(); return; }
+
+    inertiaTarget_ = t;
+    scrollVelocity_ = velocity;
+    scrollFrac_ = 0.0;
+
+    if (!inertiaTimer_) {
+        inertiaTimer_ = SetTimer(hwnd_, kInertiaTimerId, kInertiaTickMs, nullptr);
+        if (!inertiaTimer_) {
+            // SetTimer 失败（系统定时器耗尽）：退化成"不动"，
+            // 绝不能留下 velocity 非 0 而定时器不跑的状态 —— 下一次
+            // 滚轮会从那个陈旧速度继续累加。
+            scrollVelocity_ = 0.0;
+            inertiaTarget_ = ScrollTarget::None;
+        }
+    }
+    // 【定时器已在跑时不重置】连续触控板增量/触屏 move 会反复调本函数，
+    // 每次都 KillTimer+SetTimer 会让这一帧被永久推迟（观感是"越滑越顿"）。
+    // 注意滚轮那条路不一样：OnWheelDelta 每次刻意先 StopScrollInertia()
+    // 再重新起速度 —— 一格就该重开一次滑行，那是产品行为，不是浪费。
+}
+
+void TmWindow::StopScrollInertia() {
+    if (inertiaTimer_) {
+        KillTimer(hwnd_, kInertiaTimerId);
+        inertiaTimer_ = 0;
+    }
+    scrollVelocity_ = 0.0;
+    scrollFrac_ = 0.0;
+    inertiaTarget_ = ScrollTarget::None;
+}
+
+void TmWindow::OnInertiaTick() {
+    if (inertiaTarget_ == ScrollTarget::None) { StopScrollInertia(); return; }
+
+    // 页被切走（用户点了页签/菜单/自测调 ShowPage）→ 目标已经不存在，
+    // 继续滑就会滑到别的列表上。立即停。
+    if (inertiaTarget_ != CurrentScrollTarget()) { StopScrollInertia(); return; }
+
+    // 速度已经低于阈值 → 直接归零并停表（用户原话的最后一条要求）
+    if (std::fabs(scrollVelocity_) < kScrollStopVelocity) { StopScrollInertia(); return; }
+
+    // 亚像素余数：速度 1.4px/帧 时，每帧真滚 1px、把 0.4 留给下一帧。
+    // 若直接取整丢掉小数，末段的 0.5~1.0px/帧 会全部变成 0，滑行提前刹死。
+    scrollFrac_ += scrollVelocity_;
+    const int whole = static_cast<int>(scrollFrac_);
+    scrollFrac_ -= static_cast<double>(whole);
+
+    if (whole != 0) {
+        const int moved = ApplyScrollDelta(inertiaTarget_, whole);
+        // 每帧末尾统一钳制一次（ApplyScrollDelta 内部已钳，这里是**复检**：
+        // 行表/快照变化可能让上一帧合法的位置在这一帧越界）。
+        const bool clamped = ClampScrollTarget(inertiaTarget_);
+        if (moved != whole || clamped) {
+            // 撞到边界（一步都没走 / 只走了一部分 / 被钳过）：速度立即清零。
+            // 【不能保留速度】否则下一帧还会再撞一次，画面看起来是
+            // "在底部抽搐"，而且速度要衰减好几帧才归零。
+            StopScrollInertia();
+            return;
+        }
+    }
+
+    scrollVelocity_ *= kScrollDamping;
+    if (std::fabs(scrollVelocity_) < kScrollStopVelocity) {
+        // 阈值到了，但这一帧可能还剩不足 1px 的余数没消费。
+        // 把它一次性补齐（最多 1px），避免"差半像素没滚到底"。
+        if (std::fabs(scrollFrac_) >= 0.5) {
+            ApplyScrollDelta(inertiaTarget_,
+                             scrollFrac_ > 0 ? 1 : -1);
+        }
+        StopScrollInertia();
+    }
+}
+
+// ============ 四套滚动的输入层 ============
+//
+// 这一层的职责只有一件：把**消息**翻译成 (target, 像素位移)，然后交给
+// ApplyScrollDelta / StartScrollInertia。它不碰任何列表的私有状态。
+
+// 自测专用：直接驱动惯性帧。返回实际跑了多少帧（中途停表即提前返回）。
+//
+// 【为什么不 Sleep(16) 真等】一次完整滑行 40+ 帧 = 0.7 秒，自测里跑两项
+// 就要 1.4 秒纯等待，且结果受定时器抖动影响。这里调的是**同一个**
+// OnInertiaTick，唯一差别是不经过消息队列 —— 判据仍然落在真实状态上。
+int TmWindow::RunInertiaTicksForTest(int n) {
+    int ran = 0;
+    for (int i = 0; i < n; ++i) {
+        if (!inertiaTimer_) break;
+        OnInertiaTick();
+        ++ran;
+    }
+    return ran;
+}
+
+// ---- 鼠标滚轮 / 触控板（同一条 WM_MOUSEWHEEL，靠 delta 分叉）----
+//
+// 【怎么区分滚轮和触控板】
+//   真滚轮：一格是 WHEEL_DELTA(120) 的整数倍 ⇒ delta % 120 == 0 且 delta != 0
+//           典型值 ±120，高精度滚轮有 ±240 / ±360，老式鼠标可能发 ±40 的
+//           "半格"，此时代码会走触控板分支 —— 但那条路是"按比例精确位移"，
+//           对半个格也是正确行为（滚半行而不是滚 0 行），所以不会出错。
+//   触控板：Windows 把两指滑动的细分增量直接塞进 WM_MOUSEWHEEL，常见
+//           ±15 / ±30 / ±40，**不是** 120 的整数倍。
+//   GetMessageExtraInfo 的 MI_WP_SIGNATURE(0xFF515700) 可以判"这消息来自
+//   鼠标还是触控板"，但那是未公开的约定（低字节是光标 id，还要掩码），
+//   而 delta 判据只用公开文档里的语义，更稳。所以选 delta。
+void TmWindow::OnWheelDelta(int delta) {
+    if (delta == 0) return;
+
+    const ScrollTarget target = CurrentScrollTarget();
+    if (target == ScrollTarget::None) return;   // 性能页：没有可滚列表
+
+    const bool isRealWheel = (delta % WHEEL_DELTA) == 0;
+
+    if (!isRealWheel) {
+        // 触控板：直接精确位移，**不累积余数**。
+        //
+        // 【为什么触控板不走 wheelRemainder_ 那条老路】上一轮为了让细分增量
+        // 不被整除吃掉，加了余数累积；但那是把"位移"攒成"行"再滚，
+        // 结果是触控板滑动变成一跳一跳的整数行 —— 用户明确要求"不将输入
+        // 映射为行偏移，而是滚动偏移"。触控板本身就是连续的像素量，
+        // 应该原样按比例换算成像素直接应用。
+        OnPreciseWheel(delta);
+        return;
+    }
+
+    // 真滚轮：一格 = 3 行。余数累积保留（兼容 ±40 这类"半格"滚轮，
+    // 以及一次消息里带 2~3 格的情况）。
+    wheelRemainder_ += delta;
+    const int notches = wheelRemainder_ / WHEEL_DELTA;
+    wheelRemainder_ -= notches * WHEEL_DELTA;
+    if (notches == 0) return;   // 还没凑够一格
+
+    // 用户原话：收到鼠标滚动事件 → 设置同向的速度和反向的加速度。
+    // 换成阻尼模型后等价于「立即位移 + 起一个同向衰减的滑行」。
+    //
+    // 【为什么还要"立即位移"】如果只起速度不先走，滚轮会有一帧（16ms）延迟，
+    // 快速连滚时能感到"粘手"。Windows 自己的列表也是"先跟手一格，再惯性"。
+    StopScrollInertia();
+
+    const int rowPx = ScrollRowPx(target);
+    const int step  = -notches * rowPx * 3;   // 负 notches = 向下滚（内容上移）
+    const int moved = ApplyScrollDelta(target, step);
+
+    // 【撞边界就不起惯性】已经在底部还继续往下滚时，位移是 0。
+    // 此时若照常起惯性，定时器会每帧撞一次墙、再由 StopScrollInertia 清掉 ——
+    // 表面上"没事"，实际每滚一下多一次 SetTimer+一次 invalidate，
+    // 而且速度字段会被写脏（自测抓到过：到底后 inertia=1、速度非 0）。
+    if (moved == 0) return;
+
+    // 初速度：本格位移的 kScrollMaxVelocity 上限之内、约 1.5 行。
+    //
+    // 【怎么定的】阻尼模型下总滑行距离 = v0 / (1 - d) = v0 / 0.08 = 12.5·v0。
+    // 希望"滚一格之后再滑 1.5 行"（28px×1.5=42px），于是
+    //     v0 = 42 × 0.08 ≈ 3.4 px/帧
+    // 衰减到 0.5 阈值要 ln(0.5/3.4)/ln(0.92) ≈ 23 帧（0.37 秒）——
+    // 尾巴短、不拖沓，一格总共走 4.5 行。
+    // 若按"一格初速度 = 3 行像素(84px/帧)"，滑行距离会是 84/0.08 = 1050px
+    // ≈ 37 行，一格滚半屏 —— 那是甩动的手感，不是滚轮的手感，故不采用。
+    //
+    // 【符号必须与 step 同向】step = -notches×…，速度也要 -notches×…。
+    // 写成 +notches 会让"向下滚"起的惯性往**上**滑 —— 松手后画面倒退回原处。
+    const double v = static_cast<double>(-notches) * static_cast<double>(rowPx)
+                     * kWheelGlideRows * (1.0 - kScrollDamping);
+    StartScrollInertia(v);
+}
+
+// ---- 触控板精确位移 ----
+//
+// 输入单位是 WHEEL_DELTA 的比例。换算成像素：一格(120) 对应 3 行。
+// 于是 delta=15 → 0.125 格 → 0.375 行 ≈ 10.5px。
+//
+// 【亚像素余数】delta=15 在 kRowHeight=28 下是 10.5px。若每帧取整，
+// 两次 ±15 就丢掉 1px。preciseScrollFrac_ 存小数部分，攒够 1px 再滚。
+void TmWindow::OnPreciseWheel(int delta) {
+    const ScrollTarget target = CurrentScrollTarget();
+    if (target == ScrollTarget::None) return;
+
+    StopScrollInertia();   // 新手势必定打断旧滑行
+
+    const int rowPx = ScrollRowPx(target);
+    // 像素位移 = -delta/120 × 3行 × 行高
+    const double px = -static_cast<double>(delta) / static_cast<double>(WHEEL_DELTA)
+                      * 3.0 * static_cast<double>(rowPx);
+    preciseScrollFrac_ += px;
+    const int whole = static_cast<int>(preciseScrollFrac_);
+    preciseScrollFrac_ -= static_cast<double>(whole);
+    if (whole != 0) ApplyScrollDelta(target, whole);
+
+    // 采样：用于"静默 90ms 后估速度起惯性"。
+    // 【必须 += px，不是 -px】px 已经是「滚动偏移的增量」（正 = 向下滚），
+    // 与 scrollY_ 同向。取反会让触控板甩动的惯性方向整个反过来 ——
+    // 向上滑一把，松手后画面往下滑回去。
+    scrollGesturePos_ += px;
+    PushScrollSample(scrollGesturePos_, GetTickCount());
+
+    // 每次细分增量都重置 tail 定时器 —— 只要还在滑，就不算"抬手"。
+    KillTimer(hwnd_, kTouchpadTailTimerId);
+    SetTimer(hwnd_, kTouchpadTailTimerId, kTouchpadTailMs, nullptr);
+}
+
+// ---- 触屏 pan ----
+//
+// WM_GESTURE 的 GID_PAN 给的是**手指当前位置**，不是增量，所以要自己存
+// 上一帧的位置求差。begin 时只记起点、不滚（否则第一帧会跳一大截，
+// 因为 ptsLocation 可能是"识别成 pan 那一刻"的位置，与按下点不同）。
+void TmWindow::OnPanTo(int clientY, bool begin, bool end) {
+    const ScrollTarget target = CurrentScrollTarget();
+    if (target == ScrollTarget::None) { panActive_ = false; return; }
+
+    if (begin) {
+        StopScrollInertia();
+        ResetScrollSamples();
+        panLast_.y = clientY;
+        panActive_ = true;
+        PushScrollSample(scrollGesturePos_, GetTickCount());
+        return;
+    }
+    if (!panActive_) {
+        // 没收到 begin 就先收到 move（手势被系统中途回收）：
+        // 把它当作起点，别按一个陈旧的 panLast_ 算出巨大位移。
+        panLast_.y = clientY;
+        panActive_ = true;
+        return;
+    }
+
+    // 手指往上滑（clientY 变小）→ 内容上移 → 列表向下滚 → 位移为正
+    const int dy = panLast_.y - clientY;
+    panLast_.y = clientY;
+
+    if (dy != 0) {
+        preciseScrollFrac_ += static_cast<double>(dy);
+        const int whole = static_cast<int>(preciseScrollFrac_);
+        preciseScrollFrac_ -= static_cast<double>(whole);
+        if (whole != 0) ApplyScrollDelta(target, whole);
+        scrollGesturePos_ += static_cast<double>(dy);
+        PushScrollSample(scrollGesturePos_, GetTickCount());
+    }
+
+    if (end) {
+        // 抬手：用最后一段的位移估算初速度，起惯性。
+        // 【为什么不在 begin 就按系统的惯性滑】GC_PAN_WITH_INERTIA 已被我们
+        // 屏蔽（见 WM_GESTURENOTIFY），系统的惯性不会叠加；这里用自己测的
+        // 速度，参数与滚轮/触控板共用一套阻尼，手感一致。
+        const double v = EstimateScrollVelocity(GetTickCount());
+        panActive_ = false;
+        ResetScrollSamples();
+        StartScrollInertia(v);
+    }
+}
+
+// ============ 悬停状态：单一清空出口 ============
+//
+// 鼠标离开客户区时把**所有** HOT 状态清掉。
+//
+// 【为什么必须集中在一个函数里】悬停状态散在 6 个地方（页签栏 / 列头 /
+// 进程页行 / 次要页行 / 性能页侧栏 / 底部工具条）。历史教训是：每加一处
+// 就顺手在 WM_MOUSEMOVE 里写一句赋值，但**没有人**在 WM_MOUSELEAVE 里
+// 补对应的清零 —— 于是鼠标一移出窗口，那片高亮就永久留在屏幕上。
+// 项目里已有两条专门记录这个坑的注释（tmwindow.cpp 的 ShowPage 兜底、
+// tmwindow_events.cpp 的 WM_MOUSEMOVE），本轮把根治点补齐。
+//
+// 新增任何 hover 状态时，**必须**往这里加一行，否则就是一条新的泄漏。
+void TmWindow::ClearAllHover() {
+    bool dirty = false;
+
+    if (tabs_.Hover() != TabId::Count) { tabs_.SetHover(TabId::Count); dirty = true; }
+    if (hoverCol_ >= 0)                { hoverCol_ = -1;               dirty = true; }
+    if (hoverRow_ >= 0)                { hoverRow_ = -1;               dirty = true; }
+    if (hoverToolbarCmd_ != 0)         { hoverToolbarCmd_ = 0;         dirty = true; }
+    if (perfPage_.HoverItem() != -1)   { perfPage_.ClearHover();       dirty = true; }
+
+    // PagesView 自己也有 hover_。它的 OnHover 在坐标越界时会自清，但鼠标
+    // 移出窗口时根本没有 OnHover 调用 —— 所以这里显式清一次。
+    if (pagesView_.ClearHover()) dirty = true;
+
+    if (dirty) InvalidateAll();
+}
+
+// 脚本化 / 自测用的「把鼠标放到 (x,y)」。
+//
+// 【必须走真实消息路径，不能直接改成员】原因是「hover 到底有没有接上」
+// 这件事的全部内容就是「WM_MOUSEMOVE 分支里有没有写那个状态」。
+// 如果这里直接 `hoverToolbarCmd_ = HitTestToolbar(x,y)`，那么即使
+// WM_MOUSEMOVE 分支整个被删掉，这个验证依然 PASS —— 那就成了假验证，
+// 正是本项目反复出现的「自测全绿、功能没接」。
+//
+// 所以这里**只投递消息**，处理逻辑一份、不分叉。
+// 传 (-1,-1) 等价于鼠标移出客户区（走 ClearAllHover，与 WM_MOUSELEAVE 同一条路）。
+void TmWindow::FakeMouseMove(int x, int y) {
+    if (x < 0 || y < 0) {
+        ClearAllHover();
+        return;
+    }
+    LPARAM lp = MAKELPARAM(x, y);
+    // 直接调 WndProc 而不是 SendMessageW：后者在窗口 SW_HIDE 的离屏/自测
+    // 模式下可能被系统丢弃（隐藏窗口仍会收消息，但走一遍消息队列没有必要，
+    // 而且 SendMessage 会重入 WndProc，调试时栈不好看）。
+    WndProc(WM_MOUSEMOVE, 0, lp);
+}
+
 // OnMenuCommand 的实现在 tmwindow_menus.cpp（65 个命令的完整实现）。
 // ============ 消息处理 ============
 
@@ -343,6 +876,26 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
     // IsWindowVisible 为假 → 不触发，避免打断自截图流程；已经最小化
     // （IsIconic）时不重复 Minimize，否则每切一次窗口都会再播一遍动画。
     case WM_ACTIVATE: {
+        // 【ALT+TAB / 点别的程序离开窗口 → 清悬停】
+        //
+        // 【为什么 WM_MOUSELEAVE 不够】TME_LEAVE 只在**光标离开客户区**时投递。
+        // 下面这几种情况光标物理上还留在窗口矩形内，但窗口已经不是活动窗口：
+        //   - Alt+Tab 切走
+        //   - 点任务栏/另一个窗口且没有遮挡本窗口
+        // 此时那片 hover 高亮会一直亮着，直到用户把鼠标在窗口里挪一下 ——
+        // 用户看到的是「任务管理器在后台，但有个按钮一直亮着」。
+        // WM_ACTIVATE 的 WA_INACTIVE 是"整个窗口掉到后台"的权威信号。
+        //
+        // 【为什么不用 WM_KILLFOCUS】点本程序自己的菜单也会让窗口失去键盘焦点
+        // （下面的注释记了同一件事），那样每点一次菜单就闪一下悬停。
+        // 本程序自己的弹窗（MessageBox / 对话框 / 托盘菜单）触发 WM_ACTIVATE
+        // 时前台窗口属于本进程，可按 pid 排除 —— 但那套判断在下面几行，
+        // 而悬停该在「真的离开了」时清。这里条件从简：只要 WA_INACTIVE 就清，
+        // 因为即使是我们自己的对话框挡住，清掉悬停也是对的（用户看不到底下的
+        // 按钮）。宁可多清一次，不留泄漏。
+        if (LOWORD(wp) == WA_INACTIVE) ClearAllHover();
+
+        // 下面这一段是「使用时最小化」，逻辑不变。
         if (LOWORD(wp) != WA_INACTIVE || !minimizeOnUse_) break;
         if (!IsWindowVisible(hwnd_) || IsIconic(hwnd_)) break;
         HWND fg = GetForegroundWindow();
@@ -410,10 +963,77 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
         return 0;
     }
 
+    case WM_MOUSEWHEEL: {
+        OnWheelDelta(GET_WHEEL_DELTA_WPARAM(wp));
+        return 0;
+    }
+
+    // ---- 触屏手势：必须先在这里声明"我要 pan"，否则收不到 WM_GESTURE ----
+    //
+    // 【为什么需要这一步】系统的手势引擎默认不开 pan（只有父窗口偏好），
+    // 必须先响应 WM_GESTURENOTIFY 并调用 SetGestureConfig 明确声明要哪些手势，
+    // 之后同一串触摸才会被识别成 GID_PAN 并发 WM_GESTURE。
+    // 直接处理 WM_GESTURE 而不处理 WM_GESTURENOTIFY 是"代码写了但永远不触发"的
+    // 经典形态 —— 本项目已有过多处"画了没接"的教训。
+    case WM_GESTURENOTIFY: {
+        GESTURECONFIG gc{};
+        gc.dwID = 0;   // 0 = 整个窗口的全局手势偏好
+        // 只要双指/单指纵向 pan。**不要** GC_PAN_WITH_INERTIA：
+        // 系统的惯性会和我们自己的阻尼惯性叠加，抬手后滑两倍距离。
+        gc.dwWant  = GC_PAN | GC_PAN_WITH_SINGLE_FINGER_VERTICALLY;
+        // 横向单指 pan 会抢走"左右拖动"的手势，缩放/旋转我们不需要。
+        gc.dwBlock = GC_PAN_WITH_SINGLE_FINGER_HORIZONTALLY |
+                     GC_PAN_WITH_INERTIA | GC_ZOOM | GC_ROTATE;
+        gestureReady_ = SetGestureConfig(hwnd_, 0, 1, &gc, sizeof(gc)) != FALSE;
+        return 0;   // 必须吃掉：文档要求处理 WM_GESTURENOTIFY 才算声明完成
+    }
+
+    case WM_GESTURE: {
+        GESTUREINFO gi{};
+        gi.cbSize = sizeof(gi);
+        const HGESTUREINFO hgi = reinterpret_cast<HGESTUREINFO>(lp);
+        if (!GetGestureInfo(hgi, &gi)) return 0;
+
+        bool handled = false;
+        if (gi.dwID == GID_PAN) {
+            // ptsLocation 是**屏幕坐标**，必须换成客户区坐标 ——
+            // 否则窗口不在 (0,0) 时每一帧都会掺进窗口位置造成的巨大跳变。
+            POINT pt{ gi.ptsLocation.x, gi.ptsLocation.y };
+            ScreenToClient(hwnd_, &pt);
+            OnPanTo(pt.y,
+                    (gi.dwFlags & GF_BEGIN) != 0,
+                    (gi.dwFlags & GF_END) != 0);
+            // 【为什么要看 gestureReady_】WM_GESTURE 看似只在 SetGestureConfig
+            // 成功后才会来，但系统手势引擎也可能按**父窗口偏好**投递（文档：
+            // "未在 dwWant/dwBlock 里声明的项继承父窗口设置"）。若我们声明失败
+            // 却仍收到 pan，说明拿到的是别人的配置 —— 此时仍按 pan 处理是对的
+            // （用户就是在滑），但记录一下，便于自测/排障判断"是不是我们的配置生效了"。
+            (void)gestureReady_;
+            handled = true;
+        }
+        // 每条 WM_GESTURE 都必须关句柄，否则系统手势资源泄漏。
+        CloseGestureInfoHandle(hgi);
+        if (handled) return 0;
+        break;   // 其它手势交回默认处理
+    }
+
     case WM_TIMER: {
         if (wp == 2) {
             // 服务描述渐进填充的续跑标记
             InvalidateAll();
+            return 0;
+        }
+        if (wp == kInertiaTimerId) {
+            OnInertiaTick();
+            return 0;
+        }
+        if (wp == kTouchpadTailTimerId) {
+            // 触控板"抬手"判定：系统不给我们两指抬起的消息，
+            // 静默 90ms 就是事实上的结束。
+            KillTimer(hwnd_, kTouchpadTailTimerId);
+            const double v = EstimateScrollVelocity(GetTickCount());
+            ResetScrollSamples();
+            StartScrollInertia(v);
             return 0;
         }
         return 0;
@@ -430,6 +1050,11 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
         }
         if (scrollDragging_) {
             scrollDragging_ = false;
+            ReleaseCapture();
+            return 0;
+        }
+        if (detailScrollDragging_) {
+            detailScrollDragging_ = false;
             ReleaseCapture();
             return 0;
         }
@@ -457,11 +1082,48 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
             InvalidateAll();
         }
         scrollDragging_ = false;
+        detailScrollDragging_ = false;
         return 0;
     }
 
+    // 【ALT+TAB / 点别的程序离开】必须清悬停。
+    //
+    // 【为什么 WM_MOUSELEAVE 不够】TME_LEAVE 只在**光标离开客户区**时投递。
+    // 光标物理上还留在窗口矩形内、但窗口已经不是活动窗口的情况：
+    //   - Alt+Tab 切走
+    //   - 点任务栏/另一个窗口且没有遮挡本窗口
+    // 此时那片 hover 高亮会一直亮着，直到用户把鼠标在窗口里挪一下 ——
+    // 用户看到的是「任务管理器在后台，但有个按钮一直亮着」。
+    //
+    // 【不用 WM_KILLFOCUS 的原因】点本程序自己的菜单也会让窗口失去键盘焦点，
+    // 那样每点一次菜单就把 hover 清一次，菜单交互期间悬停会闪。
+    //
+    // 【处理位置】C++ 的 switch 不允许同一个 case 值出现两次，所以本逻辑
+    // 并入了下面的 WM_ACTIVATE 分支（见那里 WA_INACTIVE 的处理）。
+
     case WM_MOUSEMOVE: {
         int x = GET_X_LPARAM(lp), y = GET_Y_LPARAM(lp);
+
+        // 【悬停泄漏的根治点】挂 TrackMouseEvent(TME_LEAVE)。
+        //
+        // 没有这一句时，鼠标移出窗口不会产生任何消息：WM_MOUSEMOVE 只在你
+        // **在客户区里动**的时候才来，鼠标溜出窗口边界后消息就断了，于是
+        // hoverRow_ / hoverCol_ / tabs_.hover_ / hoverToolbarCmd_ 全部永久
+        // 保持最后一次的值 —— 用户看到的是「整行一直是浅蓝」「页签一直亮着」。
+        // 项目历史上这是被反复踩到的坑（tmwindow.cpp 的 ShowPage 里有一条
+        // 【交接】注释专门记了它，只能在切页时兜一层）。
+        //
+        // 【为什么每帧都调】Windows 的 TrackMouseEvent 是一次性的：投递
+        // WM_MOUSELEAVE 之后注册即失效，再次进入客户区必须重新调用。
+        // 只在 trackingLeave_ 为假时调，避免鼠标每移动 1px 就多一次 syscall
+        // （WM_MOUSEMOVE 是高频消息）。
+        if (!trackingLeave_) {
+            TRACKMOUSEEVENT tme{};
+            tme.cbSize = sizeof(tme);
+            tme.dwFlags = TME_LEAVE;
+            tme.hwndTrack = hwnd_;
+            if (TrackMouseEvent(&tme)) trackingLeave_ = true;
+        }
 
         // 列宽拖拽中：实时改宽度
         if (colDragCol_ >= 0) {
@@ -493,7 +1155,7 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
             return 0;
         }
 
-        // 拖拽滚动条
+        // 拖拽滚动条（进程页）
         if (scrollDragging_) {
             const int total = ContentHeight();
             const int view = ViewportHeight();
@@ -514,6 +1176,33 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
                     if (sy != scrollY_) {
                         scrollY_ = sy;
                         ClampScroll();   // 拖滚动条：每像素走这里，绝不能全量重建
+                        InvalidateAll();
+                    }
+                }
+            }
+            return 0;
+        }
+
+        // 拖拽滚动条（详细信息页）。与进程页同样是直接精确位移，**无惯性**。
+        if (detailScrollDragging_) {
+            const int viewH = DetailViewportHeight();
+            const int contentH = static_cast<int>(detailRows_.size()) * kRowHeight;
+            const int maxScroll = contentH - viewH;
+            const int trackTop = static_cast<int>(rcContent_.top) + theme::kHeaderHeight +
+                                 16;   // kDetScrollBtnH，见 tmwindow_details.cpp
+            const int trackH = viewH - 16 * 2;
+            if (maxScroll > 0 && trackH > 0) {
+                int thumbH = trackH * viewH / contentH;
+                if (thumbH < 24) thumbH = 24;
+                if (thumbH > trackH) thumbH = trackH;
+                const int span = trackH - thumbH;
+                if (span > 0) {
+                    const int rel = y - detailScrollDragOffset_ - trackTop;
+                    int sy = rel * maxScroll / span;
+                    if (sy < 0) sy = 0;
+                    if (sy > maxScroll) sy = maxScroll;
+                    if (sy != detailScrollY_) {
+                        detailScrollY_ = sy;
                         InvalidateAll();
                     }
                 }
@@ -557,8 +1246,44 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
                 break;
         }
 
+        // 性能页侧栏卡片悬停。
+        // 【此前是「变量存在、绘制读了、但没人写」**没有**这回事】**：
+        //   PerfPage::OnHover 是有的、PaintSidebar 也读了 hoverItem_ 并用
+        //   kSidebarHover 填色，唯独 TmWindow 从来没调过 OnHover ——
+        //   于是 hoverItem_ 永远是 -1，侧栏卡片**永远不亮**。
+        //   与「pagesView_.OnHover 不存在」是同一类缺陷（漏了调用点）。
+        if (tabs_.Current() == TabId::Performance) {
+            const int before = perfPage_.HoverItem();
+            perfPage_.OnHover(x, y);
+            if (perfPage_.HoverItem() != before) InvalidateAll();
+        }
+
+        // 底部工具条按钮悬停。
+        // 【本轮新增】此前 toolBar 完全没有 hover 状态：HitTestToolbar 只被
+        // 点击路径和光标路径调用，绘制侧从不查鼠标位置，所以「简略信息(D)」
+        // 「结束任务(E)」这些按钮点下去有反应、悬停却毫无反馈。
+        // 存 cmd 而不是下标：按钮表每帧重建，下标会跨页指错（见头文件注释）。
+        {
+            const UINT cmd = HitTestToolbar(x, y);
+            if (cmd != hoverToolbarCmd_) {
+                hoverToolbarCmd_ = cmd;
+                InvalidateAll();
+            }
+        }
+
         // 光标：与 WM_SETCURSOR 走同一个函数，避免两处判据漂移
         ApplyHoverCursor(x, y);
+        return 0;
+    }
+
+    // 【悬停泄漏的根治点之二】鼠标离开客户区：清空**所有** hover 状态。
+    //
+    // 少了这个分支，TrackMouseEvent 也只是让系统知道"我要通知"而已，
+    // 状态照样留在最后一帧的值上。凡新增 hover 状态都必须走 ClearAllHover()，
+    // 不要在这里逐字段手写 —— 漏一个就是一条泄漏。
+    case WM_MOUSELEAVE: {
+        trackingLeave_ = false;   // 已投递，下次进入客户区要重新挂
+        ClearAllHover();
         return 0;
     }
 
@@ -588,6 +1313,52 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
     case WM_LBUTTONDOWN: {
         int x = GET_X_LPARAM(lp), y = GET_Y_LPARAM(lp);
 
+        // ---- 详细信息页的滚动条 ----
+        //
+        // 【补漏】PaintDetailsPage 早就画了滑块和两端箭头（见那边 383~420 行），
+        // 但 TMWindow 里没有任何人做命中测试 —— 画了拖不动，是"画了没接"的
+        // 第三种形态。现在补齐：拖滑块 / 点箭头 / 点轨道翻页三条路径。
+        // 拖动是**直接精确位移**，与进程页一致，绝不加惯性。
+        if (tabs_.Current() == TabId::Details) {
+            RECT th = DetailScrollThumbRect();
+            const int btnH = 16;   // kDetScrollBtnH，见 tmwindow_details.cpp
+            const int listTop = static_cast<int>(rcContent_.top) + theme::kHeaderHeight;
+            const int listBot = static_cast<int>(rcContent_.bottom) - 2;
+            const int sbRight = static_cast<int>(rcContent_.right) - 3;
+            const int sbLeft = sbRight - DetailScrollBarWidth();
+            const bool inSb = (x >= sbLeft && x < sbRight &&
+                               y >= listTop && y < listBot);
+
+            if (th.right > th.left &&
+                x >= th.left && x < th.right && y >= th.top && y < th.bottom) {
+                // 滑块本身（必须排在箭头判定之前，否则压住箭头的 1px 会点错）
+                detailScrollDragging_ = true;
+                detailScrollDragOffset_ = y - th.top;
+                StopScrollInertia();
+                SetCapture(hwnd_);
+                return 0;
+            }
+            if (inSb && th.right > th.left) {
+                if (y >= listTop && y < listTop + btnH) {
+                    // 上箭头：上一行。行高统一 kRowHeight。
+                    StopScrollInertia();
+                    SetScrollOffset(ScrollTarget::DetailList, detailScrollY_ - kRowHeight);
+                    return 0;
+                }
+                if (y >= listBot - btnH && y < listBot) {
+                    StopScrollInertia();
+                    SetScrollOffset(ScrollTarget::DetailList, detailScrollY_ + kRowHeight);
+                    return 0;
+                }
+                // 轨道空白：翻一页
+                StopScrollInertia();
+                const int page = DetailViewportHeight();
+                SetScrollOffset(ScrollTarget::DetailList,
+                                detailScrollY_ + ((y < th.top) ? -page : page));
+                return 0;
+            }
+        }
+
         // 滚动条滑块：开始拖拽
         {
             RECT th = ScrollThumbRect();
@@ -595,6 +1366,9 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
                 x >= th.left && x < th.right && y >= th.top && y < th.bottom) {
                 scrollDragging_ = true;
                 scrollDragOffset_ = y - th.top;
+                // 拖滚动条 = 用户接管了位置，必须立刻打断惯性，
+                // 否则滑行会和手指争夺 scrollY_，滑块会来回抖。
+                StopScrollInertia();
                 SetCapture(hwnd_);
                 return 0;
             }
@@ -614,6 +1388,9 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
                 // 滚过的量恰好等于一行，且行内偏移（相位）严格保持不变，
                 // 永远不会漂。向下同理（RebuildRows 末尾按实际总高钳制上限）。
                 if (y >= rcList_.top && y < rcList_.top + btnH) {
+                    // 点箭头 = 用户明确要精确走一行。必须停掉惯性，
+                    // 否则每一帧的滑行都会把这一行覆盖掉。
+                    StopScrollInertia();
                     int rhCur = 0;                       // 0 = 没有可滚的行
                     int acc = 0;
                     for (size_t i = 0; i < rows_.size(); ++i) {
@@ -628,6 +1405,7 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
                     return 0;
                 }
                 if (y >= rcList_.bottom - btnH && y < rcList_.bottom) {
+                    StopScrollInertia();
                     int rhCur = 0;
                     int acc = 0;
                     for (size_t i = 0; i < rows_.size(); ++i) {
@@ -645,6 +1423,7 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
             // 点轨道空白处：翻页
             if (th.right > th.left && x >= th.left && x < th.right &&
                 y >= rcList_.top && y < rcList_.bottom) {
+                StopScrollInertia();
                 int page = ViewportHeight();
                 scrollY_ += (y < th.top) ? -page : page;
                 ClampScroll();   // 只钳制范围，不重建行表
@@ -656,6 +1435,12 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
         // 切换标签
         TabId t = tabs_.HitTest(x, y);
         if (t != TabId::Count) {
+            // 切页必须打断惯性：滑行目标是旧页，继续跑会滑到新页的列表上
+            // （OnInertiaTick 里也有同样的守卫，两处都要有 —— 这里拦住的是
+            // "切页后新页还没画就又开始滑"的时序）。
+            StopScrollInertia();
+            ResetScrollSamples();
+            panActive_ = false;
             tabs_.SetCurrent(t);
             scrollY_ = 0;
             detailScrollY_ = 0;
@@ -973,62 +1758,10 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
         return 0;
     }
 
-    case WM_MOUSEWHEEL: {
-        const int delta = GET_WHEEL_DELTA_WPARAM(wp);
-
-        // 【精细滚动 · 2026-11-21】原来三处都是 `delta / WHEEL_DELTA` 整除。
-        // 真滚轮一格给 ±120，整除没问题；但**触控板两指滑动给的是细分增量**
-        // （常见 ±15、±30、±40），整除后全变成 0 —— 精细滚动被整个吃掉，
-        // 表现为「触控板滑半天画面不动」。
-        //
-        // 改法：把余数留着累加。凑不满一格就攒着，下次一起算。
-        // 这样真滚轮行为不变（120/120=1，余数 0），触控板也能按比例滚动。
-        wheelRemainder_ += delta;
-        const int notches = wheelRemainder_ / WHEEL_DELTA;
-        wheelRemainder_ -= notches * WHEEL_DELTA;
-        if (notches == 0) return 0;      // 还没凑够一格，等下一次
-
-        if (tabs_.Current() == TabId::Details) {
-            // 【不区分父子行】详细信息页行高统一 28（tmwindow_details.cpp 全程
-            // kRowHeight），滚轮按 kRowHeight 走是正确的。
-            detailScrollY_ -= notches * kRowHeight * 3;
-            if (detailScrollY_ < 0) detailScrollY_ = 0;
-        } else {
-            // 四个次要页有自己的滚动状态（PagesView::scroll_）。此前滚轮落进
-            // 进程页分支，改的是 scrollY_ 并全量 RebuildRows()，画面一点不动 ——
-            // 白烧 CPU，还把进程页的位置悄悄改了。现在按页分发。
-            switch (tabs_.Current()) {
-                case TabId::Startup:
-                case TabId::Users:
-                case TabId::Services:
-                case TabId::AppHistory:
-                    pagesView_.SetCurrentTab(static_cast<int>(tabs_.Current()));
-                    pagesView_.ScrollBy(-notches * 3);
-                    break;
-                default: {
-                    // 【子行 22】进程页行高不再统一，按固定 kRowHeight×3 滚会
-                    // 让"一次滚三行"在子行区变成四行。取视口首行的实际行高
-                    // 作为"一行"的基准，滚动手感才和行数对齐。
-                    // 注：滚轮是纯像素滚动，不需要对齐到行边界。
-                    int firstRH = kRowHeight;
-                    int acc = 0;
-                    for (size_t i = 0; i < rows_.size(); ++i) {
-                        const int rh = RowHeightFor(rows_[i].kind == ViewRow::GroupHeaderRow,
-                                                    rows_[i].indentLevel);
-                        if (scrollY_ < acc + rh) { firstRH = rh; break; }
-                        acc += rh;
-                    }
-                    scrollY_ -= notches * firstRH * 3;
-                    // 滚轮只改 scrollY_，行表内容不变 → 只钳制范围。
-                    // （原来这里调 RebuildRows()，那是每秒几十次的全量重建 + 多次排序。）
-                    ClampScroll();
-                    break;
-                }
-            }
-        }
-        InvalidateAll();
-        return 0;
-    }
+    // 【注意】WM_MOUSEWHEEL 分支在文件上半部分（滚动系统那一节之后），
+    // 这里**不能**再有一个 —— 同一 switch 里重复 case 值直接编译错误
+    // （C2196: case 值 522 已使用）。本轮之前这里残留过一个只调
+    // OnWheelDelta 的重复分支，已删除。
 
     case WM_KEYDOWN: {
         if ((GetKeyState(VK_CONTROL) & 0x8000) && wp >= '1' && wp <= '7') {

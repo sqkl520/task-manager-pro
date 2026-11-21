@@ -63,6 +63,7 @@ struct GpuEngineSample {
 // GPU 适配器信息。静态字段在 Init() 后有效，inUse 字段每轮 Collect() 更新。
 struct GpuAdapterInfo {
     std::wstring name;               // "NVIDIA GeForce discrete GPU"
+
     std::wstring driverVersion;      // 注册表 DriverVersion，如 "32.0.16.1714"
     std::wstring driverDate;         // 归一化为 "YYYY-MM-DD"（注册表原值是 "M-D-YYYY"）
 
@@ -94,6 +95,14 @@ struct GpuAdapterInfo {
     uint32_t pciFunction = 0;
     uint32_t nodeCount = 0;          // 本机 14
     uint32_t segmentCount = 0;       // 本机 3
+
+    // 本适配器的总使用率（= 它所有引擎里最忙的那个），0..100。
+    // 与 GpuInfoCollector::TotalUtilPercent() 的多卡语义不同：后者是
+    // **所有适配器**里的最大值，这里是单卡的值。
+    double totalUtilPercent = 0.0;
+
+    // 本适配器各引擎当前使用率（与本适配器自己的 Engines() 同序）。
+    std::vector<GpuEngineSample> engines;
 };
 
 // 单个引擎的历史曲线。定长数组，避免每帧堆分配。
@@ -142,12 +151,22 @@ public:
     std::wstring ProbeDirectXVersion();
 
     // 适配器信息（静态字段 Init 后有效；inUse/processCount 每轮更新）。
-    const GpuAdapterInfo& Adapter() const { return adapter_; }
+    // **返回第一个真实 GPU**，保持与单卡时代调用方的兼容。
+    // 多卡机器请改用 Adapters()。
+    const GpuAdapterInfo& Adapter() const { return adapters_.empty() ? emptyAdapter_ : adapters_[0]; }
 
-    // 总 GPU 使用率：所有引擎里最忙的那一个（与 Windows 任务管理器口径一致）。
+    // 全部真实 GPU（按 D3DKMT 枚举顺序；Init 时过滤掉软件渲染器与纯显示适配器）。
+    // 多卡机器（核显 + 独显）在这里会有 2 项。**不包含** ToDesk / GameViewer
+    // 这类纯显示适配器 —— 判定依据见 gpuinfo.cpp 文件头第 11 条。
+    const std::vector<GpuAdapterInfo>& Adapters() const { return adapters_; }
+
+    // 总 GPU 使用率：**所有适配器**里最忙的引擎（不是相加 —— 利用率是时间片
+    // 占比，多卡相加会算出 >100%）。
     double TotalUtilPercent() const { return totalUtil_; }
 
     // 各引擎当前使用率，按显示顺序（3D / Copy / Video Encode / Video Decode / ...）。
+    // 多卡时是**所有适配器同名引擎的合并视图**（每个引擎类型取最忙的那张卡），
+    // 供只认识单一引擎列表的旧调用方使用；逐卡明细在 Adapters()[i].engines。
     const std::vector<GpuEngineSample>& Engines() const { return engines_; }
 
     // 各引擎历史曲线（与本轮 Engines() 同序）。
@@ -159,8 +178,8 @@ public:
     // Init() 是否成功。
     bool Available() const { return available_; }
 
-    // 探到的适配器名（Init 成功后有效，日志用）。
-    const wchar_t* AdapterName() const { return adapter_.name.c_str(); }
+    // 探到的适配器名（Init 成功后有效，日志用）。多卡时是第一张卡的名字。
+    const wchar_t* AdapterName() const { return Adapter().name.c_str(); }
 
 private:
     struct Impl;
@@ -168,8 +187,13 @@ private:
 
     void CollectInternal(const uint32_t* pids, size_t count, double t0);
     void ResetHistory();
+    // 把 adapters_ 里所有卡的同名引擎合并成 engines_（每种取最忙的那张卡）
+    void BuildMergedEngines();
 
-    GpuAdapterInfo adapter_;
+    // 多卡：每张真实 GPU 一项。单卡时代这里是单个 adapter_。
+    std::vector<GpuAdapterInfo> adapters_;
+    // Adapter() 在 adapters_ 为空时的返回对象（绝不返回野引用）
+    GpuAdapterInfo emptyAdapter_;
     std::vector<GpuEngineSample> engines_;
     std::vector<GpuEngineHistory> history_;
     double totalUtil_ = 0.0;

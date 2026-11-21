@@ -432,6 +432,30 @@ void TmWindow::PaintToolbar(HDC hdc) {
         const bool isPushButton = IsPushButton(b.cmd);
         const bool isDisabled   = false;   // 暂无禁用逻辑；将来接上时改这里
 
+        // 悬停（HOT）态。【本轮新增】
+        //
+        // 之前工具条按钮**完全没有** hover：hoverToolbarCmd_ 与绘制侧
+        // 之间没有连线，按钮点下去有反应、鼠标停在上面却毫无变化。
+        //
+        // 【配色按控件类型分开，这是两个不同的控件】
+        //   TP_BUTTON 工具条按钮（简略信息 / 打开资源监视器 / 打开服务）
+        //     s2 HOT = 整块 #E5F3FF，**无边框**（s1 常态也不画背景）
+        //   BP_PUSHBUTTON 命令按钮（结束任务 / 断开连接）
+        //     s2 HOT = 填充 #E5F1FB + 边框 #0078D7
+        // 两套值都是 DrawThemeBackground 离屏渲染实测（T_uxspec.md §3.1/§3.2），
+        // 见 theme.h 的 kToolbarBtnHot / kButtonBgHot / kButtonBorderHot 注释。
+        //
+        // 【为什么悬停底色要在图标/文字之前填】#E5F3FF 是不透明色，先把底铺好，
+        // 后面画的图标与文字才在它上面；顺序反了会把底盖住。
+        const bool isHovered = (!isDisabled && hoverToolbarCmd_ != 0 &&
+                                hoverToolbarCmd_ == b.cmd);
+        // 只给**工具条按钮**在这里铺悬停底；命令按钮的填充+边框在下面
+        // isPushButton 分支里一并处理（那里必须同时换填充和边框两个值，
+        // 分两处写会有「底换了、边框没换」的中间态）。
+        if (isHovered && !isPushButton) {
+            FillSolid(hdc, b.rc, kToolbarBtnHot);
+        }
+
         // 文字色：
         //   链接      COLOR_HOTLIGHT #0066CC（系统API实测，见 kColLinkText）
         //   真禁用    BP_PUSHBUTTON s4 的 #838383（见 kColBtnDisabledText）
@@ -443,12 +467,13 @@ void TmWindow::PaintToolbar(HDC hdc) {
 
         // 命令按钮的常态外观（原版实测）：填充 #E1E1E1 + 边框 #ADADAD。
         // 禁用态另有配色（#CCCCCC/#BFBFBF），只在 isDisabled 时用。
+        // 悬停态用 s2 HOT 的 #E5F1FB / #0078D7（见上面 isHovered 的说明）。
         if (isDisabled) {
             FillSolid(hdc, b.rc, kColBtnDisabledFill);
             DrawFrame(hdc, b.rc, kColBtnDisabledBorder);
         } else if (isPushButton) {
-            FillSolid(hdc, b.rc, kColBtnFill);
-            DrawFrame(hdc, b.rc, kColBtnBorder);
+            FillSolid(hdc, b.rc, isHovered ? kButtonBgHot : kColBtnFill);
+            DrawFrame(hdc, b.rc, isHovered ? kButtonBorderHot : kColBtnBorder);
         }
 
         // 图标：一律画在以「按钮左边界 + kBtnPadX」为左沿的 16x16 槽里。

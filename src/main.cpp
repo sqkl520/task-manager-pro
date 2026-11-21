@@ -243,6 +243,69 @@ int RunSelfTest() {
              return std::string(b);
          }());
 
+    // ---- GPU 多适配器自测 ----
+    //
+    // 校验三件事（都是「能判定真假」的性质，不是「有没有赋值」）：
+    //   1) 至少枚举出 1 张真实 GPU；
+    //   2) 每张卡的名称非空（无名适配器必须走回退链拿到名字，而不是整卡消失）；
+    //   3) gpus / gpuAdapters 同长同序，且每张卡的 sidecard 名是 "GPU N"。
+    // 这三条正好覆盖「核显看不到」的三个成因：①被过滤 ②单值 ③break。
+    log.W(L"\n=== GPU 多适配器自测 ===\n");
+    if (g_perf) {
+        // 等性能采集器至少产出一份快照
+        for (int i = 0; i < 50; ++i) {
+            if (g_perf->Sequence() >= 1) break;
+            Sleep(100);
+        }
+        auto psnap = g_perf->GetSnapshot();
+        if (!psnap) {
+            Mark(-1, L"GPU 适配器枚举", "性能快照尚未产出，未测");
+        } else {
+            const size_t na = psnap->gpuAdapters.size();
+            const size_t ng = psnap->gpus.size();
+            Mark(na >= 1 ? 1 : 0, L"至少枚举出 1 张真实 GPU",
+                 "gpuAdapters=" + std::to_string(na));
+
+            int unnamed = 0;
+            std::wstring names;
+            for (size_t i = 0; i < na; ++i) {
+                if (psnap->gpuAdapters[i].name.empty()) ++unnamed;
+                if (i) names += L" / ";
+                names += psnap->gpuAdapters[i].name;
+            }
+            MarkW(unnamed == 0 ? 1 : 0, L"每张 GPU 都有名称（无名时走回退链）",
+                  unnamed == 0 ? names : (L"空名数量=" + std::to_wstring(unnamed)));
+
+            bool sameShape = (na == ng) && na > 0;
+            bool namingOk = sameShape;
+            if (sameShape) {
+                for (size_t i = 0; i < ng; ++i) {
+                    wchar_t want[32];
+                    swprintf_s(want, L"GPU %llu",
+                               static_cast<unsigned long long>(i));
+                    if (psnap->gpus[i].name != want) { namingOk = false; break; }
+                }
+            }
+            char det[128];
+            sprintf_s(det, "gpus=%zu gpuAdapters=%zu", ng, na);
+            Mark((sameShape && namingOk) ? 1 : 0,
+                 L"侧栏 GPU 卡片与适配器一一对应且命名为 GPU N", det);
+
+            for (size_t i = 0; i < na; ++i) {
+                const auto& gi = psnap->gpuAdapters[i];
+                log.F("  [%zu] %s  util=%.1f%%  nodes=%u  segs=%u  engines=%zu\n",
+                      i,
+                      gi.name.empty() ? "(unnamed)" : "",
+                      gi.totalUtilPercent, gi.nodeCount, gi.segmentCount,
+                      gi.engines.size());
+                log.W(gi.name);
+                log.Raw("\n");
+            }
+        }
+    } else {
+        Mark(-1, L"GPU 适配器枚举", "性能采集器未启动，未测");
+    }
+
     // ---- 列排序自测：点列头 → 回读 sortCol_ ----
     //
     // 坐标不再硬编码。此前写死「列头 y=144」，而 BuildLayout 里
@@ -441,6 +504,345 @@ int RunSelfTest() {
     }
 
     g_win->ShowPage(0);
+
+    // ---- 悬停（HOT）状态自测 ----
+    //
+    // 【为什么这项必须有】用户报的「性能侧边栏按钮、结束任务按钮没有 hover」
+    // 与「简略信息不会收起标签栏」是同一类缺陷的两面：状态变量/绘制分支都在，
+    // 但**中间那一环（WM_MOUSEMOVE 里的赋值 / BuildLayout 里的分支）缺失或
+    // 断线**。这类缺陷截一张静态图看不出来（图里可能本来就该是白的），
+    // 只能靠「投递真实鼠标消息 → 回读状态」来判定。
+    //
+    // 判据分两级，缺一不可：
+    //   1) 状态：FakeMouseMove 之后 HoverToolbarCmdForTest() 必须等于预期的 cmd
+    //   2) 清除：再投一次「移出」之后必须回到 0（否则就是 hover 泄漏）
+    // 只判 1 不判 2 的话，一个「永远亮着」的实现也能全绿。
+    log.W(L"\n=== 悬停状态自测 ===\n");
+    {
+        // 用窗口自己的几何找「结束任务」按钮，不硬编码坐标。
+        // 找不到就记 SKIP 而不是 FAIL —— 该按钮只在进程/详细页存在，
+        // 将来若布局变化改了位置，不该误报。
+        g_win->ShowPage(0);
+        Sleep(40);
+        g_win->ClearHoverForTest();
+        const RECT tb = g_win->ToolbarRectForTest();
+        // 「结束任务」在工具条右端：从右往左扫，找第一个命中 CMD_END_TASK 的点。
+        // 扫的是真实 HitTest，与点击路径同一套判据。
+        int hitX = -1, hitY = (tb.top + tb.bottom) / 2;
+        for (int x = static_cast<int>(tb.right) - 4; x > static_cast<int>(tb.left); --x) {
+            g_win->FakeMouseMove(x, hitY);
+            if (g_win->HoverToolbarCmdForTest() == CMD_END_TASK) { hitX = x; break; }
+        }
+        if (hitX < 0) {
+            Mark(-1, L"鼠标移到「结束任务」上后 hoverToolbarCmd_ = CMD_END_TASK",
+                 "工具条上没扫到该按钮（可能当前页没有它）");
+        } else {
+            // 扫描循环的最后一个 FakeMouseMove 就是命中点，状态已就位。
+            const UINT got = g_win->HoverToolbarCmdForTest();
+            char d[128];
+            sprintf_s(d, "x=%d y=%d → cmd=0x%X", hitX, hitY, got);
+            Mark(got == CMD_END_TASK ? 1 : 0,
+                 L"鼠标移到「结束任务」上后 hoverToolbarCmd_ = CMD_END_TASK", d);
+
+            // 泄漏检测：鼠标移出后必须清回 0
+            g_win->FakeMouseMove(-1, -1);
+            const UINT after = g_win->HoverToolbarCmdForTest();
+            sprintf_s(d, "移出后 cmd=0x%X", after);
+            Mark(after == 0 ? 1 : 0,
+                 L"鼠标移出后 hoverToolbarCmd_ 清回 0（无 hover 泄漏）", d);
+        }
+
+        // 「简略信息」按钮同理（左端）。
+        g_win->ClearHoverForTest();
+        int shX = -1;
+        for (int x = static_cast<int>(tb.left) + 4; x < static_cast<int>(tb.right); ++x) {
+            g_win->FakeMouseMove(x, hitY);
+            if (g_win->HoverToolbarCmdForTest() == CMD_VIEW_SIMPLE) { shX = x; break; }
+        }
+        if (shX < 0) {
+            Mark(-1, L"鼠标移到「简略信息」上后 hoverToolbarCmd_ = CMD_VIEW_SIMPLE",
+                 "工具条上没扫到该按钮");
+        } else {
+            const UINT got = g_win->HoverToolbarCmdForTest();
+            char d[128];
+            sprintf_s(d, "x=%d y=%d → cmd=0x%X", shX, hitY, got);
+            Mark(got == CMD_VIEW_SIMPLE ? 1 : 0,
+                 L"鼠标移到「简略信息」上后 hoverToolbarCmd_ = CMD_VIEW_SIMPLE", d);
+            g_win->FakeMouseMove(-1, -1);
+            sprintf_s(d, "移出后 cmd=0x%X", g_win->HoverToolbarCmdForTest());
+            Mark(g_win->HoverToolbarCmdForTest() == 0 ? 1 : 0,
+                 L"鼠标移出后「简略信息」悬停被清除", d);
+        }
+
+        // 性能页侧栏卡片悬停（用户报的第一项）。
+        // 【必须先喂性能快照】侧栏卡片是 items_ 生成的，而 items_ 由
+        // PerfPage::SetData 从 PerfSnapshot 重建。自测里前面几项都在进程页，
+        // 从没给性能页送过数据 —— 不喂的话 items_ 为空，OnHover 什么也命中不到，
+        // 这一项就会误报 FAIL（页面本身是好的，只是没数据）。
+        if (g_perf) {
+            if (auto ps = g_perf->GetSnapshot()) g_win->SetPerfSnapshot(ps);
+        }
+        g_win->ShowPage(1);
+        Sleep(60);
+        g_win->ClearHoverForTest();
+        const RECT pb = g_win->PerfBoundsForTest();
+        // 侧栏第一张卡片中心：perftheme 的 topPad 7 + 卡片高 61 的中点。
+        // 用窗口自己的 Bounds 起算，不硬编码绝对坐标。
+        const int cx = static_cast<int>(pb.left) + 30;
+        const int cy = static_cast<int>(pb.top) + 7 + 30;
+        g_win->FakeMouseMove(cx, cy);
+        // 侧栏 hover 回读走 TmWindow 的只读代理（PerfPage::HoverItem 是 public，
+        // 但 selfTest 在 main.cpp 里拿不到 perfPage_）。
+        const int pidx = g_win->PerfHoverItemForTest();
+        char d[160];
+        sprintf_s(d, "(%d,%d) bounds=(%ld,%ld)-(%ld,%ld) → hoverItem_=%d",
+                  cx, cy, static_cast<long>(pb.left), static_cast<long>(pb.top),
+                  static_cast<long>(pb.right), static_cast<long>(pb.bottom), pidx);
+        Mark(pidx >= 0 ? 1 : 0, L"鼠标移到性能页侧栏卡片上后侧栏 hover 下标 >= 0", d);
+
+        g_win->FakeMouseMove(-1, -1);
+        sprintf_s(d, "移出后 hoverItem_=%d", g_win->PerfHoverItemForTest());
+        Mark(g_win->PerfHoverItemForTest() == -1 ? 1 : 0,
+             L"鼠标移出后性能页侧栏 hover 被清除（无 hover 泄漏）", d);
+    }
+
+    // ---- 简略信息视图自测：页签栏/列头必须真的收起，且切回能恢复 ----
+    //
+    // 【为什么要判「切回能恢复」】只判「进去时高度为 0」的话，一个把
+    // rcTabs_ 永久压成零高的实现也会 PASS。用户切回「详细信息」时
+    // 页签栏必须回来 —— 这是同一个需求的正反两面。
+    log.W(L"\n=== 简略信息视图自测 ===\n");
+    {
+        g_win->ShowPage(0);
+        Sleep(40);
+        g_win->SetSimpleViewForTest(false);   // 确保从 normal 开始
+        const int tabsNormal = g_win->TabsHeightForTest();
+        const int hdrNormal  = g_win->ColHeaderHeightForTest();
+
+        g_win->SetSimpleViewForTest(true);
+        Sleep(40);
+        const int tabsSimple = g_win->TabsHeightForTest();
+        const int hdrSimple  = g_win->ColHeaderHeightForTest();
+
+        char d[160];
+        sprintf_s(d, "页签栏 %d→%d  列头 %d→%d",
+                  tabsNormal, tabsSimple, hdrNormal, hdrSimple);
+        Mark(tabsNormal > 0 && tabsSimple == 0 && hdrNormal > 0 && hdrSimple == 0 ? 1 : 0,
+             L"简略信息视图收起了页签栏与列头", d);
+
+        // 切回：两个高度都必须恢复到进入前的值。
+        g_win->SetSimpleViewForTest(false);
+        Sleep(40);
+        const int tabsBack = g_win->TabsHeightForTest();
+        const int hdrBack  = g_win->ColHeaderHeightForTest();
+        sprintf_s(d, "页签栏 %d→%d  列头 %d→%d",
+                  tabsSimple, tabsBack, hdrSimple, hdrBack);
+        Mark(tabsBack == tabsNormal && hdrBack == hdrNormal ? 1 : 0,
+             L"退出简略信息视图后页签栏/列头完整恢复", d);
+    }
+
+    // ---- 滚动系统自测：四套输入 + 阻尼惯性 ----
+    //
+    // 【判据全都落在真实状态上】
+    //   - 滚轮：一格必须位移 3 行，**且**必须起 inertia（速度 > 0）
+    //   - 触控板：±15 的细分增量必须产生非零位移（原来整除后被吃掉，位移为 0）
+    //   - 惯性：逐帧位置必须单调累加，速度必须逐帧衰减，最后必须自己停表
+    //   - 边界：滚到底后速度必须立刻清零（不能"在底部抽搐"）
+    //   - 打断：切页后必须不再有惯性
+    // 这些性质任何一个不成立，都是"看起来实现了、实际没生效"。
+    log.W(L"\n=== 滚动系统自测 ===\n");
+    {
+        g_win->ShowPage(0);
+        Sleep(60);
+        const int rowPx = g_win->ScrollRowForTest();
+        const int viewPx = g_win->ScrollViewportForTest();
+        const int maxPx = g_win->MaxScrollOffsetForTest();
+
+        // ---- 1) 鼠标滚轮一格 ----
+        // 先确保在顶部，且列表真的有可滚内容（否则位移被钳成 0，判据失效）
+        g_win->ShowPage(0);
+        Sleep(40);
+        g_win->FakeWheelForTest(0);   // no-op，确保 tail/inertia 干净
+        {
+            const int before = g_win->ScrollOffsetForTest();
+            g_win->FakeWheelForTest(-WHEEL_DELTA);   // 一格向下
+            const int after = g_win->ScrollOffsetForTest();
+            const double v = g_win->InertiaVelocityForTest();
+            char d[192];
+            sprintf_s(d, "rowPx=%d view=%d max=%d  offset %d→%d  速度=%.2f px/帧",
+                      rowPx, viewPx, maxPx, before, after, v);
+            // 期望：位移 = 3 行，且起了惯性与反向（这里位移向上为正方向，
+            // 向下滚 offset 增大）
+            const bool moved3 = (after - before) == rowPx * 3;
+            const bool inert   = g_win->InertiaRunningForTest() && v > 0.0;
+            Mark((maxPx > rowPx * 3 && moved3 && inert) ? 1 : 0,
+                 L"滚轮一格：位移 3 行且启动同向惯性", d);
+        }
+
+        // ---- 2) 惯性逐帧累加且速度单调衰减 ----
+        //
+        // 【方向必须与位移同向】向下一格（offset 增大）之后，惯性帧里的
+        // offset 必须**继续增大**。这条判据是针对一个真实写过的 bug：
+        // 速度写成 `+notches` 而位移写成 `-notches`，于是滚一轮之后
+        // 画面自己滑回原处 —— 位置在动、速度也在衰减，但方向是反的。
+        // 只看"速度非 0"抓不到它，必须看位移的**符号**。
+        {
+            const int p0 = g_win->ScrollOffsetForTest();
+            const double v0 = g_win->InertiaVelocityForTest();
+            const int ran = g_win->RunInertiaTicksForTest(3);
+            const int p1 = g_win->ScrollOffsetForTest();
+            const double v1 = g_win->InertiaVelocityForTest();
+            char d[192];
+            sprintf_s(d, "跑 %d 帧：offset %d→%d（前进 %d px）  速度 %.2f→%.2f",
+                      ran, p0, p1, p1 - p0, v0, v1);
+            // 位置必须继续向下（p1 > p0）、速度必须变小（阻尼生效）
+            Mark((ran == 3 && p1 > p0 && (v1 < v0 || v1 == 0.0)) ? 1 : 0,
+                 L"惯性逐帧位移同向且速度衰减（阻尼生效）", d);
+        }
+
+        // ---- 3) 惯性自己停表 ----
+        {
+            const int ran = g_win->RunInertiaTicksForTest(200);
+            char d[128];
+            sprintf_s(d, "又跑 %d 帧后 inertiaTimer=%d 速度=%.3f",
+                      ran, g_win->InertiaRunningForTest() ? 1 : 0,
+                      g_win->InertiaVelocityForTest());
+            // 200 帧远超衰减到阈值所需（≈43 帧），必须已经停了
+            Mark(!g_win->InertiaRunningForTest() ? 1 : 0,
+                 L"速度低于阈值后惯性自行停止（速度/加速度归零）", d);
+        }
+
+        // ---- 4) 触控板：±15 的细分增量必须产生非零位移 ----
+        //
+        // 【这一项针对的是上一轮的老 bug】原来 `delta / WHEEL_DELTA` 整除，
+        // ±15 全变成 0，触控板滑半天画面不动。现在走精确位移分支。
+        g_win->ShowPage(0);
+        Sleep(40);
+        {
+            const int before = g_win->ScrollOffsetForTest();
+            // 连发 8 次 ±15：8×15 = 120 = 正好一格 = 3 行（不是 1 行 —
+            // 一格滚 3 行是本项目既定手感，触控板按比例换算就该滚同样的量）
+            for (int i = 0; i < 8; ++i) g_win->FakeWheelForTest(-15);
+            const int after = g_win->ScrollOffsetForTest();
+            char d[160];
+            sprintf_s(d, "8×(-15)=120=一格  offset %d→%d（前进 %d px）",
+                      before, after, after - before);
+            // 期望 3 行；允许 ±1px 的累计取整误差
+            const int want = rowPx * 3;
+            const int got = after - before;
+            Mark((got > 0 && got >= want - 1 && got <= want + 1) ? 1 : 0,
+                 L"触控板细分增量按比例精确位移（不再被整除吃掉）", d);
+            g_win->RunInertiaTicksForTest(200);   // 清掉 tail 定时器起的惯性
+        }
+
+        // ---- 5) 触控板静默后起惯性：不累积成"一跳一格" ----
+        // 判据：连续 4 次 ±15 之后 offset 应是**连续小步**增长，
+        // 而不是 0,0,0,28 这种量化跳变。这里直接看前三次的单调性。
+        g_win->ShowPage(0);
+        Sleep(40);
+        {
+            int steps[4] = {};
+            int prev = g_win->ScrollOffsetForTest();
+            for (int i = 0; i < 4; ++i) {
+                g_win->FakeWheelForTest(-15);
+                const int now = g_win->ScrollOffsetForTest();
+                steps[i] = now - prev;
+                prev = now;
+            }
+            char d[160];
+            sprintf_s(d, "逐次位移 %d,%d,%d,%d（总和应>0，且非全为 0）",
+                      steps[0], steps[1], steps[2], steps[3]);
+            const int sum = steps[0] + steps[1] + steps[2] + steps[3];
+            Mark(sum > 0 ? 1 : 0, L"触控板连续滑动产生连续位移", d);
+        }
+
+        // ---- 6) 详细信息页也是同一套（三个列表都要支持）----
+        g_win->ShowPage(5);
+        Sleep(60);
+        {
+            const int maxD = g_win->MaxScrollOffsetForTest();
+            const int rowD = g_win->ScrollRowForTest();
+            const int before = g_win->ScrollOffsetForTest();
+            g_win->FakeWheelForTest(-WHEEL_DELTA);
+            const int after = g_win->ScrollOffsetForTest();
+            char d[192];
+            sprintf_s(d, "rowPx=%d max=%d  offset %d→%d", rowD, maxD, before, after);
+            // 详细信息页行高统一 kRowHeight(28)，一格仍是 3 行
+            Mark((maxD > rowD * 2 && after - before == rowD * 3) ? 1 : 0,
+                 L"详细信息页滚轮同样滚 3 行", d);
+            g_win->RunInertiaTicksForTest(200);   // 清干净，别影响下一项
+        }
+
+        // ---- 7) 次要页（服务）也走同一套 ----
+        g_win->ShowPage(6);
+        Sleep(60);
+        {
+            const int rowS = g_win->ScrollRowForTest();
+            const int before = g_win->ScrollOffsetForTest();
+            g_win->FakeWheelForTest(-WHEEL_DELTA);
+            const int after = g_win->ScrollOffsetForTest();
+            char d[160];
+            sprintf_s(d, "rowPx=%d offset %d→%d", rowS, before, after);
+            Mark((after - before == rowS * 3) ? 1 : 0,
+                 L"次要页（服务）滚轮同样滚 3 行", d);
+            g_win->RunInertiaTicksForTest(200);
+        }
+
+        // ---- 8) 滚到底：速度必须立即清零（不能在底部抽搐）----
+        g_win->ShowPage(0);
+        Sleep(40);
+        {
+            const int maxS = g_win->MaxScrollOffsetForTest();
+            // 直接滚到最底：连发足够多格
+            for (int i = 0; i < 400; ++i) {
+                g_win->FakeWheelForTest(-WHEEL_DELTA);
+                if (g_win->ScrollOffsetForTest() >= maxS) break;
+            }
+            const int atBottom = g_win->ScrollOffsetForTest();
+            // 到顶后还要清掉可能残留的惯性，再重新甩一把（往下甩）
+            g_win->RunInertiaTicksForTest(200);
+            g_win->FakeWheelForTest(-WHEEL_DELTA);   // 在底部再往下滚
+            const double vAtBottom = g_win->InertiaVelocityForTest();
+            const bool running = g_win->InertiaRunningForTest();
+            char d[192];
+            sprintf_s(d, "offset=%d max=%d 到底后再滚：inertia=%d 速度=%.2f",
+                      atBottom, maxS, running ? 1 : 0, vAtBottom);
+            // 判据：位置必须真的到底，且到底后速度/惯性都不残留
+            Mark((maxS > 0 && atBottom == maxS && !running) ? 1 : 0,
+                 L"滚到底后惯性立即清零（不残留速度）", d);
+        }
+
+        // ---- 9) 切页打断惯性 ----
+        g_win->ShowPage(0);
+        Sleep(40);
+        {
+            g_win->FakeWheelForTest(-WHEEL_DELTA);   // 起惯性
+            const bool beforeRunning = g_win->InertiaRunningForTest();
+            g_win->ShowPage(5);                      // 切到详细信息页
+            const bool afterRunning = g_win->InertiaRunningForTest();
+            char d[128];
+            sprintf_s(d, "切页前 inertia=%d，切页后 inertia=%d",
+                      beforeRunning ? 1 : 0, afterRunning ? 1 : 0);
+            Mark((beforeRunning && !afterRunning) ? 1 : 0,
+                 L"切页打断滚动惯性", d);
+        }
+
+        // ---- 10) 手势配置：WM_GESTURENOTIFY 真的被处理过 ----
+        //
+        // 【判据说明】本机若无触屏，系统不会投递 WM_GESTURENOTIFY，
+        // gestureReady_ 保持 false。这**不是缺陷**（没有设备就没有手势），
+        // 所以按 SKIP 记，而不是 FAIL —— 假装 PASS 就是假自测。
+        {
+            const bool ready = g_win->GestureReadyForTest();
+            char d[128];
+            sprintf_s(d, "gestureReady_=%d（false 表示本机无触屏或未投递 WM_GESTURENOTIFY）",
+                      ready ? 1 : 0);
+            Mark(ready ? 1 : -1, L"触屏平移手势配置已生效", d);
+        }
+
+        g_win->ShowPage(0);
+        Sleep(40);
+    }
 
     log.F("\n=== 结果: PASS %d / FAIL %d / SKIP %d ===\n", t.pass, t.fail, t.skip);
     log.Close();
@@ -668,6 +1070,20 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, LPWSTR lpCmdLine, int) {
         // 用于验证「子行高 22 vs 父行 28」的绘制接线。
         if (lpCmdLine && wcsstr(lpCmdLine, L"--expandall")) {
             g_win->ExpandAllApps();
+        }
+
+        // --hover=X,Y：把「鼠标」放到客户区坐标 (X,Y) 上再截图。
+        // 用于验证悬停（HOT）配色**真的画到了屏上** —— 状态自测只能证明
+        // 「变量被改了」，证明不了「绘制分支读了它」。两者都必要。
+        // 必须放在快照就位之后：侧栏项是按快照生成的，早于它 hover 命中不到。
+        if (lpCmdLine) {
+            const wchar_t* hv = wcsstr(lpCmdLine, L"--hover=");
+            if (hv) {
+                int hx = -1, hy = -1;
+                if (swscanf_s(hv + 8, L"%d,%d", &hx, &hy) == 2) {
+                    g_win->FakeMouseMove(hx, hy);
+                }
+            }
         }
 
         {

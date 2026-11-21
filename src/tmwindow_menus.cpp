@@ -1510,25 +1510,52 @@ void TmWindow::OnMenuCommand(UINT id) {
 
 
     // ---- 底部工具条：简略信息 ----
-    // 「简略信息」= 折叠进程页顶部的 5 张摘要卡片，列表区整体上移。
-    // 生效点有两个，都在本轮的改动范围内：
-    //   (1) src/tmwindow.cpp 的 BuildLayout：cardsH = simpleView_ ? 0 : kCardHeight，
-    //       colTop 跟着上移（此前这里只翻转布尔，布局与绘制都不读它 → 死开关）；
-    //   (2) src/tmwindow_events.cpp 的 PaintAll：卡片区是零高矩形时跳过
-    //       PaintCards，避免 DrawFrame 在零高矩形上画出一条孤立横线。
+    // 「简略信息」= 切到**原版 UIFILE 30024** 那套简化界面：没有页签栏、没有列头，
+    // 列表只列顶层应用行。
+    //
+    // 【原版依据】30024 的节点表里**没有 `tab` 实例**（只有样式声明），
+    //   而 30001 有完整 tab 实例（height=30rp @0x1cc）；30024 里的简略列表是
+    //   `TmSmallViewItem`（条目内只有图标 + 友好名 + CPU/内存两列），
+    //   **没有 TmColHeader 实例**。命令条里那对
+    //   `CBExpandoButtonImageArrow` + `CBExpandoButtonImageText` 就是
+    //   「简略信息 ↔ 详细信息」的切换按钮。出处 docs/specs/S_duispec.md
+    //   §0 表 E2、§1.7、§3.9。
+    //
+    // 【生效点】
+    //   (1) src/tmwindow.cpp 的 BuildLayout：simpleView_ 时 rcTabs_ / rcColHeader_
+    //       都压成零高矩形，rcList_ 占满内容区（详见那里的长注释）
+    //   (2) src/tmwindow_events.cpp 的 PaintAll：零高时跳过 PaintTabBar /
+    //       PaintColumnHeader（它们在零高矩形上仍会画出贴边的杂线）
+    //   (3) src/tmwindow.cpp 的 RebuildRows：只列顶层应用行，不分组
+    //
     // 这个命令不出现在任何菜单里（只有底部工具条那一个入口），所以不需要
-    // 同步勾选态，RebuildMenu 也不用调。卡片区只在进程页存在，停在其它页时
-    // 点它只是把状态改掉，切回进程页立刻见到效果。
+    // 同步勾选态，RebuildMenu 也不用调。
+    // ⚠ 窗口尺寸不变（我们不缩放窗口），只改内部布局 —— 与「换一份 UIFILE」
+    //   不等价，但用户可感知的部分（页签没了、列头没了）已对齐。
     case CMD_VIEW_SIMPLE:
         // 【现在真的有可见效果】此前 simpleView_ 唯一的读点就是它自己：
         // rcCards_ 已改成恒零高，布局里没有任何地方随它变化，于是**每一页
         // 最左边这个按钮点下去画面完全不变** —— 全项目最容易撞上的死按钮。
-        // 现在两条真实效果：
+        // 现在三条真实效果：
         //   1) 按钮文案在「简略信息(&D)」/「详细信息(&D)」之间切换
         //      （原版就是这对互斥文案：MUI 37212 / 37211）；
-        //   2) 进程页切到「只列顶层应用行」的简略视图（RebuildRows 里读 simpleView_）。
+        //   2) 页签栏 + 列头整体收起，列表占满内容区；
+        //   3) 进程页切到「只列顶层应用行」的简略视图（RebuildRows 里读 simpleView_）。
         // BuildLayout 仍要调，因为按钮宽度随文案变化（Measured() 按文字算宽）。
         simpleView_ = !simpleView_;
+        // 进出简略视图时行表的语义变了（分组 → 只列顶层应用），
+        // 老的 hoverRow_ 可能指向一个不存在的行，先清掉。
+        hoverRow_ = -1;
+        hoverCol_ = -1;
+        tabs_.SetHover(TabId::Count);
+        // 【简略视图永远落在进程页】
+        // 原版 30024 是一整套独立界面，里面只有简化进程列表（`taskman` 根，
+        // `processestab_tables` 那一支）；没有页签控件，也就没有"别的页"。
+        // 所以从任何页点「简略信息」都落到进程页，而不是"把当前页也简化"
+        // （性能页简化的样子在 30024 里根本不存在）。
+        // 这一步必须排在 BuildLayout 之前：BuildLayout 之后页签栏是零高，
+        // 再改 tabs_.Current() 不会重算布局，会留下"内容区按旧页算"的错位。
+        if (simpleView_) tabs_.SetCurrent(TabId::Processes);
         BuildLayout();
         RebuildRows();
         InvalidateAll();

@@ -805,14 +805,29 @@ bool PerfCollector::CollectOnce(PerfSnapshot& out) {
         const auto& a = gpuInfo_.Adapter();
         out.gpuAdapter = a;
 
-        // 侧栏的 "GPU 0" 条目也用它，保持与 GPU 页一致
+        // ---- 多卡：侧栏每个真实 GPU 一张卡片 ----
+        // 命名格式跟原版：侧栏第 1 行是 "GPU 0" / "GPU 1"（MUI 实测 `GPU %d`，
+        // 见 docs/specs/perf_page_spec.md §「列表项顺序」），
+        // 第 2 行才是利用率 + 显存，第 3 行（detail）留空。
+        // 以前这里把适配器名塞进 name，于是侧栏显示 "NVIDIA GeForce discrete GPU"
+        // 而不是 "GPU 0"，与原版不符；适配器名现在走副标题（GPU 页标题区）。
+        const auto& all = gpuInfo_.Adapters();
+        out.gpuAdapters.clear();
+        out.gpuAdapters.reserve(all.size());
         out.gpus.clear();
-        GpuSample g;
-        g.name = a.name.empty() ? L"GPU 0" : a.name;
-        g.utilPercent = out.gpuTotalPercent;
-        g.dedicatedBytes = a.dedicatedInUse;
-        g.sharedBytes = a.sharedInUse;
-        out.gpus.push_back(std::move(g));
+        out.gpus.reserve(all.size());
+        for (size_t i = 0; i < all.size(); ++i) {
+            out.gpuAdapters.push_back(all[i]);
+
+            GpuSample g;
+            wchar_t nm[32];
+            swprintf_s(nm, L"GPU %llu", static_cast<unsigned long long>(i));
+            g.name = nm;
+            g.utilPercent = all[i].totalUtilPercent;
+            g.dedicatedBytes = all[i].dedicatedInUse;
+            g.sharedBytes = all[i].sharedInUse;
+            out.gpus.push_back(std::move(g));
+        }
     }
 
     QueryPerformanceCounter(&t1);

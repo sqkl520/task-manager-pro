@@ -159,6 +159,55 @@ void FmtMemD(uint64_t bytes, wchar_t* b, size_t n) {
 
 } // namespace
 
+// 详细信息页列表几何的**唯一**定义点。
+//
+// 【为什么要抽出来】PaintDetailsPage 里 listTop/listBot/viewH 是一串局部
+// const，滚动系统（tmwindow_events.cpp 的 ScrollTarget）需要同一组数字才能
+// 算出正确的 maxScroll 和滑块命中区。此前那组数字在本文件里算一遍、
+// 在 events.cpp 里再写一遍字面量 `rcContent_.bottom - 2`，正是本项目
+// 踩过两次的"两套原点"错位模式（进程页列头 / 详细信息页行区各一次）。
+//
+// 行区起点 = rcContent_.top + kHeaderHeight（列头紧贴内容区顶端）
+// 行区终点 = rcContent_.bottom - 2（底部 2px 是原有几何，不为滚动而改）
+int TmWindow::DetailListHeight() const {
+    const int h = static_cast<int>(rcContent_.bottom) - 2 -
+                  (static_cast<int>(rcContent_.top) + kHeaderHeight);
+    return h > 0 ? h : 0;
+}
+
+int TmWindow::DetailScrollBarWidth() const { return kDetScrollW; }
+
+RECT TmWindow::DetailScrollThumbRect() const {
+    RECT none{ 0, 0, 0, 0 };
+    const int viewH = DetailListHeight();
+    if (viewH <= kDetScrollBtnH * 2) return none;
+
+    const int contentH = static_cast<int>(detailRows_.size()) * kRowHeight;
+    if (contentH <= viewH) return none;         // 不需要滚动条
+
+    const int maxScroll = contentH - viewH;
+    const int sbRight = static_cast<int>(rcContent_.right) - 3;
+    const int sbLeft  = sbRight - kDetScrollW;
+    const int listTop = static_cast<int>(rcContent_.top) + kHeaderHeight;
+    const int listBot = static_cast<int>(rcContent_.bottom) - 2;
+
+    const int trackTop = listTop + kDetScrollBtnH;
+    const int trackH   = viewH - kDetScrollBtnH * 2;
+    int thumbH = trackH * viewH / contentH;
+    if (thumbH < 24) thumbH = 24;
+    if (thumbH > trackH) thumbH = trackH;
+
+    // 与绘制侧同一式子；detailScrollY_ 理论上已由 SetScrollOffset 钳制，
+    // 这里再夹一次，防止中途快照变化导致滑块被顶出轨道（进程页踩过：
+    // 滑块压住下箭头，点箭头变成拖滑块）。
+    int sy = detailScrollY_;
+    if (sy < 0) sy = 0;
+    if (sy > maxScroll) sy = maxScroll;
+    const int thumbY = trackTop + (maxScroll > 0 ? (trackH - thumbH) * sy / maxScroll : 0);
+    (void)listBot;
+    return RECT{ sbLeft, thumbY, sbRight, thumbY + thumbH };
+}
+
 void TmWindow::PaintDetailsPage(HDC hdc) {
     if (!snap_) return;
     if (detailRows_.empty()) RebuildDetailRows();
@@ -181,7 +230,8 @@ void TmWindow::PaintDetailsPage(HDC hdc) {
     const int hdrBottom = rcContent_.top + kHeaderHeight;
     const int listTop   = hdrBottom;
     const int listBot   = rcContent_.bottom - 2;
-    const int viewH     = listBot - listTop;
+    // 行区高度改用唯一出口 DetailListHeight()，不再在这里算第二遍。
+    const int viewH     = DetailListHeight();
 
     const int contentH = static_cast<int>(detailRows_.size()) * kRowHeight;
     const int maxScroll = (std::max)(0, contentH - viewH);
@@ -255,6 +305,22 @@ void TmWindow::PaintDetailsPage(HDC hdc) {
     SelectObject(hdc, fontBody_);
     int y = listTop - detailScrollY_;
     wchar_t buf[64];
+
+    // 【裁剪】行区之外的像素一律不画 —— 与进程页 PaintRows 同一类缺陷。
+    //
+    // 本页的 `detailScrollY_` 由两处写：滚轮（`-= notches * kRowHeight * 3`，
+    // 整数倍）和上面的钳制 `if (detailScrollY_ > maxScroll) = maxScroll`。
+    // 而 `maxScroll = contentH - viewH`，其中 `viewH = listBot - listTop` ——
+    // 这个差值**通常不是 kRowHeight 的整数倍**（内容高是行高的整数倍，
+    // 视口高不是），所以钳到上界时 `detailScrollY_` 就带了一个非整行的余数，
+    // 第一行的 y 会小于 listTop，行底色/图标/文字上半截画进列头带。
+    // 滚轮滚到底就必然触发，不需要拖滚动条。
+    //
+    // 下面的每个单元格 RECT 只约束文字，DrawAppIcon / FillSolid 是直接落 DC 的。
+    // 【为什么不用改了 RECT 的 `clip` 就够】那个 clip 只用于**选中行底色**，
+    // 图标（DrawAppIcon(irc)）和文字（rc 用的是 `y`）都没用它，仍会越界。
+    const int savedDC = SaveDC(hdc);
+    IntersectClipRect(hdc, rcContent_.left, listTop, rcContent_.right, listBot);
 
     for (const auto* pe : detailRows_) {
         if (y + kRowHeight <= listTop) { y += kRowHeight; continue; }
@@ -358,6 +424,8 @@ void TmWindow::PaintDetailsPage(HDC hdc) {
     }
 
     SelectObject(hdc, old);
+    RestoreDC(hdc, savedDC);   // 与行区开头的 SaveDC / IntersectClipRect 配对
+                               // （滚动条在行区之外单独画，不能被这段裁剪影响）
 
     // ---------------------------------------------------------------
     // 垂直滚动条

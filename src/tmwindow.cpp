@@ -62,6 +62,10 @@ void TmWindow::ChartHistory::Push(double c, double m, double d, double n, double
 
 TmWindow::TmWindow() {}
 TmWindow::~TmWindow() {
+    // 惯性定时器必须显式 kill：窗口句柄在下面还会用（RemoveTrayIcon 等），
+    // 但不保险 —— 定时器随窗口销毁才失效，而本对象可能先于窗口析构。
+    StopScrollInertia();
+    if (hwnd_) KillTimer(hwnd_, kTouchpadTailTimerId);
     icons_.Stop();
     // 托盘图标必须先撤，否则退出后任务栏会留一个"幽灵"图标
     RemoveTrayIcon();
@@ -202,6 +206,67 @@ void TmWindow::BuildLayout() {
     // 所以页签带整体下移 kActiveRaise，顶部的 2px 用来容纳凸出部分。
     // 底边位置不变（= tabsH），所以内容区起点也不变。
     const int tabRaise = theme::Scaled(tabtheme::kActiveRaise);
+
+    // =====================================================================
+    // 【简略信息视图】simpleView_ == true 时**收起整个页签栏**
+    //
+    // 【为什么这么改 —— 这不是我方发明，是原版行为】
+    // 原版点底部「简略信息(D)」会整体切换到 **UIFILE 30024** 那套界面
+    // （`taskman` 根 + GenericCommandBar），再点一次切回 30001。两份证据：
+    //   1) 30024 的节点表只有 19 个节点，**没有 `tab` 的实例**：
+    //      tab / SmallViewPage / drop / chart 只在样式区当 `(style)` 声明出现
+    //      （_S_geo2_30024.tsv 第 1..20 行全是 `(style)` 选择器）。
+    //      而 30001 有完整的 `tab` 实例（@0x1bc 声明 height=30rp、padding）。
+    //      即：简略视图里**根本不存在页签控件**。
+    //   2) 30024 的命令条里有一个 `atom(CBExpandoButtonImageArrow)` +
+    //      `atom(CBExpandoButtonImageText)`（margin=rect(5rp,0,0,0)）——
+    //      那就是「展开/收起」那对互斥按钮，也就是 MUI 37212「简略信息(D)」/
+    //      37211「详细信息(D)」。它的作用就是把界面在 30001 ↔ 30024 之间切换。
+    //   出处：docs/specs/S_duispec.md §0 表 E2、§1.7、§3.9、§7 第 3 条。
+    //
+    // 【本轮做到哪一步】做成「同一个窗口内的两种布局」，不是真的换一份 UIFILE：
+    //   - 页签栏收起（rcTabs_ 零高）—— 对齐 30024 无 tab 实例
+    //   - 列头收起（rcColHeader_ 零高）—— 30024 的简略列表是 TmSmallViewItem，
+    //     条目内只有图标 + 友好名 + CPU/内存两列（_S_geo2_30024.tsv:128..137），
+    //     高度声明 28rp，**没有 TmColHeader 实例**（那些 TmColHeader 行
+    //     属于 processestab_tables，是另一棵树，且是 30024 的完整视图而非简略视图）
+    //   - 列表占满整个内容区
+    //   - 底部工具条保留（30024 有 GenericCommandBar，48rp）
+    //   ⚠ 未做：像素级还原 30024 的 TmSmallViewItem 两列布局。那是另一件事，
+    //     已在报告里注明。本轮只交付用户要的「页签栏收起」这个可感知行为。
+    //
+    // 【为什么把「恢复」写成无条件重算而不是「记住旧值再还原」】
+    // 本函数每次调用都**从零算全部几何**，没有任何字段是"只在某个分支里赋值"。
+    // 所以切回 normal 时不存在"漏还原某个字段"的可能 —— 这正是最可靠的
+    // 进出重置逻辑：不需要维护「进入前的快照」，也就不会漏。
+    // =====================================================================
+    if (simpleView_) {
+        rcTabs_    = RECT{ 0, 0, W, 0 };                    // 零高：无页签栏
+        rcContent_ = RECT{ 0, 0, W, H - toolbarH };
+        rcToolbar_ = RECT{ 0, H - toolbarH, W, H };
+        rcStatus_  = RECT{ 0, H, W, H };
+        rcMenu_    = RECT{ 0, 0, W, 0 };
+
+        // 零高 bounds 的副作用是**对的**，不是要绕开的 bug：
+        //   tabs_.HitTest 的第一句就是 `y < bounds_.top || y >= bounds_.bottom
+        //   → return TabId::Count`，零高时恒不命中 ⇒ 简略视图里点不到页签。
+        //   这正好是原版 30024（没有页签控件）的行为。
+        tabs_.SetBounds(rcTabs_.left, rcTabs_.top,
+                        rcTabs_.right - rcTabs_.left,
+                        rcTabs_.bottom - rcTabs_.top);
+        tabs_.SetFont(fontNav_);
+        tabs_.SetHover(TabId::Count);   // 页签栏没了，别留着一个悬停态
+
+        rcCards_     = RECT{ 0, 0, W, 0 };                  // 零高（原本就恒零高）
+        rcColHeader_ = RECT{ 0, 0, W, 0 };                  // 零高：无列头
+        rcList_      = RECT{ rcContent_.left, rcContent_.top,
+                             rcContent_.right, rcContent_.bottom };
+
+        perfPage_.SetBounds(rcContent_);
+        pagesView_.SetBounds(rcContent_);
+        return;
+    }
+
     rcTabs_  = RECT{ 0, tabRaise, W, tabRaise + tabsH };
     rcContent_ = RECT{ 0, rcTabs_.bottom, W, H - toolbarH };
     rcToolbar_ = RECT{ 0, H - toolbarH, W, H };
@@ -232,12 +297,11 @@ void TmWindow::BuildLayout() {
     //       1) src/tmwindow_events.cpp 的 PaintAll：`if (rcCards_.bottom > rcCards_.top)`
     //       2) src/tmwindow_paint.cpp 的 PaintCards 首行：
     //          `if (rcCards_.bottom <= rcCards_.top) return;`
-    //     所以**不需要**改那两个文件（它们也不归本轮改）。
-    //   - simpleView_（底部工具条「简略信息(D)」）从此不再影响布局：
-    //     原版在「没有卡片区」的前提下，这一项折叠的就是这块不存在的区域，
-    //     于是它变成 no-op。菜单项仍在（不归本轮改 menus.cpp），点击只触发一次
-    //     无效重排，视觉上无变化 —— 比现在「点一下整页跳 84px」更接近原版。
-    //     详见报告「没改的 / 待确认的」。
+    //   - simpleView_ 的作用**已改到别处**：它现在收起页签栏 + 列头
+    //     （见上面「简略信息视图」那一大段），不再影响这块卡片区。
+    //     【历史】上一版这里写的是「simpleView_ 从此不再影响布局 → 它变成 no-op」，
+    //     那个判断是错的：原版点「简略信息」是切到 UIFILE 30024（无 tab 实例），
+    //     有明确的可感知效果，不是 no-op。
     const int gap = theme::Scaled(13);          // 【真原版实测 13px】页签底线 → 列头顶
     const int cardsTop = rcContent_.top + gap;
     rcCards_ = RECT{ rcContent_.left + pad, cardsTop,
@@ -272,31 +336,45 @@ void TmWindow::BuildLayout() {
 // 切页时统一清理瞬态 UI 状态。
 //
 // 【为什么需要】这些"瞬态"状态各自只在某一条具体消息里被清除：
-//   hoverRow_ / hoverCol_ / tabs_.hover_ —— 只在 WM_MOUSEMOVE 里被改写，
-//     而全项目没有 WM_MOUSELEAVE / TrackMouseEvent，所以鼠标移出窗口后
-//     它们会永久保持，整行/整列/整个页签一直是悬停高亮色。
 //   pressedCol_ —— 只在 WM_LBUTTONUP 里清零。WM_CAPTURECHANGED 的兜底
 //     （tmwindow_events.cpp:254）只清了 colDragCol_ 和 scrollDragging_，
 //     **仍然漏了 pressedCol_**。一旦卡住就是整列列头永久深蓝。
 //   colDragCol_ —— 若正在拖列宽时用 Ctrl+N 切页，拖拽状态会跨页保留。
 //
-// 切页时把这些一律清掉，保证「换页后画面是干净的」。
-// （悬停泄漏的根治仍需要在 events 里加 TrackMouseEvent/WM_MOUSELEAVE ——
-//   那不在本轮文件内，见下方【交接】。）
+// 【悬停状态那一条已根治】原来的注释写的是「hoverRow_ / hoverCol_ /
+//   tabs_.hover_ 只在 WM_MOUSEMOVE 里被改写，而全项目没有 WM_MOUSELEAVE /
+//   TrackMouseEvent，所以鼠标移出窗口后它们会永久保持」。现在
+//   tmwindow_events.cpp 的 WM_MOUSEMOVE 已挂 TrackMouseEvent(TME_LEAVE)、
+//   并有 WM_MOUSELEAVE 分支走 ClearAllHover()，鼠标移出这条路径不再泄漏。
+//   这里保留清理，是因为**切页**本身也要清（换页后旧的 hover 行号无意义），
+//   两者理由不同、都要留。
 void TmWindow::ShowPage(int index) {
     if (index < 0 || index >= static_cast<int>(TabId::Count)) return;
+
+    // 【简略视图里没有"别的页"】原版 30024 是一整棵独立界面，没有页签控件
+    // （见 BuildLayout 的长注释）。所以任何切页请求都等于「先退出简略视图」：
+    // 保留布局零高、却把 tabs_.Current() 改成性能页，会画出一个没有页签栏、
+    // 没有列头的性能页 —— 那是两份界面都不存在的状态。
+    // 补 BuildLayout 一次，让页签栏/列头按 normal 布局恢复。
+    if (simpleView_) simpleView_ = false;
+
+    // 切页必须打断滚动惯性：滑行目标绑定在旧页的列表上，继续跑就会滑到
+    // 新页的列表里（OnInertiaTick 也有一道守卫，这里是更早、更直接的拦截）。
+    StopScrollInertia();
+    ResetScrollSamples();
+    panActive_ = false;
+
     tabs_.SetCurrent(static_cast<TabId>(index));
     scrollY_ = 0;
     detailScrollY_ = 0;
-    // 【交接】悬停泄漏的根因在 tmwindow_events.cpp：
-    //   (1) WM_MOUSEMOVE 里没有 TrackMouseEvent(TME_LEAVE)；
-    //   (2) 没有 WM_MOUSELEAVE 分支清 hoverRow_ / hoverCol_ / tabs_.SetHover(Count)。
-    // 这里只能在切页这一个时机兜住；鼠标移出窗口那条路径仍需那边修。
     hoverRow_ = -1;
     hoverCol_ = -1;
     pressedCol_ = -1;
     colDragCol_ = -1;
     tabs_.SetHover(TabId::Count);
+    hoverToolbarCmd_ = 0;
+    perfPage_.ClearHover();
+    pagesView_.ClearHover();
     BuildLayout();
     LoadPageData(tabs_.Current());
     RebuildMenu();
@@ -323,6 +401,23 @@ void TmWindow::ExpandAllApps() { OnMenuCommand(CMD_EXPAND_ALL); }
 void TmWindow::ToggleSimpleView() {
     // 与 OnMenuCommand(CMD_VIEW_SIMPLE) 走同一条路径，避免两套实现走偏
     OnMenuCommand(CMD_VIEW_SIMPLE);
+}
+
+// 自测用：把简略视图**设成**指定状态（幂等）。
+//
+// 【为什么不直接调用两次 ToggleSimpleView】那依赖当前状态，前面任何一项
+// 测试改了它，这一项的结果就不可重复。自测要的是「从确定的起点出发」。
+void TmWindow::SetSimpleViewForTest(bool on) {
+    if (simpleView_ == on) return;
+    simpleView_ = on;
+    // 与 CMD_VIEW_SIMPLE 一致：简略视图恒落在进程页（30024 没有页签控件）。
+    if (on) tabs_.SetCurrent(TabId::Processes);
+    hoverRow_ = -1;
+    hoverCol_ = -1;
+    tabs_.SetHover(TabId::Count);
+    BuildLayout();
+    RebuildRows();
+    InvalidateAll();
 }
 
 // 只做滚动范围钳制，不重建行表。见 include/tmwindow.h 的声明注释。

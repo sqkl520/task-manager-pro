@@ -72,6 +72,14 @@ public:
     // 永远是初始值 —— 行悬停不会出现、服务页 300 多项只有前十几行可达。
     // OnHover 传客户区坐标，内部换算成当前页的行号；(-1,-1) 表示移出。
     void OnHover(int x, int y);
+    // 清空悬停态，返回是否真的改变了（调用方据此决定要不要重绘）。
+    // 鼠标移出窗口时由 TmWindow::ClearAllHover 调用：那时不会再有任何
+    // WM_MOUSEMOVE / OnHover 进来，不显式清就会永久保持最后一行的高亮。
+    bool ClearHover() {
+        if (hover_ < 0) return false;
+        hover_ = -1;
+        return true;
+    }
     // 光标判定用：该坐标是否落在当前页的数据行上（表头不算、空白不算）。
     // 返回行索引或 -1。与 HitRow 的区别是它自己取当前页的行数，
     // 调用方不用知道 pages 的内部结构。
@@ -83,9 +91,23 @@ public:
     bool ClickHeader(int col);
     // 按当前页的排序状态重排数据
     void ApplySort();
-    // ScrollBy 以「行」为单位（正数向下），内部按当前页的行数 clamp，
-    // 不做像素级滚动 —— 调用方用 -delta/WHEEL_DELTA 换算。
+    // ScrollBy 以「行」为单位（正数向下），内部按当前页的行数 clamp。
+    // 它只是 ScrollByPixels 的一层换算，真正的状态是像素。
     void ScrollBy(int lines);
+
+    // ---- 像素级滚动（滚动系统用）----
+    //
+    // 【为什么必须开这三个口子】统一的滚动系统（TMWindow 的 ScrollTarget）
+    // 要让「滚轮 / 触控板 / 触屏 / 滚动条」四套输入改同一份像素状态，
+    // 而 scroll_ 是私有的。只给行号接口的话，惯性每帧只能走整数行，
+    // 亚像素速度会被四舍五入成 0 —— 阻尼滑行在最后一屏就卡住不动。
+    // 这三个函数是「精确位移」的唯一入口，行号接口是它的语法糖。
+    void ScrollByPixels(int px);
+    void SetScrollPixels(int px);
+    int  ScrollPixels() const { return scroll_; }
+    // 当前页可滚到的最大像素偏移（内容高 - 视口高，不小于 0）。
+    // 无表格的页（性能页等）返回 0。
+    int  MaxScrollPixels() const;
     // 当前显示的是哪一页。OnHover/ScrollBy 需要它才能知道该对哪张表操作，
     // 由 TmWindow 在切页与绘制时同步。
     void SetCurrentTab(int tabId) { currentTab_ = tabId; }
@@ -111,6 +133,11 @@ private:
                  bool selected, bool hovered) const;
 
     int HitRow(int y, int rowCount) const;   // 返回行索引或 -1
+
+    // 当前页的数据行数与视口高度（像素）。ScrollByPixels / MaxScrollPixels
+    // 和 OnHover / HitRowAt 共用同一份口径 —— 四处各写一遍必然漂移。
+    int CurRowCount() const;
+    int CurViewHeight() const;
 
     void Text(HDC hdc, const wchar_t* s, RECT* rc, UINT fmt, COLORREF c) const;
     void Fill(HDC hdc, const RECT& rc, COLORREF c) const;

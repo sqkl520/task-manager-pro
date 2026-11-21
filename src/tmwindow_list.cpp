@@ -1381,6 +1381,25 @@ void TmWindow::PaintRows(HDC hdc) {
         for (const auto& e : snap_->processes) byPid_[e.pid] = &e;
     }
 
+    // 【裁剪】列表区之外的像素一律不画。
+    //
+    // 【缺陷】行从 `bodyTop - scrollY_` 起画（见下方的 `int y = ...`）。滚轮按
+    // 整行滚，`scrollY_` 总是行高的整数倍，第一行恰好贴在 rcList_.top，看不出问题；
+    // 但**拖滚动条**是把 track 上的像素位移线性映射成 scrollY_（见
+    // tmwindow_events.cpp 的 WM_MOUSEMOVE 拖拽分支：`sy = rel * maxScroll / span`），
+    // 结果是任意像素偏移。此时第一行的 y < rcList_.top，它的行底色、图标、
+    // 展开箭头、以及 `DT_VCENTER` 的文字上半截都会画进列头带，把
+    // 「CPU / 内存」的两行汇总数值和列名盖掉。
+    //
+    // 每个单元格的 RECT 只约束**文字**（DrawTextW 自己会裁剪），
+    // FillSolidFast / DrawVLineFast / DrawAppIcon / SetPixelV 都直接落在 DC 上，
+    // 所以必须在 DC 层面裁剪，不能靠把矩形改小来回避。
+    //
+    // 【为什么放在这里】本函数唯一的提前 return 是上面的 `if (!snap_) return;`，
+    // 在 SaveDC 之前，所以不存在「保存了没恢复」的分支；函数尾部只有一处出口。
+    const int savedDC = SaveDC(hdc);
+    IntersectClipRect(hdc, rcList_.left, rcList_.top, rcList_.right, rcList_.bottom);
+
     const int x0 = rcList_.left + kIndentPerLevel;
     const int nameW = NameColWidth(rcList_.right - rcList_.left - kIndentPerLevel);
     const int bodyTop = rcList_.top;
@@ -1991,6 +2010,7 @@ void TmWindow::PaintRows(HDC hdc) {
                        ? (lastVisible - firstVisible + 1) : 0;
 
     SelectObject(hdc, oldFont);
+    RestoreDC(hdc, savedDC);   // 与函数开头的 SaveDC / IntersectClipRect 配对
 }
 
 // ============ 绘制：应用图标（用首字母色块，零 GDI+ 开销） ============
