@@ -984,12 +984,18 @@ void PagesView::ScrollBy(int lines) {
         default: return;
     }
 
-    // 可视行数：bounds_ 的高度减去列头
-    const int viewRows = (bounds_.bottom - bounds_.top - kHeaderHeight) / kRowHeight;
-    // 最大可滚动量：不足一屏就没有可滚的（scroll_ 必须停在 0，否则会滚出空白）
-    const int maxScroll = (rowCount > viewRows) ? (rowCount - viewRows) : 0;
+    // 【像素单位】scroll_ 现在是像素。滚轮传进来的是"行数"，这里乘行高。
+    //
+    // 原来 scroll_ 是行号、绘制却直接减（当像素用），滚一整行只移动 1 像素；
+    // 而 maxScroll 是行数，永远无法停在两行之间。两头都不对。
+    //
+    // 现在：内容和视口都用像素算，maxScroll 可以不是 kRowHeight 的整数倍，
+    // 滚到底时最后一行能完整露出，不会像原来那样留 22px 空白。
+    const int viewH = bounds_.bottom - bounds_.top - kHeaderHeight;
+    const int contentH = rowCount * kRowHeight;
+    const int maxScroll = (contentH > viewH) ? (contentH - viewH) : 0;
 
-    scroll_ += lines;
+    scroll_ += lines * kRowHeight;
     if (scroll_ < 0) scroll_ = 0;
     if (scroll_ > maxScroll) scroll_ = maxScroll;
 

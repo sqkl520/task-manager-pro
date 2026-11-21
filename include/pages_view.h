@@ -113,6 +113,15 @@ private:
     int selUser_ = -1;
     int selService_ = -1;
     int hover_ = -1;
+    // 【单位是像素，不是行号 · 2026-11-21】
+    //
+    // 原来这里是行号单位，但绘制侧写的是 `kHeaderHeight - scroll_`（把行号
+    // 当像素减），滚一整行只移动 1 像素 —— 滚轮拨半天画面纹丝不动。
+    // 而 maxScroll 又是行数，永远无法表达"停在两行之间"。
+    //
+    // 改成像素后三件事同时正确：绘制直接减、滚轮按行高累加、
+    // maxScroll = 内容总高 - 可视高（可以不是行高的整数倍）。
+    // 副作用是滚到底时最后一行能完整露出，不会留下 22px 的空白。
     int scroll_ = 0;
     int currentTab_ = -1;   // TabId 的值，-1 = 还没同步过
     int enrichCursor_ = 0;

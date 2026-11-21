@@ -107,21 +107,42 @@ void TmWindow::CollectProcessTree(uint32_t rootPid, std::vector<uint32_t>& out) 
     if (!snap_) return;
     out.push_back(rootPid);
 
-    // 反复扫描直到不再有新进程加入。进程树通常很浅，几轮就收敛。
-    // 用 parentPid 字段（快照里已有，零额外调用）。
-    bool added = true;
-    while (added) {
-        added = false;
-        for (const auto& e : snap_->processes) {
-            if (e.pid == 0) continue;
-            // 已经在结果里就跳过
-            bool has = false;
-            for (uint32_t p : out) { if (p == e.pid) { has = true; break; } }
-            if (has) continue;
-            // 父进程在结果里就加入
-            for (uint32_t p : out) {
-                if (e.parentPid == p) { out.push_back(e.pid); added = true; break; }
-            }
+    // 【P0 修复 · 2026-11-21】原实现有两个问题，QQ 那种进程多、树又深的
+    // 应用会直接把窗口卡住：
+    //
+    //   1) **边遍历边修改**。内层写的是 `for (uint32_t p : out) { ...
+    //      out.push_back(e.pid); }` —— 在 range-for 里对同一个 vector
+    //      push_back，一旦触发扩容，迭代器立刻失效，行为未定义。
+    //      进程少时不炸纯属运气（容量够用），进程一多就崩或死循环。
+    //
+    //   2) **三重循环**。外层 while(added) 每轮扫全表，内层对每个进程
+    //      又要遍历一遍 out 判重 + 一遍找父 —— O(深度 × N × out.size())。
+    //      600 进程、树深 5 就是百万级比较。
+    //
+    // 改成标准的 BFS：一趟建 parent -> children 索引（O(N)），再从 root
+    // 逐层展开（O(N + E)）。深度只影响队列轮次，不影响每轮成本。
+    std::unordered_map<uint32_t, std::vector<uint32_t>> children;
+    children.reserve(snap_->processes.size() * 2);
+    for (const auto& e : snap_->processes) {
+        if (e.pid == 0) continue;
+        if (e.parentPid == 0 || e.parentPid == e.pid) continue;
+        children[e.parentPid].push_back(e.pid);
+    }
+
+    // 用 set 判重而不是每次线性扫 out：一个进程可能因为 pid 复用出现在
+    // 多条父子链上，必须保证只入队一次，否则会无限扩张。
+    std::unordered_set<uint32_t> seen;
+    seen.reserve(snap_->processes.size() * 2);
+    seen.insert(rootPid);
+
+    size_t head = 0;                    // 用下标当队列头，避免 pop_front 的 O(n)
+    while (head < out.size()) {
+        const uint32_t cur = out[head++];
+        auto it = children.find(cur);
+        if (it == children.end()) continue;
+        for (uint32_t child : it->second) {
+            if (!seen.insert(child).second) continue;   // 已经收过
+            out.push_back(child);
         }
     }
 }
