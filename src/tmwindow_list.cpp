@@ -988,17 +988,19 @@ void TmWindow::PaintColumnHeader(HDC hdc) {
     //
     // 【我犯过的错，记下来】我曾断言"原版列头没有排序箭头"，依据是扫描
     // x=380..520 找 13px 宽的实心块，结果一个都没找到。**那个扫描方法是错的**：
-    // 原版箭头只有 **9px 宽、4px 高**，而且是**镂空的 V 形**（不是实心三角），
-    // 所以"找 13px 实心块"必然落空。用户指出来之后重新逐像素渲染才发现。
+    // 原版箭头只有 **跨度 7px（x=369..375）、高 4px**，而且是**镂空的 V 形轮廓**
+    // （不是实心三角），所以"找 13px 实心块"必然落空。用户指出来之后重新逐像素渲染才发现。
     //
-    // 【真原版实测】docs/reference/hdr_orig_arrow.png：
-    //   x=368..376（宽 9）、y=102..105（高 4），逐行收窄 9→7→5→3：
-    //       -B-   -BB
-    //        -B- -BB
-    //         -BBBB
-    //          -BB
+    // 【真原版实测】docs/reference/hdr_orig_arrow.png（逐像素）：
+    //   x=369..375（跨度 7）、y=102..105（高 4），**空心轮廓**：
+    //   y=102  x=369,375       #.....#      row 0: 两个端点
+    //   y=103  x=370,374       #...#        row 1: 两个端点
+    //   y=104  x=371,372,373  ###          row 2: 三连（尖端，两斜线在此交汇）
+    //   y=105  x=372          #            row 3: 单点（最尖）
+    //   相对坐标（箭头左端 x=369 为 0，y=102 为 0）：
+    //   row 0: 0, 6 / row 1: 1, 5 / row 2: 2, 3, 4 / row 3: 3
     //   颜色 #4C607A（深蓝灰，不是 #5A5A5A）
-    //   位置：在**列名文字的左侧**（CPU 文字 x=400，箭头 x=368）
+    //   位置：在**列名文字的左侧**（CPU 文字 x=400，箭头 x=369）
     //   列头带上还有一个 #E5F3FF 的浅蓝底，x=360..432 —— 那是**排序列的整列底色**
     //
     // 【几何换算】列头带顶 y=83（原版坐标），箭头 y=102..105 → rel 19..22。
@@ -1020,17 +1022,34 @@ void TmWindow::PaintColumnHeader(HDC hdc) {
         const int ax = cx + theme::Scaled(8);
         const int ay = rcColHeader_.top + theme::Scaled(2);
 
-        // V 形（降序）或 Λ 形（升序），宽 9、高 4、线宽 1
-        // 逐行收窄：第 0 行宽 9、第 1 行 7、第 2 行 5、第 3 行 3
-        HPEN pen = CachedPen(RGB(0x4C, 0x60, 0x7A));
-        HGDIOBJ oldp = SelectObject(hdc, pen);
+        // 【排序箭头 · 镂空 V 形轮廓】
+        //
+        // 原版实测（docs/reference/hdr_orig_arrow.png，逐像素）：
+        //   y=102  x=369,375      #.....#
+        //   y=103  x=370,374       #...#
+        //   y=104  x=371,372,373  ###
+        //   y=105  x=372          #
+        // 是**轮廓**不是实心 —— 中间是空的，只有两条斜线。
+        //
+        // 之前画成实心（每行整条 LineTo 填充），放大 12 倍看是个倒梯形色块
+        // （第 0 行 9 像素全填充、第 1 行 7、第 2 行 5、第 3 行 3），不是箭头。
+        // 用户指出「分辨率太低」，实际是形状错了。
+        //
+        // 【DPI】图案只有 4 行高，行间距和半宽都**不能**走 Scaled() ——
+        // 那样高 DPI 下会变成 8 行、形状失真。箭头是手工像素图案，
+        // 只在锚点（ax/ay）上缩放，图案本身固定 4 行。
+        // 这与 ScrollBar 的小箭头同理：系统控件在 200% DPI 下也是 1px 线。
+        const COLORREF arrowColor = RGB(0x4C, 0x60, 0x7A);
+        const int arrowW = 6;   // 最宽处跨度 = 6（x=0..6 共 7 个像素位）
         for (int row = 0; row < 4; ++row) {
-            const int halfW = (9 - row * 2) / 2;      // 4, 3, 2, 1
             const int y = sortDesc_ ? (ay + row) : (ay + 3 - row);
-            MoveToEx(hdc, ax + (4 - halfW), y, nullptr);
-            LineTo(hdc, ax + (4 + halfW) + 1, y);
+            const int lx = ax + row;            // 左斜线向右下走
+            const int rx = ax + (arrowW - row); // 右斜线向左下走
+            SetPixelV(hdc, lx, y, arrowColor);
+            if (rx != lx) SetPixelV(hdc, rx, y, arrowColor);
+            // 尖端那一行（row=2）原版有中间像素，是两条斜线的交汇
+            if (row == 2) SetPixelV(hdc, ax + 3, y, arrowColor);
         }
-        SelectObject(hdc, oldp);
     }
 
     SelectObject(hdc, old);
