@@ -129,8 +129,8 @@ inline int VisW(int idx) {
 // 【箭头到图标间隔 14px 是关键】原版 16→30 空 14px；我方此前只有 4px，
 // 所以箭头和图标糊在一起。这个 14 不是"沟槽"，是原版真实的留白。
 constexpr int kArrowLeftOffset = 3;    // 箭头左 = x0 + 3
-constexpr int kArrowWidth      = 8;    // 实心三角宽（实测 9..16）
-constexpr int kArrowHeight     = 7;    // 实心三角高（实测 y=8..14）
+constexpr int kArrowWidth      = 8;    // 沟槽宽（保留：命中区仍按 9..17 算，见 TreeTriangleX）
+constexpr int kArrowHeight     = 9;    // 字形高（真原版实测 9 行，见下方 DrawRowExpando 表）
 constexpr int kRowIconLeft     = 30;   // 图标左沿（绝对，相对客户区）
 constexpr int kRowTextLeft     = 54;   // 文字左沿（绝对，相对客户区）
 
@@ -1505,24 +1505,29 @@ void TmWindow::PaintRows(HDC hdc) {
                     TreeTriangleX(row.indentLevel, triL, triR);
                     (void)triR;
 
-                    const int triH = 9;                    // 9 行高
-                    const int ty0 = y + (rh - triH) / 2;   // 行内垂直居中
-                    const int tx0 = triL;                  // 折角起点
+                    const int tx0 = triL;
 
-                    // 折叠 ▶：核心像素相对 tx0 的 x 偏移，逐行
+                    // 折叠 ▶：9 行，核心像素相对 tx0 的 x 偏移
                     static const signed char kCx[9] = { 0, 1, 2, 3, 3, 3, 2, 1, 0 };
-                    for (int i = 0; i < triH; ++i) {
-                        const int py = ty0 + i;
-                        if (row.expanded) {
-                            // ▼：把 ▶ 顺时针转 90°，即「空心 v」——
-                            // 每条斜边每行一个像素，两条边从中轴 ±4 收拢到 0。
-                            const int d = (i <= 4) ? (4 - i) : (i - 4);
-                            SetPixelV(hdc, tx0 + 4 - d, py, kTextSecondary);
-                            if (d != 0) SetPixelV(hdc, tx0 + 4 + d, py, kTextSecondary);
-                        } else {
-                            SetPixelV(hdc, tx0 + kCx[i], py, kTextSecondary);
+
+                    if (row.expanded) {
+                        // ▼：▶ 顺时针转 90° —— 两条斜边从顶部两端收拢到底部一点。
+                        // 5 行足够（宽度 9 / 2 ≈ 4.5），单独居中。
+                        const int vh = 5;
+                        const int vy0 = y + (rh - vh) / 2;
+                        for (int i = 0; i < vh; ++i) {
+                            const int py = vy0 + i;
+                            SetPixelV(hdc, tx0 + i, py, kTextSecondary);
+                            if (8 - i != i) {
+                                SetPixelV(hdc, tx0 + (8 - i), py, kTextSecondary);
+                            }
+                        }
+                    } else {
+                        const int ty0 = y + (rh - 9) / 2;
+                        for (int i = 0; i < 9; ++i) {
+                            SetPixelV(hdc, tx0 + kCx[i], ty0 + i, kTextSecondary);
                             // 折角那一行多一个像素（原版 y+4 是 x+3,x+4）
-                            if (i == 4) SetPixelV(hdc, tx0 + 4, py, kTextSecondary);
+                            if (i == 4) SetPixelV(hdc, tx0 + 4, ty0 + i, kTextSecondary);
                         }
                     }
                 }
