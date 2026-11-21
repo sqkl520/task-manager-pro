@@ -376,25 +376,14 @@ void TmWindow::PaintDetailsPage(HDC hdc) {
         FillSolid(hdc, dnBtn, RGB(0xF0, 0xF0, 0xF0));
 
         auto drawArrow = [&](const RECT& r, bool up) {
-            const int cx = (r.left + r.right) / 2;
-            const int cy = (r.top + r.bottom) / 2;
-            POINT p[3];
-            if (up) {
-                p[0] = POINT{ cx - 3, cy + 1 };
-                p[1] = POINT{ cx + 3, cy + 1 };
-                p[2] = POINT{ cx,     cy - 2 };
-            } else {
-                p[0] = POINT{ cx - 3, cy - 1 };
-                p[1] = POINT{ cx + 3, cy - 1 };
-                p[2] = POINT{ cx,     cy + 2 };
-            }
-            HBRUSH ab = CreateSolidBrush(RGB(0xBC, 0xBC, 0xBC));
-            HGDIOBJ oab = SelectObject(hdc, ab);
-            HGDIOBJ oap = SelectObject(hdc, GetStockObject(NULL_PEN));
-            Polygon(hdc, p, 3);
-            SelectObject(hdc, oab);
-            SelectObject(hdc, oap);
-            DeleteObject(ab);
+            // 【修复：实心三角 → 镂空轮廓】与进程页同一个字形
+            // （TmWindow::DrawHollowArrow）。原版是标准 ListView 的滚动条，
+            // 两页的箭头是同一颗 SBP_ARROWBTN 字形。
+            // 【颜色】原为 #BCBCBC，无任何注释/规范支持，是照抄旧截图
+            // （m3.png 系旧版自截图，已证伪）的浅色。原版实测 #606060
+            // （original_win10.png 上箭头 x=1237..1243/y=142..147 全部是
+            // 0x60,0x60,0x60），与进程页同一个值，故一并改成 #606060。
+            DrawHollowArrow(hdc, r, up, RGB(0x60, 0x60, 0x60));
         };
         drawArrow(upBtn, true);
         drawArrow(dnBtn, false);

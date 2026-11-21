@@ -1804,7 +1804,80 @@ constexpr int kThumbMinLen = 11;  // 【系统API实测】SBP_THUMBBTNVERT TS_TR
 constexpr COLORREF kSbTrack   = RGB(0xF0, 0xF0, 0xF0);
 constexpr COLORREF kSbThumb   = RGB(0xCD, 0xCD, 0xCD);
 constexpr COLORREF kSbArrow   = RGB(0x60, 0x60, 0x60);
+
+// ---------------------------------------------------------------------------
+// 滚动条箭头的镂空字形
+// ---------------------------------------------------------------------------
+//
+// 【图案】original_win10.png 逐像素实测。上箭头 x=1237..1243、y=142..147。
+// 归一化成 6 行 × 7 列（列 0 = cx-3，列 6 = cx+3，列 3 = cx）：
+//
+//   行0:  0 0 0 1 0 0 0     尖端一个点（cx）
+//   行1:  0 0 1 1 1 0 0     cx-1 .. cx+1
+//   行2:  0 1 1 1 1 1 0     cx-2 .. cx+2（两笔在这里交汇，所以是实心的一行）
+//   行3:  1 1 1 0 1 1 1     cx-3..cx-1 与 cx+1..cx+3（中间 cx 空）
+//   行4:  1 1 0 0 0 1 1     cx-3,cx-2 与 cx+2,cx+3（空洞 cx-1..cx+1）
+//   行5:  1 0 0 0 0 0 1     cx-3, cx+3
+//
+// 注意外侧边：行2 就已经到满宽 ±3，行3..行5 外侧**一直保持** ±3，
+// 收窄的只有内侧。所以这不是「等宽三角挖空」，不能用公式推，必须逐行查表。
+// （行3 左笔 -3..-1 是 3 个像素，行4 左笔 -3..-2 是 2 个，行5 只剩 -3。）
+//
+// 行号 0..5 从上到下；down 时整张表倒序（原版下箭头 y=782..787 实测就是
+// 上箭头的精确镜像，没有别的差别）。
+constexpr int kArrowH = 6;         // 行数
+constexpr int kArrowHalfW = 3;     // 单侧最远偏移，总宽 7
+constexpr unsigned kArrowGlyphUp[kArrowH] = {
+    0x08,   // 行0  0001000
+    0x1C,   // 行1  0011100
+    0x3E,   // 行2  0111110
+    0x77,   // 行3  1110111
+    0x63,   // 行4  1100011
+    0x41,   // 行5  1000001
+};
+
+} // namespace
+
+void TmWindow::DrawHollowArrow(HDC hdc, const RECT& btn, bool up, COLORREF color) {
+    const int cx = (btn.left + btn.right) / 2;
+    // 垂直居中：图形高 6，上下留白差不超过 1px。
+    // 17px 按钮 ⇒ top+6 .. top+11。
+    // 【实测校验】原版上钮 y=136..152（17px）、箭头 y=142..147 ⇒ 偏移 6..11；
+    // 下钮 y=776..792、箭头 y=782..787 ⇒ 偏移同样是 6..11。两端同一个公式。
+    // （0 基坐标下这也等于 cy-2 .. cy+3，cy = 按钮垂直中心。）
+    const int h = btn.bottom - btn.top;
+    const int y0 = btn.top + (h - kArrowH + 1) / 2;
+
+    // 这个函数是 static（两页共用），拿不到 CachedBrush 的成员缓存。
+    // 每帧只调两次（上/下箭头各一次），CreateSolidBrush/DeleteObject 的
+    // 开销可以忽略；要复用得把 CachedBrush 也改成 static 并各持一份缓存，
+    // 反而更复杂。
+    HBRUSH b = CreateSolidBrush(color);
+    if (!b) return;
+    HGDIOBJ oldBrush = SelectObject(hdc, b);
+    for (int row = 0; row < kArrowH; ++row) {
+        const unsigned bits = kArrowGlyphUp[up ? row : (kArrowH - 1 - row)];
+        const int y = y0 + row;
+        // 每行是一段或两段连续像素，用 FillRect 逐段填 1px 高的小条：
+        // 比 Polygon / LineTo 更精确（不受「闭合路径最后一个像素」影响），
+        // 也不会像 FillPolygonFast 那样把中间也涂满。
+        int col = 0;
+        while (col < kArrowHalfW * 2 + 1) {
+            if (!(bits & (1u << (kArrowHalfW * 2 - col)))) { ++col; continue; }
+            const int start = col;
+            while (col < kArrowHalfW * 2 + 1 &&
+                   (bits & (1u << (kArrowHalfW * 2 - col)))) {
+                ++col;
+            }
+            RECT r{ cx - kArrowHalfW + start, y,
+                    cx - kArrowHalfW + col,     y + 1 };
+            FillRect(hdc, &r, b);
+        }
+    }
+    SelectObject(hdc, oldBrush);
+    DeleteObject(b);
 }
+
 
 int TmWindow::ContentHeight() const {
     // 【子行 22】逐行取实际行高：组头/父行 28、子进程行 22。
@@ -1889,23 +1962,13 @@ void TmWindow::PaintScrollBar(HDC hdc) {
     FillSolidFast(hdc, dnBtn, kSbTrack);
 
     auto drawArrow = [&](const RECT& r, bool up) {
-        // 箭头为实心三角，颜色 #606060（SBP_ARROWBTN 渲染实测：
-        // 轨道/按钮底 #F0F0F0 + 箭头 #606060）。
-        // 尺寸按按钮内部的对称三角：宽 7、高 4（旧值宽 6/高 3，无来源）。
-        int cx = (r.left + r.right) / 2;
-        int cy = (r.top + r.bottom) / 2;
-        POINT p[3];
-        if (up) {
-            p[0] = POINT{ cx - 3, cy + 2 };
-            p[1] = POINT{ cx + 3, cy + 2 };
-            p[2] = POINT{ cx,     cy - 2 };
-        } else {
-            p[0] = POINT{ cx - 3, cy - 2 };
-            p[1] = POINT{ cx + 3, cy - 2 };
-            p[2] = POINT{ cx,     cy + 2 };
-        }
-        // 【性能修复】原为每个箭头各 CreateSolidBrush 一次（每帧 2 次）。
-        FillPolygonFast(hdc, p, 3, kSbArrow);
+        // 【修复：实心三角 → 镂空轮廓】原实现用 FillPolygonFast 画实心三角，
+        // 颜色（#606060）和外接框（宽 7、高 4）都对，但中间被填满了 ——
+        // 原版是 SBP_ARROWBTN 的**描边字形**，放大看是空心的。填充版在
+        // 17px 的按钮里只剩一团墨，这正是用户报的「箭头分辨率太低」。
+        // 详见 TmWindow::DrawHollowArrow 的注释（图案逐像素来自
+        // docs/reference/original_win10.png）。
+        DrawHollowArrow(hdc, r, up, kSbArrow);
     };
     drawArrow(upBtn, true);
     drawArrow(dnBtn, false);
