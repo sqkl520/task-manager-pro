@@ -70,13 +70,27 @@ namespace theme {
 // 进程级 DPI，只取一次（GetDeviceCaps(LOGPIXELSX)，与 perfpage.cpp 现用口径一致）。
 // 取不到时回退 96，避免除零/全零布局。
 inline int Dpi() {
-    static const int s_dpi = []() -> int {
+    // 【不能再用 `static const` 缓存】原来这里是函数内静态常量，进程启动时
+    // 算一次就固化了。而本进程声明的是 PER_MONITOR_AWARE_V2 —— 窗口被拖到
+    // 另一块不同缩放的显示器上时，系统会发 WM_DPICHANGED、DPI 确实变了，
+    // 但这里仍返回启动时那台显示器的值，于是布局全部按错误的缩放算。
+    //
+    // 现在改成可写变量：0 = 还没初始化过，首次调用时探测一次；
+    // 之后由 TmWindow 的 WM_DPICHANGED 分支调 SetDpi(newDpi) 更新。
+    extern int g_dpiCache;
+    if (g_dpiCache <= 0) {
         HDC dc = GetDC(nullptr);
         int dpi = dc ? GetDeviceCaps(dc, LOGPIXELSX) : 96;
         if (dc) ReleaseDC(nullptr, dc);
-        return dpi > 0 ? dpi : 96;
-    }();
-    return s_dpi;
+        g_dpiCache = (dpi > 0) ? dpi : 96;
+    }
+    return g_dpiCache;
+}
+
+// 由 WM_DPICHANGED 调用。传 0 或负数会被忽略（保持原值）。
+inline void SetDpi(int dpi) {
+    extern int g_dpiCache;
+    if (dpi > 0) g_dpiCache = dpi;
 }
 
 // 把「96 DPI 下的 px」换算成当前 DPI 下的 px。本机 96 ⇒ 恒等。
@@ -726,6 +740,10 @@ constexpr COLORREF kGroupHeaderText = RGB(0x1F, 0x59, 0xC3);
 
 // 【已删除】NavItem / NavTitle 枚举与函数 —— 与 tabs.h 的 TabId / TabTitle 一一重复，
 // 全项目零引用。tabs.h 是页签的唯一真源。
+
+// 【Dpi() 的存储】定义在各 TU 都能看到的地方，避免 ODR 问题。
+// 初值在首次使用时由 tmwindow.cpp 的 EnsureDpiInitialized() 填入。
+extern int g_dpiCache;
 
 } // namespace theme
 } // namespace tmp

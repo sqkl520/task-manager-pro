@@ -16,6 +16,11 @@ namespace tmp {
 
 using namespace theme;
 
+// theme::Dpi() 的存储。0 = 未初始化，首次调用时探测。
+// WM_DPICHANGED 到达时由 TmWindow 的窗口过程调 theme::SetDpi() 更新。
+// 放在这里而不是头文件里 inline，是为了全项目只有一份定义。
+namespace theme { int g_dpiCache = 0; }
+
 // ============ 自然序比较（Windows 资源管理器的排序规则） ============
 //
 // Windows 任务管理器按「显示名称」排序，规则和资源管理器一致：

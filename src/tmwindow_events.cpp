@@ -182,6 +182,29 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
     case WM_ERASEBKGND:
         return 1;
 
+    case WM_DPICHANGED: {
+        // 【必须处理】进程声明了 PER_MONITOR_AWARE_V2，窗口被拖到另一块
+        // 不同缩放的显示器上时系统会发这条消息。此前完全没有分支，于是
+        // theme::Dpi() 一直返回启动时那台显示器的值 —— 布局按 96 DPI 的
+        // 硬编码尺寸画，在高分屏上整体偏小（用户反馈"高分屏怪怪的"）。
+        //
+        // 两件事：
+        //   1) 更新 theme::Dpi() 的缓存，让后续所有 Scaled() 用新值
+        //   2) 采纳系统建议的新窗口矩形（不采纳会让窗口尺寸与 DPI 不匹配）
+        theme::SetDpi(HIWORD(wp));
+        const RECT* prc = reinterpret_cast<const RECT*>(lp);
+        if (prc) {
+            SetWindowPos(hwnd_, nullptr,
+                         prc->left, prc->top,
+                         prc->right - prc->left, prc->bottom - prc->top,
+                         SWP_NOZORDER | SWP_NOACTIVATE);
+        }
+        BuildLayout();
+        ClampScroll();
+        InvalidateAll();
+        return 0;
+    }
+
     case WM_SIZE: {
         BuildLayout();
         // 【必须重新钳制 scrollY_】BuildLayout 会重算 rcList_，窗口变大时
