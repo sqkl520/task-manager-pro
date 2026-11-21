@@ -1207,11 +1207,22 @@ void TmWindow::OnMenuCommand(UINT id) {
             !MenuBuilder::PerfToggles().kernelTime;
         InvalidateAll();
         return;
+    // ---- 30206「图形摘要视图(&W)」 ----
+    //
+    // 【已停用 · 2026-11-21】原来这里只翻转 PerfToggles().graphSummary，
+    // 但**绘制侧从未接入**——菜单勾选会变，画面一动不动。这比「点了没反应」
+    // 更糟：用户以为切换成功了，实际什么也没发生。
+    //
+    // 为什么不实现：原版「图形摘要视图」把图表换成什么样，投项目全部取证里
+    // **没有任何证据**（docs/specs/ZZ_FIXES.md:157 已记「不臆造」）。
+    // 凭空画一个「摘要」出来，就是再造一个假功能。
+    //
+    // 处理方式：菜单项置灰（在 MenuBuilder 里做），这里保留一个显式分支，
+    // 万一有别处无条件派发也能看出意图，而不是静默落到 default。
     case CMD_GRAPH_SUMMARY:
-        MenuBuilder::PerfToggles().graphSummary =
-            !MenuBuilder::PerfToggles().graphSummary;
-        InvalidateAll();
+        // 无 GUI 可做。不改状态、不刷新——改状态会误导。
         return;
+
 
     // ---- 30206「查看网络详细信息(&D)」 ----
     // 原版切到网络页并展开「网络详细信息」区块。本实现没有那个区块，
@@ -1227,10 +1238,12 @@ void TmWindow::OnMenuCommand(UINT id) {
         return;
 
     // ---- 30207 侧栏右键三项 ----
+    // ---- 30207「摘要视图(&W)」 ----
+    //
+    // 【已停用 · 2026-11-21】同上：sidebarSummary 只翻转状态、绘制侧零消费。
+    // 原版这一项的渲染形态同样无证据（ZZ_FIXES.md:161）。
+    // 置灰处理，见 MenuBuilder::BuildPerfSidebarContext。
     case CMD_SIDEBAR_SUMMARY:
-        MenuBuilder::PerfToggles().sidebarSummary =
-            !MenuBuilder::PerfToggles().sidebarSummary;
-        InvalidateAll();
         return;
     case CMD_SIDEBAR_SHOW_GRAPH:
         MenuBuilder::PerfToggles().hideSidebarGraph = false;

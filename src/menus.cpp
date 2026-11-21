@@ -664,7 +664,10 @@ HMENU MenuBuilder::BuildPerfContext(int currentView, bool kernelTime, bool summa
     AppendMenuW(m, MF_STRING | (kt ? MF_CHECKED : 0),
                 CMD_SHOW_KERNEL_TIME, L"显示内核时间(&K)");
     AppendMenuW(m, MF_SEPARATOR, 0, nullptr);          // dump 第 86 行之后
-    AppendMenuW(m, MF_STRING | (gs ? MF_CHECKED : 0),
+    // 【置灰 · 2026-11-21】绘制侧未接入（原版摘要视图的渲染形态无证据，
+    // 见 ZZ_FIXES.md:157）。留着可勾选就是假功能：勾了画面不变。
+    // 置灰并去掉勾选态，用户能看出「这里暂不支持」而不是以为切换成功了。
+    AppendMenuW(m, MF_STRING | MF_GRAYED,
                 CMD_GRAPH_SUMMARY, L"图形摘要视图(&W)");
 
     // 「查看(&V)」子菜单 —— 在图表区直接切页，此前完全缺失
@@ -703,7 +706,9 @@ HMENU MenuBuilder::BuildPerfContext(int currentView, bool kernelTime, bool summa
 // ============================================================================
 HMENU MenuBuilder::BuildPerfSidebarContext(bool summaryView, bool hideGraph) {
     HMENU m = CreatePopupMenu();
-    AppendMenuW(m, MF_STRING | (summaryView ? MF_CHECKED : 0),
+    // 【置灰 · 2026-11-21】同 30206 的「图形摘要视图」：绘制侧未接入，
+    // 原版渲染形态无证据（ZZ_FIXES.md:161）。置灰优于假可勾选。
+    AppendMenuW(m, MF_STRING | MF_GRAYED,
                 CMD_SIDEBAR_SUMMARY, L"摘要视图(&W)");
     AppendMenuW(m, MF_STRING | (!hideGraph ? MF_CHECKED : 0),
                 CMD_SIDEBAR_SHOW_GRAPH, L"显示图形(&S)");
