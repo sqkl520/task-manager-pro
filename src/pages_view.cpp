@@ -350,6 +350,21 @@ void PagesView::Text(HDC hdc, const wchar_t* s, RECT* rc, UINT fmt, COLORREF c) 
 
 // ============ 表格绘制 ============
 
+// 排序指示器。与进程页列头同形（那边逐像素对齐过真原版）：
+//   降序 ▼  升序 ▲
+//   9 行高、核心 1px 宽的细折角，抗锯齿由 GDI 的硬像素近似（无 alpha）。
+// 这里不追求像素级 —— 次要页的列表与进程页不是同一套控件，
+// 只保证「形状语义一致、颜色一致」。
+void PagesView::DrawSortChevron(HDC hdc, int cx, int cy, bool desc, COLORREF color) const {
+    static const signed char kCx[9] = { 0, 1, 2, 3, 3, 3, 2, 1, 0 };
+    for (int i = 0; i < 9; ++i) {
+        // 升序时整条上下翻转
+        const int row = desc ? i : (8 - i);
+        SetPixelV(hdc, cx + kCx[i], cy + row, color);
+        if (i == 4) SetPixelV(hdc, cx + 4, cy + row, color);   // 折角多一格
+    }
+}
+
 void PagesView::PaintTableHeader(HDC hdc, const RECT& rc, const ColumnDef* cols,
                                  int nCols, int flexWidth) const {
     RECT hdr{ rc.left, rc.top, rc.right, rc.top + kHeaderHeight };
@@ -375,6 +390,21 @@ void PagesView::PaintTableHeader(HDC hdc, const RECT& rc, const ColumnDef* cols,
         RECT cell{ x + kCellPadLeft, hdr.top, x + w - kCellPadRight, hdr.bottom };
         UINT fmt = DT_SINGLELINE | DT_VCENTER | cols[i].align;
         Text(hdc, cols[i].title, &cell, fmt, kTextHeader);
+
+        // 【排序箭头】当前页的排序列画一个细折角（降序 ▼ / 升序 ▲）。
+        // 位置：列名**右侧**。次要页的单元格左边距只有 4px（kCellPadLeft），
+        // 放在左边会压到列边界竖线上；放右边既不会撞列名，也与进程页的
+        // 「箭头在文字旁」观感一致。
+        if (CurSortCol() == i) {
+            SIZE sz{};
+            HGDIOBJ oldf = SelectObject(hdc, fontBold_);
+            GetTextExtentPoint32W(hdc, cols[i].title, lstrlenW(cols[i].title), &sz);
+            SelectObject(hdc, oldf);
+            const int cx = x + kCellPadLeft + sz.cx + 4;
+            const int cy = hdr.top + (kHeaderHeight - 9) / 2;
+            DrawSortChevron(hdc, cx, cy, CurSortDesc(), kTextHeader);
+        }
+
         x += w;
     }
     SelectObject(hdc, old);
@@ -947,6 +977,160 @@ void PagesView::PaintAppHistory(HDC hdc) const {
 // 行悬停永远不出现，服务页 300 多项只有前十几行能看。事件层一旦调用它们，
 // 两处绘制分支（PaintUsers/PaintServices/PaintAppHistory 里的 `i == hover_`
 // 与 `kHeaderHeight - scroll_`）就会立刻活过来。
+
+// 当前页的列定义与弹性宽度基准。四个页各有一套（见 kXxxCols 的注释）。
+// 返回 nullptr 表示当前页没有表格（性能页等）。
+const PagesView::ColumnDef* PagesView::CurCols(int& nCols, int& flexW) const {
+    const RECT& rc = bounds_;
+    int fixed = 0;
+    switch (currentTab_) {
+    case 3:   // 启动
+        for (int i = 0; i < kStartupColCount; ++i)
+            if (!kStartupCols[i].flexible) fixed += kStartupCols[i].width;
+        flexW = (static_cast<int>(rc.right - rc.left) - fixed > 215)
+                    ? static_cast<int>(rc.right - rc.left) - fixed : 215;
+        nCols = kStartupColCount;
+        return kStartupCols;
+    case 2:   // 应用历史
+        for (int i = 0; i < kAppHistColCount; ++i)
+            if (!kAppHistCols[i].flexible) fixed += kAppHistCols[i].width;
+        flexW = (static_cast<int>(rc.right - rc.left) - fixed > 198)
+                    ? static_cast<int>(rc.right - rc.left) - fixed : 198;
+        nCols = kAppHistColCount;
+        return kAppHistCols;
+    case 4:   // 用户
+        for (int i = 0; i < kUserColCount; ++i)
+            if (!kUserCols[i].flexible) fixed += kUserCols[i].width;
+        flexW = (static_cast<int>(rc.right - rc.left) - fixed > 215)
+                    ? static_cast<int>(rc.right - rc.left) - fixed : 215;
+        nCols = kUserColCount;
+        return kUserCols;
+    case 6:   // 服务
+        for (int i = 0; i < kServiceColCount; ++i)
+            if (!kServiceCols[i].flexible) fixed += kServiceCols[i].width;
+        flexW = (static_cast<int>(rc.right - rc.left) - fixed > 120)
+                    ? static_cast<int>(rc.right - rc.left) - fixed : 120;
+        nCols = kServiceColCount;
+        return kServiceCols;
+    default:
+        nCols = 0;
+        flexW = 0;
+        return nullptr;
+    }
+}
+
+int PagesView::HitHeaderAt(int x, int y) const {
+    // 只在表头带内
+    if (y < bounds_.top || y >= bounds_.top + kHeaderHeight) return -1;
+    if (x < bounds_.left || x >= bounds_.right) return -1;
+
+    int nCols = 0, flexW = 0;
+    const ColumnDef* cols = CurCols(nCols, flexW);
+    if (!cols) return -1;
+
+    int cx = bounds_.left;
+    for (int i = 0; i < nCols; ++i) {
+        const int w = cols[i].flexible ? flexW : cols[i].width;
+        if (x >= cx && x < cx + w) return i;
+        cx += w;
+    }
+    return -1;
+}
+
+bool PagesView::ClickHeader(int col) {
+    if (currentTab_ < 0 || currentTab_ >= kMaxSortPages) return false;
+    int nCols = 0, flexW = 0;
+    const ColumnDef* cols = CurCols(nCols, flexW);
+    if (!cols || col < 0 || col >= nCols) return false;
+
+    if (sortCol_[currentTab_] == col) {
+        // 同列再点：翻转方向
+        sortDesc_[currentTab_] = !sortDesc_[currentTab_];
+    } else {
+        // 换列：从升序开始
+        sortCol_[currentTab_] = col;
+        sortDesc_[currentTab_] = false;
+    }
+    ApplySort();
+    scroll_ = 0;        // 重排后回到顶部，否则会停在不相干的位置
+    hover_ = -1;
+    return true;
+}
+
+// 按当前页的排序状态重排数据。没有排序（sortCol < 0）时保持数据源顺序。
+void PagesView::ApplySort() {
+    const int col = CurSortCol();
+    const bool desc = CurSortDesc();
+    if (col < 0) return;
+
+    auto cmpStr = [desc](const std::wstring& a, const std::wstring& b) {
+        const int r = _wcsicmp(a.c_str(), b.c_str());
+        return desc ? (r > 0) : (r < 0);
+    };
+
+    switch (currentTab_) {
+    case 3:   // 启动：名称 / 发布者 / 状态 / 启动影响
+        if (col < 4) {
+            std::sort(startup_.begin(), startup_.end(),
+                [&](const StartupItem& a, const StartupItem& b) {
+                    switch (col) {
+                    case 0: return cmpStr(a.name, b.name);
+                    case 1: return cmpStr(a.publisher, b.publisher);
+                    case 2: {
+                        // 启用 > 禁用（desc 时反过来）
+                        const bool ea = a.enabled, eb = b.enabled;
+                        if (ea != eb) return desc ? (ea < eb) : (ea > eb);
+                        return false;
+                    }
+                    default:
+                        // 「启动影响」目前整列都是「未计量」——StartupItem 里
+                        // 没有影响等级字段（要从 StartupApproved 或历史记录推，
+                        // 成本高且不稳定）。该列点排序不改变顺序，直接 false。
+                        (void)a; (void)b;
+                        return false;
+                    }
+                });
+        }
+        break;
+
+    case 6:   // 服务：名称 / PID / 描述 / 状态 / 组
+        if (col < 5) {
+            std::sort(services_.begin(), services_.end(),
+                [&](const ServiceItem& a, const ServiceItem& b) {
+                    switch (col) {
+                    case 0: return cmpStr(a.name, b.name);
+                    case 1: {
+                        if (a.pid != b.pid) return desc ? (a.pid > b.pid) : (a.pid < b.pid);
+                        return false;
+                    }
+                    case 2: return cmpStr(a.displayName, b.displayName);
+                    case 3: return cmpStr(a.stateText, b.stateText);
+                    default: return cmpStr(a.group, b.group);
+                    }
+                });
+        }
+        break;
+
+    case 4:   // 用户：用户 / 状态 / CPU / 内存 /(磁盘 网络 GPU 无数据源)
+        // UserSession 只聚合了 cpuPercent 与 workingSet 两项；磁盘/网络/GPU
+        // 三列目前没有数据源（见 pages_data.h 的字段列表），对它们排序无意义。
+        if (col < 4) {
+            std::sort(users_.begin(), users_.end(),
+                [&](const UserSession& a, const UserSession& b) {
+                    switch (col) {
+                    case 0: return cmpStr(a.userName, b.userName);
+                    case 1: return cmpStr(a.stateText, b.stateText);
+                    case 2: return desc ? (a.cpuPercent > b.cpuPercent) : (a.cpuPercent < b.cpuPercent);
+                    default: return desc ? (a.workingSet > b.workingSet) : (a.workingSet < b.workingSet);
+                    }
+                });
+        }
+        break;
+
+    default:
+        break;
+    }
+}
 
 int PagesView::HitRowAt(int x, int y) const {
     if (x < bounds_.left || x >= bounds_.right) return -1;

@@ -725,6 +725,15 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
             }
         }
 
+        // 表头点击排序（四个次要页）。必须排在行点击之前 ——
+        // 表头带是独立区域，落在那里就不该走行选中逻辑。
+        if (pagesView_.HitHeaderAt(x, y) >= 0) {
+            if (pagesView_.ClickHeader(pagesView_.HitHeaderAt(x, y))) {
+                InvalidateAll();
+            }
+            return 0;
+        }
+
         // 四个次要页面的行点击
         // 【启动页此前完全没有接这个分发】PagesView::OnClickStartup() 全工程
         // 零调用点，于是 selStartup_ 永远是 -1 → 启动项左键点不亮（没有选中高亮），

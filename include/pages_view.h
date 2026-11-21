@@ -76,6 +76,13 @@ public:
     // 返回行索引或 -1。与 HitRow 的区别是它自己取当前页的行数，
     // 调用方不用知道 pages 的内部结构。
     int HitRowAt(int x, int y) const;
+    // 表头命中：返回列索引或 -1。坐标落在表头带内且在某列范围里才算。
+    int HitHeaderAt(int x, int y) const;
+    // 点表头：同列再点一次翻转方向，换列则重置为升序。
+    // 返回 true 表示排序状态变了（调用方需要重绘）。
+    bool ClickHeader(int col);
+    // 按当前页的排序状态重排数据
+    void ApplySort();
     // ScrollBy 以「行」为单位（正数向下），内部按当前页的行数 clamp，
     // 不做像素级滚动 —— 调用方用 -delta/WHEEL_DELTA 换算。
     void ScrollBy(int lines);
@@ -94,6 +101,10 @@ private:
 
     void PaintTableHeader(HDC hdc, const RECT& rc, const ColumnDef* cols, int nCols,
                           int flexWidth) const;
+    // 排序指示器：desc=true 画 ▼，false 画 ▲。9 行高的细折角。
+    void DrawSortChevron(HDC hdc, int cx, int cy, bool desc, COLORREF color) const;
+    // 当前页的列定义 + 弹性宽度基准。nullptr = 该页没有表格。
+    const ColumnDef* CurCols(int& nCols, int& flexW) const;
     void PaintCellText(HDC hdc, const wchar_t* text, int x, int y, int w, int h,
                        UINT align, COLORREF color) const;
     void FillRow(HDC hdc, int x, int y, int w, int h, int rowIndex,
@@ -127,6 +138,23 @@ private:
     // maxScroll = 内容总高 - 可视高（可以不是行高的整数倍）。
     // 副作用是滚到底时最后一行能完整露出，不会留下 22px 的空白。
     int scroll_ = 0;
+    // 排序状态（四个次要页共用一套字段，按页记住各自的）。
+    //
+    // 【为什么是数组】四个页的列定义各不相同（启动 4 列、用户 7 列、服务 3 列、
+    // 应用历史 3 列），排序状态必须按页分开——否则在服务页按「状态」排完
+    // 切到用户页，那个列号会指到不相干的列上。
+    //
+    // kMaxSortPages 取 8，够覆盖 TabId 的全部取值。
+    static constexpr int kMaxSortPages = 8;
+    int sortCol_[kMaxSortPages]  = { -1, -1, -1, -1, -1, -1, -1, -1 };
+    bool sortDesc_[kMaxSortPages] = { false, false, false, false, false, false, false, false };
+    // 当前页的排序列 / 方向（-1 = 不排序，保持数据源顺序）
+    int CurSortCol() const {
+        return (currentTab_ >= 0 && currentTab_ < kMaxSortPages) ? sortCol_[currentTab_] : -1;
+    }
+    bool CurSortDesc() const {
+        return (currentTab_ >= 0 && currentTab_ < kMaxSortPages) ? sortDesc_[currentTab_] : false;
+    }
     int currentTab_ = -1;   // TabId 的值，-1 = 还没同步过
     int enrichCursor_ = 0;
     // 「重启服务」第二阶段用：待启动的服务短名。非空表示上一轮已发出停止，
