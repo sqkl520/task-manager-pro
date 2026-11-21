@@ -182,7 +182,7 @@ int RunSelfTest() {
     // 【关键修复】必须把快照交给窗口，否则 snap_ 为 null、rows_ 为空，
     // 下面所有交互都点在一个空列表上。之前一直缺这一行，
     // 导致自测的交互部分全部空转（数字统计部分是真的）。
-    // g_win->SetSnapshot(snap);   // ← 负向对照：临时注释，验证自测能抓出这个缺陷
+    g_win->SetSnapshot(snap);
 
     log.F("快照序号=%llu  进程数=%zu  采集耗时=%.2f ms\n",
          (unsigned long long)snap->sequence, snap->processes.size(),
@@ -251,6 +251,13 @@ int RunSelfTest() {
     // 现在由 TmWindow::ClickColumnHeaderForTest 用真实几何逐像素反查目标列。
     log.W(L"\n=== 列排序自测 ===\n");
     const int colCount = g_win->ColumnCountForTest();
+    // 【守卫】行表为空时，点列头虽然会改 sortCol_，但那只是改了个数字 ——
+    // 没有任何行被重排（rows_ 是空的），这正是缺陷 1 的形态。
+    // 所以先判行表非空，否则下面每项都会误报 PASS（"sortCol 变了"）。
+    const bool haveRows = g_win->RowCount() > 0;
+    if (!haveRows) {
+        Mark(-1, L"列排序（全部列）", "行表为空，点击列头不会重排任何行，未测");
+    }
     // 先按名称列排一次，拿到一份基准 pid 顺序，后面用来验证「真的重排了」。
     std::wstring baseOrder;
     bool haveBase = false;
@@ -275,7 +282,8 @@ int RunSelfTest() {
         char detail[160];
         sprintf_s(detail, "sortCol %d→%d, desc %d→%d", beforeCol, afterCol,
                   beforeDesc ? 1 : 0, afterDesc ? 1 : 0);
-        const bool ok = clicked && afterCol == col &&
+        // 排序状态变了 **且** 确实有行可排，才算真的生效
+        const bool ok = haveRows && clicked && afterCol == col &&
                         (afterCol != beforeCol || afterDesc != beforeDesc);
         Mark(ok ? 1 : 0, name.c_str(), detail);
 

@@ -195,6 +195,29 @@ private:
     void PaintDetailsPage(HDC hdc);
     void RebuildDetailRows();
 
+    // ---- 「这一行显示什么值」的唯一来源 ----
+    //
+    // 【为什么要有这个函数】
+    // 同一行在三个地方被取值：屏上绘制（PaintRows）、Ctrl+C 复制、
+    // 排序键。三处各写一遍的结果是它们会漂移——之前 Ctrl+C 复制的是
+    // 根进程的总工作集，而屏上显示的是私有工作集或整棵应用树的聚合值，
+    // 用户复制出来的数字和看到的对不上。
+    //
+    // 【语义】应用根行（有子进程、indentLevel==0）显示整棵树的聚合值；
+    // 其余行显示自己的 privateBytes（取不到时退回 workingSet）。
+    // 内存口径统一用「私有工作集」，与进程页内存列、排序键一致。
+    //
+    // 调用者必须传一个有效的 rowIndex（0 <= rowIndex < rows_.size()）。
+    // 越界时返回 false，各字段保持原样不改。
+    struct RowDisplay {
+        double cpuPercent = 0.0;
+        uint64_t memBytes = 0;
+        double diskBytesPerSec = 0.0;
+        double netBitsPerSec = 0.0;
+        double gpuPercent = 0.0;
+    };
+    bool GetRowDisplay(int rowIndex, RowDisplay& out) const;
+
     // 详细信息页的状态
     std::vector<const ProcessEntry*> detailRows_;
     int detailScrollY_ = 0;

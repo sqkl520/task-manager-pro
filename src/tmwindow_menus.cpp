@@ -1727,10 +1727,17 @@ void TmWindow::CopySelectedRowToClipboard() {
             if (e.pid == r.pid) { pe = &e; break; }
         }
         if (!pe) return;
+        // 【口径统一】复制值和屏上显示走同一个来源（GetRowDisplay）。
+        // 原来这里直接打 pe->workingSet，而屏上显示的是私有工作集，
+        // 应用行还是整棵树的聚合值——复制出来和看到的对不上。
+        RowDisplay dv;
+        dv.cpuPercent = pe->cpuPercent;
+        dv.memBytes = pe->privateBytes ? pe->privateBytes : pe->workingSet;
+        GetRowDisplay(selectedRow_, dv);
         wchar_t b[512];
         swprintf_s(b, L"%s\t%.1f%%\t%.1f MB",
-                   pe->imageName.c_str(), pe->cpuPercent,
-                   pe->workingSet / 1048576.0);
+                   pe->imageName.c_str(), dv.cpuPercent,
+                   dv.memBytes / 1048576.0);
         text = b;
     } else if (tabs_.Current() == TabId::Details) {
         // 【补】详细信息页此前**什么都不复制**（只处理 Processes / Services）。
@@ -1741,12 +1748,15 @@ void TmWindow::CopySelectedRowToClipboard() {
             if (p && p->pid == detailSelectedPid_) { pe = p; break; }
         }
         if (!pe) return;
+        // 【口径统一】详细信息页是扁平列表，没有应用聚合语义，
+        // 但内存口径要和该页屏上显示一致：privateBytes 优先，取不到退回 workingSet。
+        const uint64_t memShown = pe->privateBytes ? pe->privateBytes : pe->workingSet;
         wchar_t b[1024];
         swprintf_s(b, L"%s\t%u\t%s\t%.1f%%\t%.1f MB",
                    pe->imageName.c_str(), pe->pid,
                    pe->suspendedThreadCount >= pe->threadCount && pe->threadCount
                        ? L"已挂起" : L"正在运行",
-                   pe->cpuPercent, pe->workingSet / 1048576.0);
+                   pe->cpuPercent, memShown / 1048576.0);
         text = b;
     } else if (tabs_.Current() == TabId::Services) {
         int s = pagesView_.SelectedService();

@@ -1273,6 +1273,64 @@ void TmWindow::PaintColumnHeader(HDC hdc) {
 
 // ============ 绘制：进程列表 ============
 
+// 「这一行显示什么值」的唯一来源。
+//
+// 【为什么单独抽出来】同一行在三个地方被取值：屏上绘制（PaintRows）、
+// Ctrl+C 复制（CopySelectedRowToClipboard）、排序键（RebuildRows 的 cmp）。
+// 三处各写一遍就会漂移——之前 Ctrl+C 复制的是根进程的总工作集，
+// 屏上显示的是私有工作集或整棵应用树的聚合值，用户复制出来对不上。
+//
+// 【语义】应用根行（indentLevel==0 且有子进程）显示整棵树的聚合值；
+// 其余行显示自己的 privateBytes（取不到时退回 workingSet）。
+bool TmWindow::GetRowDisplay(int rowIndex, RowDisplay& out) const {
+    if (rowIndex < 0 || rowIndex >= static_cast<int>(rows_.size())) return false;
+    if (!snap_) return false;
+
+    const ViewRow& row = rows_[static_cast<size_t>(rowIndex)];
+    if (row.kind != ViewRow::ProcessRow) return false;
+
+    auto itP = byPid_.find(row.pid);
+    if (itP == byPid_.end() || !itP->second) return false;
+    const ProcessEntry* pe = itP->second;
+
+    out.cpuPercent = pe->cpuPercent;
+    out.memBytes = pe->privateBytes ? pe->privateBytes : pe->workingSet;
+    out.diskBytesPerSec = pe->diskBytesPerSec;
+    out.netBitsPerSec = pe->netBitsPerSec;
+    out.gpuPercent = pe->gpuPercent;
+
+    if (row.indentLevel == 0 && row.hasChildren) {
+        auto itAgg = appAgg_.find(pe->pid);
+        if (itAgg != appAgg_.end()) {
+            out.cpuPercent = itAgg->second.cpuPercent;
+            out.memBytes = itAgg->second.memBytes;
+            out.diskBytesPerSec = itAgg->second.diskBytesPerSec;
+            out.netBitsPerSec = itAgg->second.netBitsPerSec;
+            // GPU 用最大值（不能相加，见 AppAggregate 注释）
+            out.gpuPercent = itAgg->second.gpuPercentMax;
+        }
+    } else if (row.indentLevel == 0 && cls_.appRoots.count(pe->pid)) {
+        // 【简略视图修正】简略视图把 hasChildren 强制置 false（它不画三角、
+        // 不允许展开），于是上面的分支不成立，那一行显示的是根进程自身值；
+        // 但排序键（cmp → sortMem）对 appRoots 成员返回聚合值。
+        // 结果：按聚合值排序、按自身值显示，同一行两个口径。
+        //
+        // 这里补一条：只要它是应用根，就显示聚合值，与排序键同源。
+        // 判据用 appRoots 而不是 hasChildren —— 后者在简略视图里被人为清掉了。
+        // 应用根若真的没有子进程，getAgg 的 memBytes 就等于它自己那一条，
+        // 两种判据结果相同，不会引入偏差。
+        auto itAgg = appAgg_.find(pe->pid);
+        if (itAgg != appAgg_.end()) {
+            out.cpuPercent = itAgg->second.cpuPercent;
+            out.memBytes = itAgg->second.memBytes;
+            out.diskBytesPerSec = itAgg->second.diskBytesPerSec;
+            out.netBitsPerSec = itAgg->second.netBitsPerSec;
+            out.gpuPercent = itAgg->second.gpuPercentMax;
+        }
+    }
+    return true;
+}
+
 void TmWindow::PaintRows(HDC hdc) {
     g_liveWidths = colWidths_;
     g_liveVisible = colVisible_;
@@ -1509,23 +1567,23 @@ void TmWindow::PaintRows(HDC hdc) {
             //
             // 子进程行（indentLevel > 0）显示各自的值。
             // 这段必须在绘制和热力图计算**之前**，两边用同一套值。
-            double shownCpu = pe->cpuPercent;
-            uint64_t shownMem = pe->privateBytes ? pe->privateBytes : pe->workingSet;
-            double shownDisk = pe->diskBytesPerSec;
-            double shownNet = pe->netBitsPerSec;
-            double shownGpu = pe->gpuPercent;
+            //
+            // 【口径统一】改走 GetRowDisplay()，与 Ctrl+C 复制、排序键同源。
+            // 原来这里内联了一份同样的逻辑，复制那边另写一份，于是漂移成了
+            // 「复制出来的数字和屏上看的对不上」。
+            RowDisplay dv;
+            dv.cpuPercent = pe->cpuPercent;
+            dv.memBytes = pe->privateBytes ? pe->privateBytes : pe->workingSet;
+            dv.diskBytesPerSec = pe->diskBytesPerSec;
+            dv.netBitsPerSec = pe->netBitsPerSec;
+            dv.gpuPercent = pe->gpuPercent;
+            GetRowDisplay(static_cast<int>(i), dv);
 
-            if (row.indentLevel == 0 && row.hasChildren) {
-                auto itAgg = appAgg_.find(pe->pid);
-                if (itAgg != appAgg_.end()) {
-                    shownCpu = itAgg->second.cpuPercent;
-                    shownMem = itAgg->second.memBytes;
-                    shownDisk = itAgg->second.diskBytesPerSec;
-                    shownNet = itAgg->second.netBitsPerSec;
-                    // GPU 用最大值（不能相加，见 AppAggregate 注释）
-                    shownGpu = itAgg->second.gpuPercentMax;
-                }
-            }
+            const double shownCpu = dv.cpuPercent;
+            const uint64_t shownMem = dv.memBytes;
+            const double shownDisk = dv.diskBytesPerSec;
+            const double shownNet = dv.netBitsPerSec;
+            const double shownGpu = dv.gpuPercent;
 
             // ---- 热力图着色的依据 ----
             //
