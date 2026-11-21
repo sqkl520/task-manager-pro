@@ -1847,11 +1847,12 @@ void TmWindow::DrawHollowArrow(HDC hdc, const RECT& btn, bool up, COLORREF color
     const int h = btn.bottom - btn.top;
     const int y0 = btn.top + (h - kArrowH + 1) / 2;
 
-    // 这个函数是 static（两页共用），拿不到 CachedBrush 的成员缓存。
-    // 每帧只调两次（上/下箭头各一次），CreateSolidBrush/DeleteObject 的
-    // 开销可以忽略；要复用得把 CachedBrush 也改成 static 并各持一份缓存，
-    // 反而更复杂。
-    HBRUSH b = CreateSolidBrush(color);
+    // 【性能】走本文件的画刷缓存，和 FillSolidFast / FillPolygonFast 一致。
+    // 此前这里是裸 CreateSolidBrush + DeleteObject，注释还写着「static 拿不到
+    // 成员缓存」—— 每帧 2 次 Create/Delete 正是本文件 621 行那段注释专门修掉的模式。
+    // 注意必须写 `tmp::` 限定：类里有一个同名的非静态成员 CachedBrush(COLORREF)，
+    // 在成员函数体内它会**遮蔽**文件作用域那个自由函数，不限定就编不过（C2352）。
+    HBRUSH b = tmp::CachedBrush(color);
     if (!b) return;
     HGDIOBJ oldBrush = SelectObject(hdc, b);
     for (int row = 0; row < kArrowH; ++row) {
@@ -1874,7 +1875,6 @@ void TmWindow::DrawHollowArrow(HDC hdc, const RECT& btn, bool up, COLORREF color
         }
     }
     SelectObject(hdc, oldBrush);
-    DeleteObject(b);
 }
 
 
