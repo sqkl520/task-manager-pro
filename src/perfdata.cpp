@@ -267,32 +267,27 @@ void PerfCollector::ReadStaticCpuInfo() {
 }
 
 bool PerfCollector::InitPdH() {
-    // 磁盘：4 个计数器（活动时间、读、写、响应时间）
-    if (!diskQuery_) {
-        PDH_HQUERY q = nullptr;
-        if (PdhOpenQueryW(nullptr, 0, &q) == ERROR_SUCCESS) {
-            PDH_HCOUNTER c;
-            PdhAddEnglishCounterW(q, L"\\PhysicalDisk(*)\\% Idle Time", 0, &c);
-            PdhAddEnglishCounterW(q, L"\\PhysicalDisk(*)\\Disk Read Bytes/sec", 0, &c);
-            PdhAddEnglishCounterW(q, L"\\PhysicalDisk(*)\\Disk Write Bytes/sec", 0, &c);
-            PdhAddEnglishCounterW(q, L"\\PhysicalDisk(*)\\Avg. Disk sec/Transfer", 0, &c);
-            diskQuery_ = q;
-        }
-    }
-    // 网络
-    if (!netQuery_) {
-        PDH_HQUERY q = nullptr;
-        if (PdhOpenQueryW(nullptr, 0, &q) == ERROR_SUCCESS) {
-            PDH_HCOUNTER c;
-            PdhAddEnglishCounterW(q, L"\\Network Interface(*)\\Bytes Sent/sec", 0, &c);
-            PdhAddEnglishCounterW(q, L"\\Network Interface(*)\\Bytes Received/sec", 0, &c);
-            netQuery_ = q;
-        }
-    }
-    // GPU 不走 PDH —— \GPU Engine(*) 通配符在本机实测 1378-2455 ms，
-    // 那正是本项目要消灭的卡顿来源。改用 gpuinfo 的 D3DKMT 路径（~1.0 ms），
-    // 初始化在 Start() 里完成。
-    return diskQuery_ || netQuery_;
+    // 【已移除 · 2026-11-21】这里原来建了两个 PDH 查询、共 6 个 `(*)` 通配符计数器：
+    //   diskQuery_: \PhysicalDisk(*)\% Idle Time / Disk Read Bytes/sec /
+    //               Disk Write Bytes/sec / Avg. Disk sec/Transfer
+    //   netQuery_ : \Network Interface(*)\Bytes Sent/sec / Bytes Received/sec
+    //
+    // **它们从未被读取过。** 全项目零处调用 PdhCollectQueryData /
+    // PdhGetFormattedCounterValue（grep 确认为空），这两个句柄只在构造时创建、
+    // 在析构时关闭，中间一个数据点都没取。
+    //
+    // 代价却不小：`(*)` 通配符要在 8 块盘 × 几十个网络接口上展开并注册计数器，
+    // 初始化一次就是几十毫秒的纯开销。而且 `(*)` 通配符正是本项目铁律明令禁止的
+    // 那类查询（\Thread(*) 曾经 947 ms/次）。
+    //
+    // 磁盘与网络的真实数据走的是别的路径：
+    //   - 磁盘：NtQuerySystemInformation(SystemPerformanceInformation) 的
+    //     IoRead/WriteTransferCount 差分（见 CollectDisk）
+    //   - 网络：ETW Microsoft-Windows-Kernel-Network（见 netproc）
+    //   - GPU：D3DKMT（见 gpuinfo），显式避开 \GPU Engine(*)
+    //
+    // 所以这个方法现在无事可做，保留是为了不改调用点。
+    return false;
 }
 
 // 建立「接口索引 -> 友好名称」映射。
@@ -408,10 +403,9 @@ void PerfCollector::ClosePdH() {
     auto close = [](void*& p) {
         if (p) { PdhCloseQuery(static_cast<PDH_HQUERY>(p)); p = nullptr; }
     };
-    close(diskQuery_);
-    close(netQuery_);
-    close(gpuQuery_);
-    close(gpuMemQuery_);
+    // 【已无 PDH 句柄需要关闭·2026-11-21】diskQuery_ / netQuery_ / gpuQuery_ /
+    // gpuMemQuery_ 四个成员已删除：前两个是建了从不读的通配符查询（见 InitPdH），
+    // 后两个更是从未被赋值过（GPU 走 D3DKMT，根本不建 PDH 查询）。
 }
 
 void PerfCollector::ThreadProc() {
@@ -557,13 +551,19 @@ bool PerfCollector::CollectOnce(PerfSnapshot& out) {
             }
         }
     }
-    // 使用中 = 总量 - 可用 - 已缓存
+    // 使用中 = 总量 - 可用
+    //
+    // 【口径说明】这里刻意**不减 cachedBytes**：`ullAvailPhys`（availableBytes）
+    // 已经包含「待命（standby）里可回收」的那部分，再减一次就是重复扣除，
+    // 会把使用中算少。原版任务管理器「内存」卡用的也是这个口径：
+    //   使用中 = TotalPhys - AvailPhys
+    // 与进程页表头（TmWindow::SetSnapshot 里同一个减法）完全一致。
+    //
+    // 【历史】此前这里有两行：先是 `total - available - cached`，但那一行的
+    // 减数写成了 `(cached > available ? 0 : 0)` —— 恒为 0，等于什么也没减；
+    // 紧跟着第二行又把整个结果覆盖成 `total - available`。
+    // 于是第一行是纯死代码，却让读者以为这里在算 cached。已删除。
     if (out.mem.totalBytes > 0) {
-        uint64_t cached = out.mem.cachedBytes;
-        if (cached > out.mem.totalBytes) cached = out.mem.totalBytes;
-        out.mem.inUseBytes = out.mem.totalBytes - out.mem.availableBytes -
-                             (cached > out.mem.availableBytes ? 0 : 0);
-        // 简化：使用中 = total - available（备用算作可用）
         out.mem.inUseBytes = out.mem.totalBytes - out.mem.availableBytes;
     }
 

@@ -152,11 +152,13 @@ private:
     std::vector<CoreTimes> prevCores_;
     bool hasPrev_ = false;
 
-    // PDH
-    void* diskQuery_ = nullptr;
-    void* netQuery_ = nullptr;
-    void* gpuQuery_ = nullptr;
-    void* gpuMemQuery_ = nullptr;
+    // 【PDH 句柄已全部移除 · 2026-11-21】
+    // 原来这里有 diskQuery_ / netQuery_ / gpuQuery_ / gpuMemQuery_ 四个 void*：
+    //   - diskQuery_ / netQuery_ 在 InitPdH 里建了 6 个 `(*)` 通配符计数器，
+    //     但全项目零处 PdhCollectQueryData，从未读过一次数据
+    //   - gpuQuery_ / gpuMemQuery_ 连赋值都没有过
+    // 保留它们只会让人以为这里有一条 PDH 数据通路。真实路径：
+    //   磁盘 NtQuerySystemInformation / 网络 ETW / GPU D3DKMT。
 
     // GPU 页专用：每引擎使用率 + 适配器静态信息。
     //
