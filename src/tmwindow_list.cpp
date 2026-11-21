@@ -406,6 +406,120 @@ void TmWindow::SetColumnWidth(int col, int w, bool persist) {
     InvalidateAll();
 }
 
+// ============ 自测（--selftest）专用实现 ============
+//
+// 见 include/tmwindow.h 的声明注释：这些方法存在的唯一理由是让自测**不猜坐标**。
+// 坐标一律由窗口自己的几何（rcColHeader_ / HitTestColumn / TreeTriangleX）
+// 现场算出，结果也由窗口自己校验后返回。
+//
+// 【为什么不做成"发一条 WM_LBUTTONDOWN 就完事"】
+// 之前自测正是这么干的，然后只打印"已发送" —— 消息投出去之后有没有命中任何
+// 目标完全没人看。600 进程的列表里，点在 y=144（列头实际是 y=45..89）
+// 落在第 2 行上，消息被"选中行"分支吃掉，排序一次都没变，而日志全绿。
+// 所以这里直接调用与 WM_LBUTTONDOWN 分支**同一套**命中/排序逻辑，
+// 再回读 sortCol_ 判断是否真的生效。
+
+bool TmWindow::ClickColumnHeaderForTest(int col) {
+    if (col < 0 || col >= kSortColCount) return false;
+    // 只有进程页有这套列模型（与 WndProc 的 `tabs_.Current() == Processes` 守卫一致）
+    if (tabs_.Current() != TabId::Processes) return false;
+    // 隐藏列不占位、命中不到（HitTestColumn 走 VisW，宽度为 0）
+    if (!IsColumnVisible(col)) return false;
+
+    // 在列头带中线逐像素扫，用真实的 HitTestColumn 反查哪个 x 属于第 col 列。
+    // 与 TmWindow::SimulateHeaderClick 同一手法，但这里要拿到确切的 x 供日志用。
+    const int y = (rcColHeader_.top + rcColHeader_.bottom) / 2;
+    int hitX = -1;
+    for (int x = rcColHeader_.left; x < rcColHeader_.right; ++x) {
+        if (HitTestColumn(x, y) == col) { hitX = x; break; }
+    }
+    if (hitX < 0) return false;   // 这一列在列头带里根本没有像素（宽度 0）
+
+    // 重放 WM_LBUTTONDOWN 的「列头点击 → 排序」分支（tmwindow_events.cpp:562-581）。
+    // 不改那条分支，而是复用同样的状态转移，避免两份排序语义走偏。
+    const int beforeCol = sortCol_;
+    const bool beforeDesc = sortDesc_;
+    if (sortCol_ == col) {
+        sortDesc_ = !sortDesc_;          // 同一列：翻转方向
+    } else {
+        sortCol_ = col;                  // 换列：新列默认降序（名称列除外）
+        sortDesc_ = (col != 0);
+    }
+    scrollY_ = 0;
+    RebuildRows();
+
+    // 校验：状态必须真的变了，否则就是没生效（返回 false 让自测记 FAIL）
+    return sortCol_ != beforeCol || sortDesc_ != beforeDesc;
+}
+
+uint32_t TmWindow::RowPidForTest(int row) const {
+    if (row < 0 || row >= static_cast<int>(rows_.size())) return 0;
+    return rows_[row].kind == ViewRow::ProcessRow ? rows_[row].pid : 0;
+}
+
+bool TmWindow::RowHasChildrenForTest(int row) const {
+    if (row < 0 || row >= static_cast<int>(rows_.size())) return false;
+    return rows_[row].kind == ViewRow::ProcessRow && rows_[row].hasChildren;
+}
+
+bool TmWindow::RowExpandedForTest(int row) const {
+    if (row < 0 || row >= static_cast<int>(rows_.size())) return false;
+    return rows_[row].expanded;
+}
+
+// 点展开三角。y 用行几何现场算（行高不相等：组头 38 / 父行 28 / 子行 22，
+// 不能用「首行 top + n*kRowHeight」反推），x 走 TreeTriangleX 的沟槽区间。
+bool TmWindow::ClickRowExpandoForTest(int row) {
+    if (row < 0 || row >= static_cast<int>(rows_.size())) return false;
+    if (tabs_.Current() != TabId::Processes) return false;
+    const ViewRow& vr = rows_[row];
+    if (vr.kind != ViewRow::ProcessRow || !vr.hasChildren) return false;
+
+    // 行顶 = rcList_.top - scrollY_ + 前面所有行的行高之和（同 HitTestRow 口径）
+    int ly = rcList_.top - scrollY_;
+    for (int i = 0; i < row; ++i) {
+        ly += RowHeightFor(rows_[i].kind == ViewRow::GroupHeaderRow, rows_[i].indentLevel);
+    }
+    const int rh = RowHeightFor(false, vr.indentLevel);
+    const int cy = ly + rh / 2;
+    // 必须落在列表可视区内，否则这次"点击"在真实交互里根本不会发生
+    if (cy < rcList_.top || cy >= rcList_.bottom) return false;
+
+    int tl = 0, tr = 0;
+    TreeTriangleX(vr.indentLevel, tl, tr);
+    const int cx = (tl + tr) / 2;
+
+    // 重放 WM_LBUTTONDOWN 的展开三角分支（tmwindow_events.cpp:665-674）
+    const uint32_t pid = vr.pid;
+    const bool before = IsAppExpanded(pid);
+    SetAppExpanded(pid, !before);
+    RebuildRows();
+    InvalidateAll();
+    // 校验：同一 pid 的展开状态必须真的翻转了
+    return IsAppExpanded(pid) != before;
+}
+
+bool TmWindow::ClickRowForTest(int row) {
+    if (row < 0 || row >= static_cast<int>(rows_.size())) return false;
+    if (tabs_.Current() != TabId::Processes) return false;
+    const ViewRow& vr = rows_[row];
+    if (vr.kind != ViewRow::ProcessRow) return false;
+
+    int ly = rcList_.top - scrollY_;
+    for (int i = 0; i < row; ++i) {
+        ly += RowHeightFor(rows_[i].kind == ViewRow::GroupHeaderRow, rows_[i].indentLevel);
+    }
+    const int rh = RowHeightFor(false, vr.indentLevel);
+    const int cy = ly + rh / 2;
+    if (cy < rcList_.top || cy >= rcList_.bottom) return false;
+
+    // 重放 WM_LBUTTONDOWN 的「选中行」分支：记住 pid，SelectedProcess() 才能取到
+    selectedRow_ = row;
+    selectedPid_ = vr.pid;
+    InvalidateAll();
+    return SelectedProcess() != nullptr;
+}
+
 // ============ 列可见性（隐藏列） ============
 //
 // 【这一节是「隐藏列」真正成立的地方】

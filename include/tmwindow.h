@@ -116,6 +116,47 @@ public:
     // 设置某列宽度（供命令行/脚本化验证用）；persist=false 时不写注册表
     void SetColumnWidth(int col, int w, bool persist = true);
 
+    // ---- 自测（--selftest）专用接口 ----
+    //
+    // 【为什么要在 TmWindow 上开这几个口子，而不是让自测自己猜坐标/偷读私有成员】
+    // 自测此前硬编码「列头 y=144」「宽度表 {nameW,70,66,90,86,86,72}」，
+    // 而那两样东西的真值都在 BuildLayout / kCols 里，且随 DPI、列隐藏、
+    // 窗口尺寸变化。硬编码的后果是点在一个既不是列头也不是目标列的坐标上，
+    // 而自测只打印「已发送」，看不出点空了 —— 这就是「假自测」。
+    // 现在改成：自测只描述「我点了第几列」，坐标由窗口自己算，
+    // 结果（排序列是否真的变了）也由窗口自己报。
+    //
+    // 模拟点击第 col 列的**列头**。返回 true 表示命中带内确实有一列被点中，
+    // 且这次点击真的改变了排序状态（sortCol_ 变成 col 或方向翻转）。
+    // col 若为隐藏列（不占位、命中不到），返回 false。
+    bool ClickColumnHeaderForTest(int col);
+    // 当前排序列 / 是否降序。自测用它校验「点击后排序真的变了」。
+    int SortColumnForTest() const { return sortCol_; }
+    bool SortDescendingForTest() const { return sortDesc_; }
+    // 第 col 列当前是否可见。隐藏列不占位、也命中不到，自测必须能区分
+    // 「这一列被用户隐藏了（该记 SKIP）」和「点了没反应（记 FAIL）」。
+    bool ColumnVisibleForTest(int col) const { return IsColumnVisible(col); }
+    // 列数与列标题（真值源是 tmwindow_list.cpp 的 kCols[]，见 ColumnCount/ColumnTitle）。
+    // 自测不该自己再抄一份列名表 —— 抄一份就会出现「日志里叫磁盘、列头写着硬盘」。
+    int ColumnCountForTest() const { return ColumnCount(); }
+    const wchar_t* ColumnTitleForTest(int idx) const { return ColumnTitle(idx); }
+    // 当前列表行数（rows_ 是否被快照填满了 —— 空列表上所有点击都是空转）。
+    // 注意：已有公开的 RowCount()，这里不重复造一个，直接用那个。
+    // 第 row 行的 pid / 是否有子进程 / 是否已展开。越界返回 0 / false。
+    // 自测用它找到「第一个可展开的应用行」，而不是硬编码 y=246。
+    uint32_t RowPidForTest(int row) const;
+    bool RowHasChildrenForTest(int row) const;
+    bool RowExpandedForTest(int row) const;
+    // 模拟点击第 row 行左侧的展开三角。返回 true 表示该行确实有子进程、
+    // 点击命中了三角、并且展开状态真的翻转了。
+    bool ClickRowExpandoForTest(int row);
+    // 模拟点击第 row 行（选中它）。返回 true 表示真的选中了一个进程行，
+    // SelectedProcess() 之后应能取到条目。
+    bool ClickRowForTest(int row);
+    // 当前选中项（SelectedProcess 是 private，自测需要读它来验证「点行真的选中了」）。
+    // 缺陷 1 的表征就是它恒为 nullptr：缺 SetSnapshot → rows_ 为空 → 选不中任何行。
+    const ProcessEntry* SelectedProcessForTest() const { return SelectedProcess(); }
+
     // 自监控
     int LastPaintMicros() const { return lastPaintMicros_; }
     uint64_t PaintCount() const { return paintCount_; }

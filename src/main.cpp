@@ -44,11 +44,127 @@ std::wstring ExeDirFile(const wchar_t* name) {
 // ============ 后台自测模式 ============
 //
 // --selftest 时不显示窗口、不抢焦点、不动鼠标指针。
-// 所有交互都是用 SendMessage 直接投递给自己的窗口过程，等价于点击，
-// 但完全不经过输入队列，不会打扰用户正在做别的事。
+// 交互一律走 TmWindow 的 *ForTest() 入口（它内部用真实几何做命中 + 真状态转移），
+// 并且**每一项都回读结果判定 PASS/FAIL** —— 只打印「已发送」是假自测：
+// 消息投出去之后有没有命中任何目标根本没人看。
 //
-// 输出写到 exe 同目录 selftest.txt。
-void RunSelfTest(HWND hwnd) {
+// 输出写到 exe 同目录 selftest.txt，末尾一行机器可判：
+//   === 结果: PASS n / FAIL n / SKIP n ===
+// 返回值：0 = 全过，1 = 有 FAIL，2 = 单实例冲突（未执行）。
+
+namespace {
+
+// 自测日志：UTF-8 + BOM 落盘。宽字符 fwprintf 在 936 代码页下会把中文变成
+// "??"，所以统一转 UTF-8 窄字符写。
+class SelfTestLog {
+public:
+    ~SelfTestLog() { Close(); }
+
+    bool Open(const std::wstring& path) {
+        std::string a;
+        int need = WideCharToMultiByte(CP_UTF8, 0, path.c_str(), -1, nullptr, 0, nullptr, nullptr);
+        if (need <= 0) return false;
+        a.resize(need);
+        WideCharToMultiByte(CP_UTF8, 0, path.c_str(), -1, &a[0], need, nullptr, nullptr);
+        a.pop_back();   // 去掉结尾 \0
+        if (fopen_s(&f_, a.c_str(), "wb") != 0) { f_ = nullptr; return false; }
+        fwrite("\xEF\xBB\xBF", 1, 3, f_);   // BOM，方便记事本正确识别
+        return true;
+    }
+    bool ok() const { return f_ != nullptr; }
+    void Close() {
+        if (f_) { fclose(f_); f_ = nullptr; }
+    }
+
+    void Raw(const char* s) { if (f_) fwrite(s, 1, strlen(s), f_); }
+    void Raw(const std::string& s) { if (f_) fwrite(s.data(), 1, s.size(), f_); }
+    // 宽 → UTF-8
+    void W(const wchar_t* s) {
+        if (!s || !f_) return;
+        int n = WideCharToMultiByte(CP_UTF8, 0, s, -1, nullptr, 0, nullptr, nullptr);
+        if (n <= 1) return;
+        std::string r(n - 1, '\0');
+        WideCharToMultiByte(CP_UTF8, 0, s, -1, &r[0], n, nullptr, nullptr);
+        fwrite(r.data(), 1, r.size(), f_);
+    }
+    void W(const std::wstring& s) { W(s.c_str()); }
+    void F(const char* fmt, ...) {
+        if (!f_) return;
+        char buf[2048];
+        va_list ap;
+        va_start(ap, fmt);
+        _vsnprintf_s(buf, sizeof(buf), _TRUNCATE, fmt, ap);
+        va_end(ap);
+        fwrite(buf, 1, strlen(buf), f_);
+    }
+
+private:
+    FILE* f_ = nullptr;
+};
+
+std::wstring SelfTestPath() {
+    wchar_t path[MAX_PATH];
+    DWORD n = GetModuleFileNameW(nullptr, path, MAX_PATH);
+    std::wstring out(path, n ? n : 0);
+    size_t sl = out.find_last_of(L'\\');
+    out.resize(sl == std::wstring::npos ? 0 : sl + 1);
+    out += L"selftest.txt";
+    return out;
+}
+
+// 单实例冲突时**必须**覆写这份文件。
+// 否则脚本读到的是上一次运行留下的 PASS，会把「压根没跑」当成「跑过了」。
+void WriteSelfTestNotRun(const wchar_t* why) {
+    SelfTestLog log;
+    if (!log.Open(SelfTestPath())) return;
+    log.W(L"=== Task Manager Pro 后台自测 ===\n");
+    log.W(L"未执行：");
+    log.W(why);
+    log.W(L"\n");
+    log.W(L"=== 结果: PASS 0 / FAIL 0 / SKIP 0 （未执行） ===\n");
+}
+
+// 逐项结论统计。名字 + [PASS]/[FAIL]/[SKIP] + 说明，一行一项。
+struct Tally {
+    int pass = 0, fail = 0, skip = 0;
+};
+
+const char* VerdictTag(int v) {   // 1=PASS 0=FAIL -1=SKIP
+    return v == 1 ? "[PASS] " : (v == 0 ? "[FAIL] " : "[SKIP] ");
+}
+
+} // namespace
+
+int RunSelfTest() {
+    SelfTestLog log;
+    if (!log.Open(SelfTestPath())) return 1;
+
+    Tally t;
+    // 记一项结论。detail 可为空。
+    auto Mark = [&](int verdict, const wchar_t* name, const std::string& detail) {
+        if (verdict == 1) ++t.pass;
+        else if (verdict == 0) ++t.fail;
+        else ++t.skip;
+        log.F("%s", VerdictTag(verdict));
+        log.W(name);
+        if (!detail.empty()) {
+            log.Raw(" — ");
+            log.Raw(detail);
+        }
+        log.Raw("\n");
+    };
+    auto MarkW = [&](int verdict, const wchar_t* name, const std::wstring& detail) {
+        std::string d;
+        int n = WideCharToMultiByte(CP_UTF8, 0, detail.c_str(), -1, nullptr, 0, nullptr, nullptr);
+        if (n > 1) {
+            d.resize(n - 1);
+            WideCharToMultiByte(CP_UTF8, 0, detail.c_str(), -1, &d[0], n, nullptr, nullptr);
+        }
+        Mark(verdict, name, d);
+    };
+
+    log.W(L"=== Task Manager Pro 后台自测 ===\n");
+
     // 等采集器攒够两轮快照（首轮没有 CPU 差分基准）
     for (int i = 0; i < 60; ++i) {
         if (g_collector->Sequence() >= 2) break;
@@ -56,68 +172,34 @@ void RunSelfTest(HWND hwnd) {
     }
     auto snap = g_collector->GetSnapshot();
     if (!snap) {
-        MessageBoxW(nullptr, L"采集器没有产出快照", L"自测失败", MB_OK);
-        return;
+        // 【不弹模态框】无属主、可见、抢焦点、阻塞 —— 用户正在用这台机器。
+        // 写日志 + FAIL 即可，调用方按退出码判定。
+        Mark(0, L"采集器产出快照", "GetSnapshot() 返回空");
+        log.W(L"\n=== 结果: PASS 0 / FAIL 1 / SKIP 0 ===\n");
+        return 1;
     }
 
-    wchar_t path[MAX_PATH];
-    GetModuleFileNameW(nullptr, path, MAX_PATH);
-    std::wstring out = path;
-    size_t sl = out.find_last_of(L'\\');
-    if (sl != std::wstring::npos) out = out.substr(0, sl);
-    out += L"\\selftest.txt";
+    // 【关键修复】必须把快照交给窗口，否则 snap_ 为 null、rows_ 为空，
+    // 下面所有交互都点在一个空列表上。之前一直缺这一行，
+    // 导致自测的交互部分全部空转（数字统计部分是真的）。
+    // g_win->SetSnapshot(snap);   // ← 负向对照：临时注释，验证自测能抓出这个缺陷
 
-    // 用 UTF-8 写文件。宽字符 fwprintf 在当前 ANSI 代码页（936）下会把
-    // 中文变成 "??"，且 %s 的宽度/字节解释不一致，所以统一转成 UTF-8 窄字符。
-    std::string outA;
-    {
-        int need = WideCharToMultiByte(CP_UTF8, 0, out.c_str(), -1, nullptr, 0, nullptr, nullptr);
-        outA.resize(need > 0 ? need : 0);
-        if (need > 0) {
-            WideCharToMultiByte(CP_UTF8, 0, out.c_str(), -1, &outA[0], need, nullptr, nullptr);
-            outA.pop_back();   // 去掉结尾 \0
-        }
-    }
-
-    FILE* f = nullptr;
-    fopen_s(&f, outA.c_str(), "wb");
-    if (!f) return;
-    // UTF-8 BOM，方便记事本正确识别
-    fwrite("\xEF\xBB\xBF", 1, 3, f);
-
-    // 把宽字符串转成 UTF-8 再写。用一个 lambda 省掉到处贴转换代码。
-    auto W = [](const wchar_t* s) -> std::string {
-        if (!s) return std::string();
-        int n = WideCharToMultiByte(CP_UTF8, 0, s, -1, nullptr, 0, nullptr, nullptr);
-        if (n <= 0) return std::string();
-        std::string r(n - 1, '\0');
-        WideCharToMultiByte(CP_UTF8, 0, s, -1, &r[0], n, nullptr, nullptr);
-        return r;
-    };
-    auto LOG = [&](const std::string& s) { fwrite(s.data(), 1, s.size(), f); };
-    auto LOGF = [&](const char* fmt, ...) {
-        char buf[2048];
-        va_list ap;
-        va_start(ap, fmt);
-        _vsnprintf_s(buf, sizeof(buf), _TRUNCATE, fmt, ap);
-        va_end(ap);
-        fwrite(buf, 1, strlen(buf), f);
-    };
-    // 宽 → UTF-8 后拼接
-    auto LOGW = [&](const std::wstring& w) { LOG(W(w.c_str())); };
-
-    LOGW(L"=== Task Manager Pro 后台自测 ===\n");
-    LOGF("快照序号=%llu  进程数=%zu  采集耗时=%.2f ms\n\n",
+    log.F("快照序号=%llu  进程数=%zu  采集耗时=%.2f ms\n",
          (unsigned long long)snap->sequence, snap->processes.size(),
          snap->collectionMs);
+    log.W(L"网络采集: ");
+    log.W(g_collector->NetworkAvailable() ? L"可用" : L"不可用");
+    log.W(L"  ");
+    log.W(g_collector->NetworkStatus());
+    log.W(L"\n\n");
 
-    LOGW(L"网络采集: ");
-    LOGW(g_collector->NetworkAvailable() ? L"可用" : L"不可用");
-    LOGW(L"  ");
-    LOGW(g_collector->NetworkStatus());
-    LOGW(L"\n\n");
+    // 自测一律在进程页做（列模型/行模型只有这一页有）
+    g_win->ShowPage(0);
 
-    // 统计有数据的列，确认数据链路通了
+    Mark(g_win->RowCount() > 0 ? 1 : 0, L"快照已交给窗口，列表非空",
+         "RowCount=" + std::to_string(g_win->RowCount()));
+
+    // ---- 统计有数据的列，确认数据链路通了 ----
     size_t withDisk = 0, withNet = 0, withGpu = 0;
     double maxDisk = 0, maxNet = 0, maxGpu = 0, maxCpu = 0, maxMem = 0;
     uint32_t maxDiskPid = 0, maxNetPid = 0;
@@ -135,48 +217,150 @@ void RunSelfTest(HWND hwnd) {
         if (e.cpuPercent > maxCpu) maxCpu = e.cpuPercent;
         if (static_cast<double>(e.workingSet) > maxMem) maxMem = static_cast<double>(e.workingSet);
     }
-    LOGF("有磁盘数据的进程: %zu  最大 %.2f MB/s (pid %u)\n",
+    log.F("有磁盘数据的进程: %zu  最大 %.2f MB/s (pid %u)\n",
          withDisk, maxDisk / 1048576.0, maxDiskPid);
-    LOGF("有网络数据的进程: %zu  最大 %.2f Mbps (pid %u)\n",
+    log.F("有网络数据的进程: %zu  最大 %.2f Mbps (pid %u)\n",
          withNet, maxNet / 1.0e6, maxNetPid);
-    LOGF("有GPU数据的进程:  %zu  最大 %.2f %%\n\n", withGpu, maxGpu);
+    log.F("有GPU数据的进程:  %zu  最大 %.2f %%\n\n", withGpu, maxGpu);
 
     if (topCpu) {
-        LOGW(L"CPU 最高: ");
-        LOGW(topCpu->imageName);
-        LOGF("  %.2f%%\n", topCpu->cpuPercent);
+        log.W(L"CPU 最高: ");
+        log.W(topCpu->imageName);
+        log.F("  %.2f%%\n", topCpu->cpuPercent);
     }
     if (topMem) {
-        LOGW(L"内存最高: ");
-        LOGW(topMem->imageName);
-        LOGF("  %.1f MB\n\n", topMem->workingSet / 1048576.0);
+        log.W(L"内存最高: ");
+        log.W(topMem->imageName);
+        log.F("  %.1f MB\n\n", topMem->workingSet / 1048576.0);
+    }
+    // 数据链路：CPU 汇总必须是一个**合理**的百分比。
+    // 【PID 0 陷阱】把空闲进程算进去会让汇总恒在 90~100%（pid 0 的 CPU 时间
+    // 就是系统空闲时间）。所以这里只校验「不是恒满」这一个可判定的性质。
+    Mark(maxCpu > 0.0 && maxCpu < 100.0 ? 1 : 0, L"单进程 CPU 峰值在 (0,100) 区间",
+         [&] {
+             char b[64];
+             sprintf_s(b, "maxCpu=%.2f%%", maxCpu);
+             return std::string(b);
+         }());
+
+    // ---- 列排序自测：点列头 → 回读 sortCol_ ----
+    //
+    // 坐标不再硬编码。此前写死「列头 y=144」，而 BuildLayout 里
+    // rcColHeader_ = {0, 45, W, 89}，y=144 落在 rcList_ 的第 2 行上 ——
+    // 消息被「选中行」分支吃掉，排序一次都没变过，日志却全绿。
+    // 现在由 TmWindow::ClickColumnHeaderForTest 用真实几何逐像素反查目标列。
+    log.W(L"\n=== 列排序自测 ===\n");
+    const int colCount = g_win->ColumnCountForTest();
+    // 先按名称列排一次，拿到一份基准 pid 顺序，后面用来验证「真的重排了」。
+    std::wstring baseOrder;
+    bool haveBase = false;
+    int reordered = -1;   // 1=确实变了 0=没变 -1=未测
+
+    for (int col = 0; col < colCount; ++col) {
+        const wchar_t* title = g_win->ColumnTitleForTest(col);
+        std::wstring name = L"点击列头「";
+        name += (title ? title : L"?");
+        name += L"」改变排序列";
+
+        if (!g_win->ColumnVisibleForTest(col)) {
+            MarkW(-1, name.c_str(), L"该列被隐藏（不占位、命中不到），无法点击");
+            continue;
+        }
+        const int beforeCol = g_win->SortColumnForTest();
+        const bool beforeDesc = g_win->SortDescendingForTest();
+        const bool clicked = g_win->ClickColumnHeaderForTest(col);
+        const int afterCol = g_win->SortColumnForTest();
+        const bool afterDesc = g_win->SortDescendingForTest();
+
+        char detail[160];
+        sprintf_s(detail, "sortCol %d→%d, desc %d→%d", beforeCol, afterCol,
+                  beforeDesc ? 1 : 0, afterDesc ? 1 : 0);
+        const bool ok = clicked && afterCol == col &&
+                        (afterCol != beforeCol || afterDesc != beforeDesc);
+        Mark(ok ? 1 : 0, name.c_str(), detail);
+
+        if (col == 0) {
+            baseOrder.clear();
+            for (int r = 0; r < g_win->RowCount(); ++r) {
+                baseOrder += std::to_wstring(g_win->RowPidForTest(r));
+                baseOrder += L',';
+            }
+            haveBase = true;
+        } else if (col == 2 && haveBase) {
+            // CPU 列（数值列）排完，行序必须与名称序不同 —— 否则 rows_ 根本没重排。
+            std::wstring now;
+            for (int r = 0; r < g_win->RowCount(); ++r) {
+                now += std::to_wstring(g_win->RowPidForTest(r));
+                now += L',';
+            }
+            reordered = (now != baseOrder) ? 1 : 0;
+        }
+    }
+    if (reordered >= 0) {
+        Mark(reordered, L"按 CPU 列排序后行表确实重排", reordered
+                 ? "行序与名称序不同"
+                 : "行序与名称序完全相同（rows_ 可能没重排）");
+    } else {
+        Mark(-1, L"按 CPU 列排序后行表确实重排", "CPU 列被隐藏，未测");
     }
 
-    // ---- 排序自测：直接发 WM_LBUTTONDOWN 到列头 ----
-    LOGW(L"=== 列排序自测 ===\n");
-    const wchar_t* colNames[] = { L"名称", L"状态", L"CPU", L"内存", L"磁盘", L"网络", L"GPU" };
-    // 列头中心 y=144（客户区），x 从 12 起，名称列弹性宽
-    RECT rc;
-    GetClientRect(hwnd, &rc);
-    int clientW = rc.right;
-    int nameW = (clientW - 12) - 476;
-    if (nameW < 180) nameW = 180;
-    int widths[] = { nameW, 70, 66, 90, 86, 86, 72 };
-    int acc = 12;
-    for (int col = 0; col < 7; ++col) {
-        int cx = acc + widths[col] / 2;
-        acc += widths[col];
-        LPARAM lp = MAKELPARAM(cx, 144);
-        SendMessageW(hwnd, WM_LBUTTONDOWN, MK_LBUTTON, lp);
-        SendMessageW(hwnd, WM_LBUTTONUP, 0, lp);
-        LOGW(L"  点击「");
-        LOGW(colNames[col]);
-        LOGF("」列 (x=%d) → 已发送\n", cx);
+    // ---- 选中行自测 ----
+    // 缺陷 1 的直接体现：SetSnapshot 缺失时 rows_ 为空、SelectedProcess() 恒 nullptr，
+    // 「结束任务」「转到详细信息」这类菜单命令全部静默返回。
+    log.W(L"\n=== 选中行自测 ===\n");
+    {
+        int pick = -1;
+        for (int r = 0; r < g_win->RowCount(); ++r) {
+            if (g_win->RowPidForTest(r) != 0) { pick = r; break; }
+        }
+        if (pick < 0) {
+            Mark(-1, L"点击第 1 个进程行后 SelectedProcess() 非空", "列表里没有进程行");
+        } else {
+            const uint32_t wantPid = g_win->RowPidForTest(pick);
+            const bool clicked = g_win->ClickRowForTest(pick);
+            const ProcessEntry* sel = g_win->SelectedProcessForTest();
+            char detail[128];
+            sprintf_s(detail, "点击 pid=%u, SelectedProcess=%s",
+                      wantPid, sel ? "非空" : "nullptr");
+            Mark(clicked && sel && sel->pid == wantPid ? 1 : 0,
+                 L"点击第 1 个进程行后 SelectedProcess() 非空", detail);
+        }
     }
-    LOGW(L"\n");
+
+    // ---- 进程树自测：找到第一个有子进程的应用行，点它的展开三角 ----
+    // 行高不相等（组头 38 / 父行 28 / 子行 22），y 由 TmWindow 现场算，
+    // 不再硬编码 y=246（那个值在默认 4 列布局下早已对不上）。
+    log.W(L"\n=== 进程树自测 ===\n");
+    {
+        g_win->ShowPage(0);
+        int appRow = -1;
+        for (int r = 0; r < g_win->RowCount(); ++r) {
+            if (g_win->RowHasChildrenForTest(r)) { appRow = r; break; }
+        }
+        if (appRow < 0) {
+            Mark(-1, L"展开应用行后子进程真的插入行表", "没有带子进程的应用行");
+        } else {
+            const uint32_t pid = g_win->RowPidForTest(appRow);
+            const int rowsBefore = g_win->RowCount();
+            const bool okClick = g_win->ClickRowExpandoForTest(appRow);
+            // 展开状态翻转后行表会重建，不能再用旧下标 —— 按 pid 重新定位
+            int after = -1;
+            for (int r = 0; r < g_win->RowCount(); ++r) {
+                if (g_win->RowPidForTest(r) == pid) { after = r; break; }
+            }
+            const bool expanded = after >= 0 && g_win->RowExpandedForTest(after);
+            char detail[160];
+            sprintf_s(detail, "pid=%u, 行数 %d→%d, expanded=%d",
+                      pid, rowsBefore, g_win->RowCount(), expanded ? 1 : 0);
+            Mark(okClick && expanded && g_win->RowCount() > rowsBefore ? 1 : 0,
+                 L"展开应用行后子进程真的插入行表", detail);
+            // 还原，避免影响后面的菜单自测
+            g_win->ClickRowExpandoForTest(after);
+        }
+    }
 
     // ---- 右键菜单自测：逐个页面构建菜单并统计项数 ----
-    LOGW(L"=== 右键菜单自测 ===\n");
+    log.W(L"\n=== 右键菜单自测 ===\n");
     struct TabCase { int idx; const wchar_t* name; };
     TabCase cases[] = {
         { 0, L"进程" }, { 1, L"性能" }, { 2, L"应用历史" }, { 3, L"启动" },
@@ -184,7 +368,7 @@ void RunSelfTest(HWND hwnd) {
     };
     for (auto& c : cases) {
         g_win->ShowPage(c.idx);
-        Sleep(60);
+        Sleep(40);
         HMENU m = nullptr;
         switch (c.idx) {
         case 0: m = MenuBuilder::BuildProcessContext(true, false, true, false); break;
@@ -195,33 +379,29 @@ void RunSelfTest(HWND hwnd) {
         case 5: m = MenuBuilder::BuildDetailsContext(true); break;
         case 6: m = MenuBuilder::BuildServiceContext(true); break;
         }
-        if (m) {
-            int n = GetMenuItemCount(m);
-            int enabled = 0;
-            for (int i = 0; i < n; ++i) {
-                UINT st = GetMenuState(m, i, MF_BYPOSITION);
-                if (st != 0xFFFFFFFF && !(st & (MF_GRAYED | MF_DISABLED))) ++enabled;
-            }
-            LOGW(L"  ");
-            LOGW(c.name);
-            LOGF("页: %d 项，其中可用 %d 项\n", n, enabled);
-            DestroyMenu(m);
+        std::wstring name = std::wstring(L"右键菜单「") + c.name + L"」有可用项";
+        if (!m) {
+            MarkW(0, name.c_str(), L"BuildXxxContext 返回 NULL");
+            continue;
         }
-        Sleep(40);
+        const int n = GetMenuItemCount(m);
+        int enabled = 0;
+        for (int i = 0; i < n; ++i) {
+            UINT st = GetMenuState(m, i, MF_BYPOSITION);
+            if (st != 0xFFFFFFFF && !(st & (MF_GRAYED | MF_DISABLED))) ++enabled;
+        }
+        char detail[96];
+        sprintf_s(detail, "%d 项，其中可用 %d 项", n, enabled);
+        Mark(n > 0 && enabled > 0 ? 1 : 0, name.c_str(), detail);
+        DestroyMenu(m);
+        Sleep(20);
     }
 
-    // ---- 进程树自测：展开第一个有子进程的应用行 ----
-    LOGW(L"\n=== 进程树自测 ===\n");
     g_win->ShowPage(0);
-    Sleep(120);
-    LPARAM lp = MAKELPARAM(18, 246);
-    SendMessageW(hwnd, WM_LBUTTONDOWN, MK_LBUTTON, lp);
-    SendMessageW(hwnd, WM_LBUTTONUP, 0, lp);
-    LOGW(L"  已向第一行应用点击展开三角\n");
 
-    LOGW(L"\n=== 自测结束 ===\n");
-    fclose(f);
-    PostQuitMessage(0);
+    log.F("\n=== 结果: PASS %d / FAIL %d / SKIP %d ===\n", t.pass, t.fail, t.skip);
+    log.Close();
+    return t.fail > 0 ? 1 : 0;
 }
 } // namespace
 
@@ -280,9 +460,14 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, LPWSTR lpCmdLine, int) {
 
     HANDLE mutex = CreateMutexW(nullptr, TRUE, L"TaskManagerPro.SingleInstance");
     if (mutex && GetLastError() == ERROR_ALREADY_EXISTS) {
-        if (!selfTest) {
-            MessageBoxW(nullptr, L"Task Manager Pro 已在运行。", L"提示", MB_OK | MB_ICONINFORMATION);
+        if (selfTest) {
+            // 自测模式：不能弹模态框（用户正在用这台机器，无属主的框会抢焦点、
+            // 阻塞脚本）。但也**必须覆写 selftest.txt** —— 否则脚本读到的是上一次
+            // 运行留下的 PASS，把「压根没跑」当成「跑过了」。
+            WriteSelfTestNotRun(L"另一实例正在运行（单实例互斥），本次自测未执行");
+            return 2;   // 约定：2 = 单实例冲突
         }
+        MessageBoxW(nullptr, L"Task Manager Pro 已在运行。", L"提示", MB_OK | MB_ICONINFORMATION);
         return 0;
     }
 
@@ -359,9 +544,14 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, LPWSTR lpCmdLine, int) {
     }
 
     if (selfTest) {
-        // 同步跑完自测再进消息循环：自测内部用 SendMessage，
-        // 所有点击都是直接投递给自己的窗口过程，不经过输入队列。
-        RunSelfTest(g_main);
+        // 同步跑完自测再退出：交互全部走 TmWindow 的 *ForTest() 入口，
+        // 不经过输入队列，也不产生任何可见窗口。
+        // 【返回值即退出码】0=全过 1=有 FAIL 2=单实例冲突（在更早处返回）。
+        const int rc = RunSelfTest();
+        if (mutex) CloseHandle(mutex);
+        delete g_win;
+        delete g_collector;
+        return rc;
     }
 
     if (offscreen) {
