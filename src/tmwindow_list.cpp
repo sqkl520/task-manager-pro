@@ -144,23 +144,27 @@ inline int VisW(int idx) {
 // 这才是原版的形状：**9 行高、核心 1px 宽的细描边 V 形折线（chevron）**，
 // 尖端朝右（折叠 ▶），不是实心三角。旧注释里的「8×7 实心三角」是错的。
 //
-// 形状判读（用抗锯齿加权质心，比挑最暗像素稳）：
+// 形状判读（用抗锯齿加权质心，比挑最暗像素稳；两种口径结果一致）：
 //   行质心 = 12.59, 13.00, 14.00, 15.00, 15.81, 15.00, 14.00, 13.00, 12.59
+//   最暗像素 = 13, 13, 14, 15, 16, 15, 14, 13, 13
 // ⇒ 左臂在 x≈12.6、尖端在 x≈15.8，跨度仅 3.2px，上下完全对称。
-// 取值规律：每行 1 个核心像素，含抗锯齿共 2~3px 宽的足迹。
-// 归一化到「相对核心左沿」的列偏移（下文 kExpandoCore）：
-//   行0..8: 0, 0, 1, 2, 3, 2, 1, 0, 0
+// 归一化到「相对核心左沿」：0, 0, 1, 2, 3, 2, 1, 0, 0 —— 首尾两行不外扩。
+// （早前一度写成 0,1,2,3,3,3,2,1,0，是把行 4 的抗锯齿当成了核心，会画出 4px 宽的菱形，
+//  已按上面的实测值订正。覆盖率全表见 DrawExpandoChevron。）
 //
-// 三段的推导（x0 = rcList_.left + kIndentPerLevel(6)；本机 rcList_.left=0 → x0=6）：
-//   箭头槽左 = x0 + 3 = 9（命中区口径，非字形）
-//   图标左 = 30  ⇒ 相对 x0 偏移 24
-//   文字左 = 54  ⇒ 图标右沿 45 + 9px 间隔
+// 三段的位置（x0 = rcList_.left + kIndentPerLevel(6)；本机 rcList_.left=0 → x0=6）：
+//   箭头槽左 = x0 + 3 = 9（命中区口径，非字形；字形实际从 12 起）
+//   图标槽左 = 30（16×16 槽；图标的**墨迹**从 31 起，槽内还有 1px 内边距）
+//   文字左 = 54 ⇒ 图标墨迹右沿 46 + 8px 间隔
 //
-// 【箭头到图标间隔 14px 是关键】原版字形右沿 17 → 图标 30 空 13px；我方此前只有 4px，
-// 所以箭头和图标糊在一起。这个 13 不是"沟槽"，是原版真实的留白。
-constexpr int kArrowLeftOffset = 3;    // 箭头左 = x0 + 3
-constexpr int kArrowWidth      = 8;    // 沟槽宽（保留：命中区仍按 9..17 算，见 TreeTriangleX）
-constexpr int kArrowHeight     = 9;    // 字形高（真原版实测 9 行，见下方 DrawRowExpando 表）
+// 【箭头到图标间隔 14px 是关键】原版字形右沿 17 → 图标墨迹 31 空 14px；我方此前只有 4px，
+// 所以箭头和图标糊在一起。这个 14 不是"沟槽"，是原版真实的留白。
+//
+// 【kArrowHeight 已删除】字形高改由 DrawExpandoChevron 的 kExpandoRows(9) /
+// kExpandoCols(6) 表达 —— 折叠 ▶ 是 6×9、展开 ▼ 是 9×6，两个方向的高宽互换，
+// 用单个「高度」常量必然写错其中一态。
+constexpr int kArrowLeftOffset = 3;    // 箭头槽左 = x0 + 3
+constexpr int kArrowWidth      = 8;    // 沟槽宽（命中区 9..17，见 TreeTriangleX）
 constexpr int kRowIconLeft     = 30;   // 图标左沿（绝对，相对客户区）
 constexpr int kRowTextLeft     = 54;   // 文字左沿（绝对，相对客户区）
 
@@ -584,28 +588,32 @@ int TmWindow::CurrentNameColWidth() const {
 }
 
 void TmWindow::TreeTriangleX(int indentLevel, int& left, int& right) const {
-    // 展开箭头的水平区间。
+    // 展开箭头**沟槽**的水平区间（命中区 / 布局留白），不是可见字形的包围盒。
     //
-    // 【真原版截图实测】docs/reference/orig2_full.png / orig2_rows.png
+    // 【真原版截图实测】original_win10.png 与 orig2_full.png 逐像素一致：
     // 数据行左侧三段位置（相对客户区左沿，边框在 x=1..2）：
-    //     箭头  x=9..16   （宽 8，实心右向三角，色 #5A5A5A）
-    //     图标  x=30..45  （16×16）
-    //     文字  x=54..
-    // 箭头右沿(16) 到图标左沿(30) **间隔 14px** —— 这是原版的关键留白，
-    // 我方此前只有 4px，导致"箭头和图标糊在一起"。
+    //     箭头字形  x=12..17 （6 宽 × 9 高，细描边 chevron，核心色源 #5A5A5A）
+    //     图标      x=31..46 （16×16）
+    //     文字      x=54..
+    // 相对关系（两张图完全相同）：arrow_left − icon_ink_left = −19、
+    //                             arrow_left − text_left     = −42。
+    //
+    // 【本函数返回的是沟槽 9..17，比字形 12..17 向左多 3px】
+    // 多出的 3px 是原版箭头槽自身的左边距（x0+3），字形在槽内右靠。
+    // 命中区按沟槽算，用户点箭头附近都能切换，不必精确点到 1px 笔画。
     //
     // 【为什么 UIFILE 推不出来】
     // UIFILE 写 TmFirstColumn.padding.left=6、ViewExpandoImageWrapper.width=22、
-    // padding=rect(4,5,2,0)。按 DUI 规则推算箭头应在 x≈14，但实测是 9。
+    // padding=rect(4,5,2,0)。按 DUI 规则推算箭头应在 x≈14，但实测字形核心在 12。
     // 说明 DUI 布局引擎在运行时还有一层未文档化的边距。所以这里**直接按实测值定**，
     // 不再从 UIFILE 推算（实测优先于推算，这条在 theme.h 里已写明）。
     //
     // x0 = rcList_.left + kIndentPerLevel(6)，本机 rcList_.left = 0 ⇒ x0 = 6。
-    // 箭头左沿 9 ⇒ 相对 x0 偏移 3。
+    // 沟槽左沿 9 ⇒ 相对 x0 偏移 3。
     const int x0 = rcList_.left + kIndentPerLevel;
     const int rowIndent = indentLevel * kTreeIndent;
     left  = x0 + rowIndent + kArrowLeftOffset;    // 6 + 3 = 9
-    right = left + kArrowWidth;                    // 9 + 8 = 17（实测右沿 16，含端点）
+    right = left + kArrowWidth;                    // 9 + 8 = 17
 }
 
 int TmWindow::HitTestColumn(int x, int y) const {
@@ -749,6 +757,71 @@ inline void DrawVLineFast(HDC hdc, int x, int y1, int y2, COLORREF c) {
     MoveToEx(hdc, x, y1, nullptr);
     LineTo(hdc, x, y2);
     SelectObject(hdc, old);
+}
+
+// ---------------------------------------------------------------------------
+// 列表应用行的展开箭头字形（细描边 chevron，带抗锯齿模拟）
+// ---------------------------------------------------------------------------
+//
+// 【为什么是「覆盖率表」而不是 1px 硬像素】
+// 原版的箭头是主题用**子像素抗锯齿**渲染的：核心像素只到 #A6A6A6，两侧还有
+// #BFBFBF 的过渡。GDI 没有那套渲染，但覆盖率本身是纯数据 —— 把它存下来、
+// 按覆盖率把前景色合成到**本行实际背景**上，就能既还原原版外观，又在
+// 「白底 / 悬停 / 选中」三种底色上都正确（原版也是这样透出底色的）。
+//
+// 【表从哪来】original_win10.png 的 Edge 行 y=239..247、x=12..17 逐个像素实测。
+// 行 0..8 × 列 0..5（列 0 = x12）。值 = 覆盖率 0..255，由
+//     coverage = (255 - 实测灰度) / (255 - #5A5A5A)
+// 反解并**精确复现**：白底上这 6 档覆盖率合成出的正是实测的
+//   #D2D2D2 / #BFBFBF / #A6A6A6 / #ACACAC / #FAFAFA / #D4D4D4（6 个值全对上）。
+// 这也是「核心色取 #5A5A5A」的定量依据：换任何别的源色都无法同时对上这 6 个值。
+//
+// 展开态 ▼ 没有实测样本（两张原版截图里全是折叠态），由本表绕中心旋转 90°
+// 得到 —— 主题里 EXPANDBUTTON / COLLAPSEBUTTON 是同一颗字形的两个方向，
+// 旋转能保证两种状态的形状与笔画权重完全一致。
+constexpr int kExpandoRows = 9;
+constexpr int kExpandoCols = 6;
+constexpr unsigned char kExpandoMask[kExpandoRows][kExpandoCols] = {
+    { 70,  99,   0,   0,   0,   0},   // y+0  左臂末端（无 #A6 核心，只有抗锯齿）
+    { 99, 138,  99,   0,   0,   0},   // y+1  核心在列 1
+    {  0,  99, 138,  99,   0,   0},   // y+2  核心在列 2
+    {  0,   0,  99, 138,  99,   0},   // y+3  核心在列 3
+    {  0,   0,   8, 128, 138,  66},   // y+4  折角：核心在列 4（#A6 所在）
+    {  0,   0,  99, 138,  99,   0},   // y+5
+    {  0,  99, 138,  99,   0,   0},   // y+6
+    { 99, 138,  99,   0,   0,   0},   // y+7
+    { 70,  99,   0,   0,   0,   0},   // y+8  左臂末端
+};
+
+// 把覆盖率 a(0..255) 的前景色 fg 合成到背景 bg 上。GDI 没有 alpha 通道，
+// 这里自己做整数合成，结果是不透明的 COLORREF。
+inline COLORREF BlendOver(COLORREF fg, COLORREF bg, unsigned a) {
+    const unsigned ia = 255u - a;
+    const unsigned r = (GetRValue(fg) * a + GetRValue(bg) * ia + 127u) / 255u;
+    const unsigned g = (GetGValue(fg) * a + GetGValue(bg) * ia + 127u) / 255u;
+    const unsigned b = (GetBValue(fg) * a + GetBValue(bg) * ia + 127u) / 255u;
+    return RGB(r, g, b);
+}
+
+// 画应用行的展开/折叠箭头。
+//   left/top : 字形包围盒左上角（折叠态 6×9，展开态 9×6）
+//   expanded : true = ▼（朝向下方），false = ▶（朝向右方）
+//   bg       : 本行实际底色，抗锯齿按它合成
+//
+// 展开态由同一张表绕中心顺时针旋转 90° 得到：(row, col) → (col, 8-row)，
+// 因此 ▼ 占 9 列 × 6 行，折角落在最底一行。
+void DrawExpandoChevron(HDC hdc, int left, int top, bool expanded, COLORREF bg) {
+    for (int r = 0; r < kExpandoRows; ++r) {
+        for (int c = 0; c < kExpandoCols; ++c) {
+            const unsigned a = kExpandoMask[r][c];
+            if (a == 0) continue;
+            const int px = expanded ? left + (kExpandoRows - 1 - r) : left + c;
+            const int py = expanded ? top + c : top + r;
+            const RECT one{ px, py, px + 1, py + 1 };
+            // 走本文件的画刷缓存：底色 × 覆盖率最多 18 种组合，条目数有界。
+            FillSolidFast(hdc, one, BlendOver(kTextSecondary, bg, a));
+        }
+    }
 }
 
 } // namespace
@@ -1479,88 +1552,76 @@ void TmWindow::PaintRows(HDC hdc) {
             // `GetThemePartSize(Explorer::ListView, LVP_EXPANDBUTTON(8) /
             // LVP_COLLAPSEBUTTON(9), TS_TRUE)` 返回 **15 x 15**（TS_MIN 1x1）。
             // 出处 docs/specs/T_uxspec.md §1.6。
-            // 这是树展开箭头图元的权威边界框，比旧代码的 7x10 大得多 ——
-            // 15x15 正好等于 `SM_CXSMICON - 1`，与图标的度量一致。
+            // 那是主题图元的**边界框**（含内边距），不是可见字形的大小。
+            // 真实字形只有 6×9（见下方实测），两者不矛盾：15×15 里字形居中，
+            // 四周是空白。旧注释据此推出「画 15×15 的实心三角」，把框当成了字。
             //
-            // 【形状：主题提供位图，无法还原矢量】主题里它是位图资产
-            // （`U_render2_console.txt` 的 `Explorer::TreeView part 2/4 渲染为全白`
-            // —— 箭头是图片，不是可解析的图形）。这里在 15x15 框内画一个
-            // 实心三角：15 宽 × 15 高，边长按 2:1 的扁三角（宽 9、高 9）。
-            // 实心三角是 Windows 树控件与 ListView 的常见形态；
-            // 旧代码用的是「空心 1px 折线」，依据是来源未记录的裁切图，已弃。
+            // 【形状：真原版截图实测，不是主题位图】
+            // 主题里它是位图资产，无法从 UIFILE/主题参数还原矢量，所以直接
+            // 照 `original_win10.png` 逐像素测量（数据与判据见下方代码块）。
             //
-            // 【颜色：规范未规定】取 kTextSecondary(#5A5A5A)，与正文文字同族。
-            // 旧值 #A7A7A7 无来源。
+            // 【颜色：#5A5A5A，有定量依据】
+            // 原版核心像素读到 #A6A6A6，那是**白底上半透明描边**的合成结果。
+            // 用抗锯齿覆盖率反解，源色恰为 #5A5A5A（= kTextSecondary，
+            // 与正文文字同族）；换成别的源色无法同时对上实测的 6 个灰阶。
+            // 证明见 DrawExpandoChevron 上方的注释。
             if (row.hasChildren) {
-                // TreeTriangleX 仍给出沟槽内的水平区间（rel 8..15），
-                // 但现在按 15x15 的框居中摆放：框左 = 沟槽左界，
-                // 框宽 15 → 正好覆盖 rel 8..22，与图标槽（rel 28..43）不重叠。
                 int triL = 0, triR = 0;
                 TreeTriangleX(row.indentLevel, triL, triR);
                 (void)triR;
-                // 【真原版实测：细描边折角，不是实心三角 · 2026-11-21】
+
+                // 【真原版实测：细描边 chevron，不是实心三角 · 2026-11-21】
                 //
                 // 此前这里画的是「8×7 实心三角」，依据 docs/reference/orig2_rows.png。
-                // **那张图是我方截图，不是原版**：整图只有 267 种颜色，三角是
-                // 纯 #5A5A5A、零抗锯齿 —— 这是 GDI Polygon 的特征；真原版截图
-                // 有抗锯齿渐变。项目历史上 m3.png / truth1.png 也是同样的坑。
+                // **那张图是我方截图，不是原版**：整图 261×205 只有 781 种颜色，
+                // 三角所在的小框里仅 11 种、像素值只有 5A5A5A / FFFFFF 两档 ——
+                // 纯色零抗锯齿，是 GDI `Polygon()` 的特征；真主题绘制必有抗锯齿。
+                // 项目历史上 m3.png / truth1.png 也是同一个坑，这是第三次。
                 //
-                // 真原版数据（两张截图结果完全一致，互为印证）：
-                //   original_win10.png  Edge 行 y=239..247
-                //   orig2_full.png      y=313..321
-                //   （# = 核心线 1px，# = 抗锯齿过渡）
-                //     y+0  ..oo.......      x+0
-                //     y+1  ..o#o......      x+1
-                //     y+2  ...o#o.....      x+2
-                //     y+3  ....o#o....      x+3
-                //     y+4  ....o##o...      x+3,x+4   ← 折角
-                //     y+5  ....o#o....      x+3
-                //     y+6  ...o#o.....      x+2
-                //     y+7  ..o#o......      x+1
-                //     y+8  ..oo.......      x+0
+                // 真原版数据（两张截图**逐像素完全一致**，互为印证）：
+                //   original_win10.png  Edge 行 y=239..247, x=12..17
+                //   orig2_full.png      y=313..321,   x=12..17
+                //   行0  D2D2D2 BFBFBF   -      -      -      -
+                //   行1  BFBFBF A6A6A6 BFBFBF   -      -      -
+                //   行2    -    BFBFBF A6A6A6 BFBFBF   -      -
+                //   行3    -      -    BFBFBF A6A6A6 BFBFBF   -
+                //   行4    -      -    FAFAFA ACACAC A6A6A6 D4D4D4
+                //   行5    -      -    BFBFBF A6A6A6 BFBFBF   -
+                //   行6    -    BFBFBF A6A6A6 BFBFBF   -      -
+                //   行7  BFBFBF A6A6A6 BFBFBF   -      -      -
+                //   行8  D2D2D2 BFBFBF   -      -      -      -
                 //
-                // 即**两条短斜线组成的「>」折角，9 行高，每行 1 个核心像素**
-                // （折角行 2 个）。不是实心三角，也不是三角形轮廓。
+                // 即**两条短斜线组成的「>」折角，9 行高、核心 1px 宽**，
+                // 抗锯齿把每行铺成 2~3px。不是实心三角，也不是三角形轮廓。
                 //
-                // 【颜色】原版核心读到 #A6A6A6，但那是白底抗锯齿渲染的结果。
-                // GDI 的 SetPixelV 是硬像素、无抗锯齿，直接用 #A6A6A6 会偏淡；
-                // 取 kTextSecondary(#5A5A5A)（与正文文字同族），视觉上等价于
-                // 原版「一条清晰的深灰折线」，也是我方一直用的值。
+                // 字形本身（覆盖率表 + 合成）在文件上方的 DrawExpandoChevron 里，
+                // 那里也写了「为什么源色必须是 #5A5A5A」的定量证明。
                 //
-                // 【展开态 ▼】两张参考图里全是折叠态，没有展开态样本。
-                // 按 90° 旋转推定（原版主题里 EXPANDBUTTON/COLLAPSEBUTTON 是
-                // 同一颗字形的两个方向）。如需精确对齐，要一张展开状态的截图。
-                if (row.hasChildren) {
-                    int triL = 0, triR = 0;
-                    TreeTriangleX(row.indentLevel, triL, triR);
-                    (void)triR;
-
-                    const int tx0 = triL;
-
-                    // 折叠 ▶：9 行，核心像素相对 tx0 的 x 偏移
-                    static const signed char kCx[9] = { 0, 1, 2, 3, 3, 3, 2, 1, 0 };
-
-                    if (row.expanded) {
-                        // ▼：▶ 顺时针转 90° —— 两条斜边从顶部两端收拢到底部一点。
-                        // 5 行足够（宽度 9 / 2 ≈ 4.5），单独居中。
-                        const int vh = 5;
-                        const int vy0 = y + (rh - vh) / 2;
-                        for (int i = 0; i < vh; ++i) {
-                            const int py = vy0 + i;
-                            SetPixelV(hdc, tx0 + i, py, kTextSecondary);
-                            if (8 - i != i) {
-                                SetPixelV(hdc, tx0 + (8 - i), py, kTextSecondary);
-                            }
-                        }
-                    } else {
-                        const int ty0 = y + (rh - 9) / 2;
-                        for (int i = 0; i < 9; ++i) {
-                            SetPixelV(hdc, tx0 + kCx[i], ty0 + i, kTextSecondary);
-                            // 折角那一行多一个像素（原版 y+4 是 x+3,x+4）
-                            if (i == 4) SetPixelV(hdc, tx0 + 4, ty0 + i, kTextSecondary);
-                        }
-                    }
-                }
+                // 【水平】原版字形包围盒 6 宽（x=12..17），本函数给出的 triL 是
+                // **沟槽左沿 9**（命中区口径，不是字形口径）。字形左沿 = 12，
+                // 相对 triL 偏 3 —— 与原版「箭头槽 x0+3」的留白一致。
+                // 实测相对关系：arrow_left − icon_ink_left = −19、− text_left = −42，
+                // 两张原版图完全相同；本实现的 12/31/54 与之一致。
+                //
+                // 【垂直】字形 9 行居中：与原版一致（图标 236..251 中心 243.5、
+                // 字形 239..247 中心 243.0，同一行内）。
+                //
+                // 【展开态 ▼】两张原版截图里全是折叠态，没有 ▼ 的样本。
+                // 由同一张表绕中心旋转 90° 得到（主题里 EXPANDBUTTON /
+                // COLLAPSEBUTTON 是同一颗字形的两个方向），笔画权重因此完全一致。
+                // 这一点在报告里标为「推定」，不是实测。
+                const int glyphLeft = triL + 3;          // 9 + 3 = 12
+                // 折叠 ▶ 是 6 宽 × 9 高，展开 ▼ 是 9 宽 × 6 高（同一张表旋转 90°），
+                // 两者的**高**不同，所以各自按自己的高居中 —— 用同一个 top 会让 ▼ 偏高 1~2px。
+                const int glyphH = row.expanded ? kExpandoCols : kExpandoRows;   // 6 : 9
+                const int glyphTop = y + (rh - glyphH) / 2;
+                // 【两态共用一个左沿，是有意的】旋转把 (行 r, 列 c) 映到 (列 8−r, 行 c)，
+                // 因此两态的**尖端都落在列 4**（= 相对左沿 +4）。左沿相同 ⇒ 尖端 x 相同，
+                // 箭头切换时不会左右跳。▼ 因此比 ▶ 向右多占 3px，但不侵入图标（间隔 11px）。
+                COLORREF rowBg = kBgWindow;
+                if (sel)      rowBg = RGB(0xCD, 0xE8, 0xFF);   // LISS_SELECTED
+                else if (hov) rowBg = RGB(0xE5, 0xF3, 0xFF);   // LISS_HOT
+                DrawExpandoChevron(hdc, glyphLeft, glyphTop, row.expanded, rowBg);
             }
 
             // 名称（含缩进）
