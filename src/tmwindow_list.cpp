@@ -755,24 +755,23 @@ void TmWindow::PaintColumnHeader(HDC hdc) {
     // 行内是「沟槽+图标+文字」语义，两者左界本来就不同。
     const int nameLeft = rcColHeader_.left + kCellPadLeft;
 
-    // ⚠【结论已推翻 · 保留代码但标注为无依据】此前这里把排序列涂成 #E5F3FF，
-    // 理由是「hdr_orig_arrow.png 里排序列有整列浅蓝底 = 当前排序列的视觉提示」。
-    // **这个归因是错的**：
+    // 【排序列高亮：已删除 · 2026-11-21】
+    //
+    // 这里曾把排序列整列涂成 #E5F3FF，理由是「hdr_orig_arrow.png 里排序列有
+    // 浅蓝底 = 当前排序列的视觉提示」。那个归因是错的：
     //   1. 按 S_duispec.md §2.4，`#E5F3FF` 是 `dtb(EXPLORER::LISTVIEW,1,2)` 的
     //      **鼠标悬停色**（4800/4800 像素全同色）；选中色是 `#CDE8FF`。
-    //   2. 直接反证：真原版 `docs/reference/original_win10.png` 的名称列
-    //      **明知已按名称升序排序**（我独立扫出箭头像素在 x=112..119 /
-    //      y=94..97，共 8 个），整列却是**纯白**，没有任何 #E5F3FF。
-    //   3. 那张 `hdr_orig_arrow.png` 的浅蓝，最可能是截图时鼠标正停在 CPU 列头上。
-    // 保留这块填充是因为它有可见效果（用户能看出按哪列排），但它**不是原版行为**。
-    // 若要严格对齐原版，应删掉这段、只留排序箭头。
-    // 详见 docs/specs/ZZ_FIXES.md §零.5。
-    if (sortCol_ >= 0 && sortCol_ < kColCount && LiveVisible(sortCol_)) {
-        const int scx = x0 + ColX(sortCol_, nameW);
-        const int scw = (sortCol_ == 0) ? nameW : LiveW(sortCol_);
-        RECT sr{ scx, rcColHeader_.top, scx + scw, rcColHeader_.bottom - 1 };
-        FillSolidFast(hdc, sr, RGB(0xE5, 0xF3, 0xFF));
-    }
+    //   2. 真原版 `docs/reference/original_win10.png` 的名称列明知已按名称升序
+    //      排序（箭头像素在 x=112..119 / y=94..97），整列却是**纯白**：
+    //      逐像素统计 x=110..230 / y=90..130 得 #FFFFFF 4930 像素，无 #E5F3FF。
+    //   3. 那张 hdr_orig_arrow.png 的浅蓝，最可能是截图时鼠标正停在 CPU 列头上。
+    //
+    // 之前一直留着，理由是「有可见效果，用户能看出按哪列排」。但排序箭头
+    // 本身就是那个提示，这块底色是重复的，而且**让箭头糊在一块色块里**——
+    // 用户报「箭头分辨率太低」，一部分观感就来自这里：镂空的 1px 描边
+    // 贴在浅蓝底上，对比度被削弱，看起来像一团。
+    //
+    // 现在删掉，只留箭头。视觉上一个 4 行的镂空 V 形在纯白列头上，与原版一致。
 
     // ===== 列头带上半部分的资源汇总数值（真原版实测）=====
     //
