@@ -140,6 +140,95 @@ int TmWindow::HitTestRow(int y) const {
     return -1;
 }
 
+// ============ 光标判定 ============
+
+// 按坐标决定光标形状。**WM_SETCURSOR 和 WM_MOUSEMOVE 都调它**，
+// 两处共用一份判据，避免漂移。
+//
+// 【为什么不能只在 WM_MOUSEMOVE 里设】鼠标不动就没有 WM_MOUSEMOVE，
+// 而窗口重绘 / 焦点切回 / 被别的窗口盖住再露出 / 滚动导致视觉位移，
+// 这些时刻光标都该重算。原来 WM_SETCURSOR 直接 `return TRUE`，
+// 等于宣示"我管光标"却只在那一条消息里管，于是手型会滞留在空白处。
+void TmWindow::ApplyHoverCursor(int x, int y) {
+    // 1) 列边界：拖拽改宽
+    if (tabs_.Current() == TabId::Processes && HitTestColResize(x, y) >= 0) {
+        SetCursor(LoadCursorW(nullptr, IDC_SIZEWE));
+        return;
+    }
+
+    // 2) 滚动条：HitTestRow 只看 y 不看 x，鼠标停在列表右侧滚动条上时
+    //    同样会命中某一行。但滚动条不是可点的"项"，给普通箭头。
+    //    必须排在下面的行判据之前。
+    if (x >= ScrollBarLeft() && x < rcList_.right) {
+        SetCursor(LoadCursorW(nullptr, IDC_ARROW));
+        return;
+    }
+
+    // 3) 页签栏
+    if (tabs_.HitTest(x, y) != TabId::Count) {
+        SetCursor(LoadCursorW(nullptr, IDC_HAND));
+        return;
+    }
+
+    switch (tabs_.Current()) {
+    case TabId::Processes:
+        // 列头（可点排序）、组头（可折叠）、数据行（可选中）
+        if (HitTestColumn(x, y) >= 0 ||
+            HitTestGroupHeader(y) >= 0 ||
+            HitTestRow(y) >= 0) {
+            SetCursor(LoadCursorW(nullptr, IDC_HAND));
+            return;
+        }
+        break;
+
+    case TabId::Details:
+        // 详细信息页扁平列表，没有分组头
+        if (detailSelectedRow_ >= -1 &&
+            y >= rcContent_.top + theme::kHeaderHeight && y < rcContent_.bottom &&
+            x < rcList_.right) {
+            SetCursor(LoadCursorW(nullptr, IDC_HAND));
+            return;
+        }
+        break;
+
+    case TabId::Startup:
+    case TabId::Users:
+    case TabId::Services:
+    case TabId::AppHistory:
+        // 四个次要页：行区（表头以下）可点
+        if (pagesView_.HitRowAt(x, y) >= 0) {
+            SetCursor(LoadCursorW(nullptr, IDC_HAND));
+            return;
+        }
+        break;
+
+    case TabId::Performance:
+        // 性能页：侧栏卡片可点选，右侧图表区也可点（切子视图）。
+        // 这里只区分「侧栏 / 图表区」两块，具体命中留给 OnClick 自己算 ——
+        // 为一个光标去复刻一遍完整的命中逻辑，两处判据迟早漂移。
+        {
+            const RECT& pb = perfPage_.Bounds();
+            const bool inPerf = x >= pb.left && x < pb.right && y >= pb.top && y < pb.bottom;
+            if (inPerf) {
+                SetCursor(LoadCursorW(nullptr, IDC_HAND));
+                return;
+            }
+        }
+        break;
+
+    default:
+        break;
+    }
+
+    // 4) 底部工具栏按钮
+    if (HitTestToolbar(x, y) != 0) {
+        SetCursor(LoadCursorW(nullptr, IDC_HAND));
+        return;
+    }
+
+    SetCursor(LoadCursorW(nullptr, IDC_ARROW));
+}
+
 // ============ 菜单 ============
 
 void TmWindow::RebuildMenu() {
@@ -468,31 +557,33 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
                 break;
         }
 
-        // 列边界上显示双向箭头，提示可以拖拽改宽
-        if (tabs_.Current() == TabId::Processes && HitTestColResize(x, y) >= 0) {
-            SetCursor(LoadCursorW(nullptr, IDC_SIZEWE));
-            return 0;
-        }
-
-        // 【滚动条区域不显示手型】HitTestRow 只看 y、不看 x，所以鼠标停在
-        // 列表右侧的滚动条上时也会命中某一行、进而被下面的判据设成 IDC_HAND。
-        // 但滚动条不是可点的"项"，原版那里是普通箭头（拖滑块时可能变）。
-        // 这一条必须排在下面那个 IDC_HAND 判据之前。
-        {
-            const int sbLeft = ScrollBarLeft();
-            if (x >= sbLeft) {
-                SetCursor(LoadCursorW(nullptr, IDC_ARROW));
-                return 0;
-            }
-        }
-
-        SetCursor(LoadCursorW(nullptr,
-            (t != TabId::Count || hc >= 0 || r >= 0) ? IDC_HAND : IDC_ARROW));
+        // 光标：与 WM_SETCURSOR 走同一个函数，避免两处判据漂移
+        ApplyHoverCursor(x, y);
         return 0;
     }
 
-    case WM_SETCURSOR:
-        return TRUE;
+    case WM_SETCURSOR: {
+        // 【光标必须在这里设，不能只在 WM_MOUSEMOVE 里设】
+        //
+        // 原来这里是 `return TRUE;` —— 告诉系统"我已处理光标"，但真正的
+        // SetCursor 全在 WM_MOUSEMOVE 分支里。而**鼠标不动就没有
+        // WM_MOUSEMOVE**：窗口重绘、焦点切回、别的窗口盖住再露出、滚动导致
+        // 视觉位移而鼠标没动 —— 这些时刻光标停在上一次的值不更新。
+        //
+        // 用户报「ListView 空白处无条件 hand pointer」就是这个：从某一行
+        // 移到空白处时若没有新的 WM_MOUSEMOVE，手型就留在那儿了。
+        //
+        // 正确做法是每次 WM_SETCURSOR 都按当前坐标重算一次。系统在鼠标移动、
+        // 窗口激活、光标被别的程序改动后都会发这条消息，比 WM_MOUSEMOVE 可靠。
+        if (LOWORD(lp) == HTCLIENT) {
+            POINT pt{};
+            GetCursorPos(&pt);
+            ScreenToClient(hwnd_, &pt);
+            ApplyHoverCursor(pt.x, pt.y);
+            return TRUE;    // 已自行 SetCursor
+        }
+        return DefWindowProcW(hwnd_, msg, wp, lp);
+    }
 
     case WM_LBUTTONDOWN: {
         int x = GET_X_LPARAM(lp), y = GET_Y_LPARAM(lp);
@@ -874,11 +965,24 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
     }
 
     case WM_MOUSEWHEEL: {
-        int delta = GET_WHEEL_DELTA_WPARAM(wp);
+        const int delta = GET_WHEEL_DELTA_WPARAM(wp);
+
+        // 【精细滚动 · 2026-11-21】原来三处都是 `delta / WHEEL_DELTA` 整除。
+        // 真滚轮一格给 ±120，整除没问题；但**触控板两指滑动给的是细分增量**
+        // （常见 ±15、±30、±40），整除后全变成 0 —— 精细滚动被整个吃掉，
+        // 表现为「触控板滑半天画面不动」。
+        //
+        // 改法：把余数留着累加。凑不满一格就攒着，下次一起算。
+        // 这样真滚轮行为不变（120/120=1，余数 0），触控板也能按比例滚动。
+        wheelRemainder_ += delta;
+        const int notches = wheelRemainder_ / WHEEL_DELTA;
+        wheelRemainder_ -= notches * WHEEL_DELTA;
+        if (notches == 0) return 0;      // 还没凑够一格，等下一次
+
         if (tabs_.Current() == TabId::Details) {
             // 【不区分父子行】详细信息页行高统一 28（tmwindow_details.cpp 全程
             // kRowHeight），滚轮按 kRowHeight 走是正确的。
-            detailScrollY_ -= (delta / WHEEL_DELTA) * kRowHeight * 3;
+            detailScrollY_ -= notches * kRowHeight * 3;
             if (detailScrollY_ < 0) detailScrollY_ = 0;
         } else {
             // 四个次要页有自己的滚动状态（PagesView::scroll_）。此前滚轮落进
@@ -890,7 +994,7 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
                 case TabId::Services:
                 case TabId::AppHistory:
                     pagesView_.SetCurrentTab(static_cast<int>(tabs_.Current()));
-                    pagesView_.ScrollBy(-(delta / WHEEL_DELTA) * 3);
+                    pagesView_.ScrollBy(-notches * 3);
                     break;
                 default: {
                     // 【子行 22】进程页行高不再统一，按固定 kRowHeight×3 滚会
@@ -905,7 +1009,7 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
                         if (scrollY_ < acc + rh) { firstRH = rh; break; }
                         acc += rh;
                     }
-                    scrollY_ -= (delta / WHEEL_DELTA) * firstRH * 3;
+                    scrollY_ -= notches * firstRH * 3;
                     // 滚轮只改 scrollY_，行表内容不变 → 只钳制范围。
                     // （原来这里调 RebuildRows()，那是每秒几十次的全量重建 + 多次排序。）
                     ClampScroll();

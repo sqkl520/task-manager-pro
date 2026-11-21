@@ -465,6 +465,11 @@ private:
     void BuildToolbarButtons() const;
     void PaintToolbar(HDC hdc);
     UINT HitTestToolbar(int x, int y);
+    // 按坐标设置光标。WM_SETCURSOR 与 WM_MOUSEMOVE 共用这一份判据。
+    // 【两条消息都要调】只在 WM_MOUSEMOVE 里设会让光标滞留 ——
+    // 鼠标不动时没有那条消息，而重绘/焦点切回/滚动导致的视觉位移
+    // 都需要重算。
+    void ApplyHoverCursor(int x, int y);
 
     // ---- 滚动条 ----
     // 【缺陷修复】之前列表超出可见区时没有任何滚动条，也看不出还能滚。
@@ -480,6 +485,9 @@ private:
     int ViewportHeight() const;
     // 拖拽状态
     bool scrollDragging_ = false;
+    // 滚轮余数累积。触控板给的是细分增量（±15/±30），整除 WHEEL_DELTA(120)
+    // 会全部变成 0。这里攒着凑够一格再滚，真滚轮行为不变（120 整除余 0）。
+    int  wheelRemainder_ = 0;
     int  scrollDragOffset_ = 0;
 
 

@@ -948,6 +948,17 @@ void PagesView::PaintAppHistory(HDC hdc) const {
 // 两处绘制分支（PaintUsers/PaintServices/PaintAppHistory 里的 `i == hover_`
 // 与 `kHeaderHeight - scroll_`）就会立刻活过来。
 
+int PagesView::HitRowAt(int x, int y) const {
+    if (x < bounds_.left || x >= bounds_.right) return -1;
+    switch (currentTab_) {
+        case 3: return HitRow(y, static_cast<int>(startup_.size()));
+        case 4: return HitRow(y, static_cast<int>(users_.size()));
+        case 6: return HitRow(y, static_cast<int>(services_.size()));
+        case 2: return HitRow(y, static_cast<int>(appHistory_.size()));
+        default: return -1;
+    }
+}
+
 void PagesView::OnHover(int x, int y) {
     if (currentTab_ < 0) { hover_ = -1; return; }
 

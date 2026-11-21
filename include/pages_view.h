@@ -72,6 +72,10 @@ public:
     // 永远是初始值 —— 行悬停不会出现、服务页 300 多项只有前十几行可达。
     // OnHover 传客户区坐标，内部换算成当前页的行号；(-1,-1) 表示移出。
     void OnHover(int x, int y);
+    // 光标判定用：该坐标是否落在当前页的数据行上（表头不算、空白不算）。
+    // 返回行索引或 -1。与 HitRow 的区别是它自己取当前页的行数，
+    // 调用方不用知道 pages 的内部结构。
+    int HitRowAt(int x, int y) const;
     // ScrollBy 以「行」为单位（正数向下），内部按当前页的行数 clamp，
     // 不做像素级滚动 —— 调用方用 -delta/WHEEL_DELTA 换算。
     void ScrollBy(int lines);
