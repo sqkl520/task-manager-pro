@@ -1468,36 +1468,64 @@ void TmWindow::PaintRows(HDC hdc) {
                 int triL = 0, triR = 0;
                 TreeTriangleX(row.indentLevel, triL, triR);
                 (void)triR;
-                // 【真原版截图实测：8×7 实心三角】
-                // docs/reference/orig2_rows.png 逐行渲染出的箭头形状：
-                //     y=8   ##          （宽 2）
-                //     y=9   ####        （宽 4）
-                //     y=10  ######      （宽 6）
-                //     y=11  ########    （宽 8）  ← 最宽处
-                //     y=12  ######      （宽 6）
-                //     y=13  ####        （宽 4）
-                //     y=14  ##          （宽 2）
-                // 即**朝右的实心三角，宽 8、高 7**，色 #5A5A5A。
-                // 没有可见的外框（此前我方画 15×15 的隐含框 + 9×9 三角，偏大）。
-                const int halfW = kArrowWidth / 2;    // 4
-                const int halfH = kArrowHeight / 2;   // 3
-                const int bcx = triL + halfW;         // 三角中心 x
-                const int bcy = y + rh / 2;           // 行内垂直居中
-                POINT pts[3];
-                if (row.expanded) {
-                    // 展开：朝下 ▼
-                    pts[0] = POINT{ bcx - halfW, bcy - halfH };
-                    pts[1] = POINT{ bcx + halfW, bcy - halfH };
-                    pts[2] = POINT{ bcx,        bcy + halfH + 1 };
-                } else {
-                    // 折叠：朝右 ▶
-                    pts[0] = POINT{ bcx - halfH, bcy - halfW };
-                    pts[1] = POINT{ bcx + halfH + 1, bcy };
-                    pts[2] = POINT{ bcx - halfH, bcy + halfW };
+                // 【真原版实测：细描边折角，不是实心三角 · 2026-11-21】
+                //
+                // 此前这里画的是「8×7 实心三角」，依据 docs/reference/orig2_rows.png。
+                // **那张图是我方截图，不是原版**：整图只有 267 种颜色，三角是
+                // 纯 #5A5A5A、零抗锯齿 —— 这是 GDI Polygon 的特征；真原版截图
+                // 有抗锯齿渐变。项目历史上 m3.png / truth1.png 也是同样的坑。
+                //
+                // 真原版数据（两张截图结果完全一致，互为印证）：
+                //   original_win10.png  Edge 行 y=239..247
+                //   orig2_full.png      y=313..321
+                //   （# = 核心线 1px，# = 抗锯齿过渡）
+                //     y+0  ..oo.......      x+0
+                //     y+1  ..o#o......      x+1
+                //     y+2  ...o#o.....      x+2
+                //     y+3  ....o#o....      x+3
+                //     y+4  ....o##o...      x+3,x+4   ← 折角
+                //     y+5  ....o#o....      x+3
+                //     y+6  ...o#o.....      x+2
+                //     y+7  ..o#o......      x+1
+                //     y+8  ..oo.......      x+0
+                //
+                // 即**两条短斜线组成的「>」折角，9 行高，每行 1 个核心像素**
+                // （折角行 2 个）。不是实心三角，也不是三角形轮廓。
+                //
+                // 【颜色】原版核心读到 #A6A6A6，但那是白底抗锯齿渲染的结果。
+                // GDI 的 SetPixelV 是硬像素、无抗锯齿，直接用 #A6A6A6 会偏淡；
+                // 取 kTextSecondary(#5A5A5A)（与正文文字同族），视觉上等价于
+                // 原版「一条清晰的深灰折线」，也是我方一直用的值。
+                //
+                // 【展开态 ▼】两张参考图里全是折叠态，没有展开态样本。
+                // 按 90° 旋转推定（原版主题里 EXPANDBUTTON/COLLAPSEBUTTON 是
+                // 同一颗字形的两个方向）。如需精确对齐，要一张展开状态的截图。
+                if (row.hasChildren) {
+                    int triL = 0, triR = 0;
+                    TreeTriangleX(row.indentLevel, triL, triR);
+                    (void)triR;
+
+                    const int triH = 9;                    // 9 行高
+                    const int ty0 = y + (rh - triH) / 2;   // 行内垂直居中
+                    const int tx0 = triL;                  // 折角起点
+
+                    // 折叠 ▶：核心像素相对 tx0 的 x 偏移，逐行
+                    static const signed char kCx[9] = { 0, 1, 2, 3, 3, 3, 2, 1, 0 };
+                    for (int i = 0; i < triH; ++i) {
+                        const int py = ty0 + i;
+                        if (row.expanded) {
+                            // ▼：把 ▶ 顺时针转 90°，即「空心 v」——
+                            // 每条斜边每行一个像素，两条边从中轴 ±4 收拢到 0。
+                            const int d = (i <= 4) ? (4 - i) : (i - 4);
+                            SetPixelV(hdc, tx0 + 4 - d, py, kTextSecondary);
+                            if (d != 0) SetPixelV(hdc, tx0 + 4 + d, py, kTextSecondary);
+                        } else {
+                            SetPixelV(hdc, tx0 + kCx[i], py, kTextSecondary);
+                            // 折角那一行多一个像素（原版 y+4 是 x+3,x+4）
+                            if (i == 4) SetPixelV(hdc, tx0 + 4, py, kTextSecondary);
+                        }
+                    }
                 }
-                // 【性能修复】每帧每个应用行都 CreateSolidBrush(kTextSecondary)，
-                // 一屏十几个应用行 = 十几次 Create+Delete，颜色却恒定。
-                FillPolygonFast(hdc, pts, 3, kTextSecondary);
             }
 
             // 名称（含缩进）
