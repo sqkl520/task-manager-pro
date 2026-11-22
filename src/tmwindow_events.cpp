@@ -193,7 +193,7 @@ void TmWindow::ApplyHoverCursor(int x, int y) {
     case TabId::Details:
         // 详细信息页扁平列表，没有分组头
         if (detailSelectedRow_ >= -1 &&
-            y >= rcContent_.top + theme::kHeaderHeight && y < rcContent_.bottom &&
+            y >= rcContent_.top + theme::Rpx(theme::kHeaderHeight) && y < rcContent_.bottom &&
             x < rcList_.right) {
             SetCursor(LoadCursorW(nullptr, IDC_HAND));
             return;
@@ -326,7 +326,7 @@ int TmWindow::MaxScrollOffset(ScrollTarget t) const {
         return (std::max)(0, total - view);
     }
     case ScrollTarget::DetailList: {
-        const int total = static_cast<int>(detailRows_.size()) * kRowHeight;
+        const int total = static_cast<int>(detailRows_.size()) * theme::Rpx(kRowHeight);
         return (std::max)(0, total - DetailViewportHeight());
     }
     case ScrollTarget::PagesTable:
@@ -342,7 +342,7 @@ int TmWindow::ScrollViewportPx(ScrollTarget t) const {
     case ScrollTarget::DetailList:  return DetailViewportHeight();
     case ScrollTarget::PagesTable: {
         const RECT& b = pagesView_.Bounds();
-        const int h = static_cast<int>(b.bottom - b.top) - theme::kHeaderHeight;
+        const int h = static_cast<int>(b.bottom - b.top) - theme::Rpx(theme::kHeaderHeight);
         return h > 0 ? h : 0;
     }
     default: return 0;
@@ -357,7 +357,7 @@ int TmWindow::ScrollRowPx(ScrollTarget t) const {
         return FirstVisibleRowHeight();
     default:
         // 详细信息页与四个次要页行高统一 kRowHeight（各自的绘制全程用它）
-        return kRowHeight;
+        return theme::Rpx(kRowHeight);
     }
 }
 
@@ -369,7 +369,7 @@ int TmWindow::FirstVisibleRowHeight() const {
         if (scrollY_ < acc + rh) return rh;
         acc += rh;
     }
-    return kRowHeight;
+    return theme::Rpx(kRowHeight);
 }
 
 int TmWindow::DetailViewportHeight() const {
@@ -836,7 +836,17 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
         // 两件事：
         //   1) 更新 theme::Dpi() 的缓存，让后续所有 Scaled() 用新值
         //   2) 采纳系统建议的新窗口矩形（不采纳会让窗口尺寸与 DPI 不匹配）
+        const int prevDpi = theme::Dpi();
         theme::SetDpi(HIWORD(wp));
+        // 【必须重建字体】BuildFonts 里的 kFontSize* 是 96 DPI 基准值，
+        // 现在经 Rpx() 缩放。不重建的话字体还是旧 DPI 的字号，而框已经
+        // 按新 DPI 变大 —— 卡片数值的 tmHeight/框高 填充率会掉到 50%，
+        // 文字挤在框的左上角。这正是 WM_DPICHANGED 之前只调 BuildLayout
+        // 不够的地方。
+        if (theme::Dpi() != prevDpi) {
+            BuildFonts();
+            pagesView_.OnDpiChanged(prevDpi);
+        }
         const RECT* prc = reinterpret_cast<const RECT*>(lp);
         if (prc) {
             SetWindowPos(hwnd_, nullptr,
@@ -1186,7 +1196,7 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
                 const int trackTop = rcList_.top;
                 const int trackH = view;
                 int thumbH = trackH * view / total;
-                if (thumbH < 24) thumbH = 24;
+                if (thumbH < theme::Rpx(24)) thumbH = theme::Rpx(24);
                 if (thumbH > trackH) thumbH = trackH;
 
                 int rel = y - scrollDragOffset_ - trackTop;
@@ -1209,14 +1219,14 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
         // 拖拽滚动条（详细信息页）。与进程页同样是直接精确位移，**无惯性**。
         if (detailScrollDragging_) {
             const int viewH = DetailViewportHeight();
-            const int contentH = static_cast<int>(detailRows_.size()) * kRowHeight;
+            const int contentH = static_cast<int>(detailRows_.size()) * theme::Rpx(kRowHeight);
             const int maxScroll = contentH - viewH;
-            const int trackTop = static_cast<int>(rcContent_.top) + theme::kHeaderHeight +
+            const int trackTop = static_cast<int>(rcContent_.top) + theme::Rpx(theme::kHeaderHeight) +
                                  16;   // kDetScrollBtnH，见 tmwindow_details.cpp
-            const int trackH = viewH - 16 * 2;
+            const int trackH = viewH - theme::Rpx(16) * 2;
             if (maxScroll > 0 && trackH > 0) {
                 int thumbH = trackH * viewH / contentH;
-                if (thumbH < 24) thumbH = 24;
+                if (thumbH < theme::Rpx(24)) thumbH = theme::Rpx(24);
                 if (thumbH > trackH) thumbH = trackH;
                 const int span = trackH - thumbH;
                 if (span > 0) {
@@ -1344,10 +1354,10 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
         // 拖动是**直接精确位移**，与进程页一致，绝不加惯性。
         if (tabs_.Current() == TabId::Details) {
             RECT th = DetailScrollThumbRect();
-            const int btnH = 16;   // kDetScrollBtnH，见 tmwindow_details.cpp
-            const int listTop = static_cast<int>(rcContent_.top) + theme::kHeaderHeight;
-            const int listBot = static_cast<int>(rcContent_.bottom) - 2;
-            const int sbRight = static_cast<int>(rcContent_.right) - 3;
+            const int btnH = theme::Rpx(16);   // kDetScrollBtnH，见 tmwindow_details.cpp
+            const int listTop = static_cast<int>(rcContent_.top) + theme::Rpx(theme::kHeaderHeight);
+            const int listBot = static_cast<int>(rcContent_.bottom) - theme::Rpx(2);
+            const int sbRight = static_cast<int>(rcContent_.right) - theme::Rpx(3);
             const int sbLeft = sbRight - DetailScrollBarWidth();
             const bool inSb = (x >= sbLeft && x < sbRight &&
                                y >= listTop && y < listBot);
@@ -1365,12 +1375,12 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
                 if (y >= listTop && y < listTop + btnH) {
                     // 上箭头：上一行。行高统一 kRowHeight。
                     StopScrollInertia();
-                    SetScrollOffset(ScrollTarget::DetailList, detailScrollY_ - kRowHeight);
+                    SetScrollOffset(ScrollTarget::DetailList, detailScrollY_ - theme::Rpx(kRowHeight));
                     return 0;
                 }
                 if (y >= listBot - btnH && y < listBot) {
                     StopScrollInertia();
-                    SetScrollOffset(ScrollTarget::DetailList, detailScrollY_ + kRowHeight);
+                    SetScrollOffset(ScrollTarget::DetailList, detailScrollY_ + theme::Rpx(kRowHeight));
                     return 0;
                 }
                 // 轨道空白：翻一页
@@ -1588,12 +1598,12 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
             // 所以行区原点 = rcContent_.top + theme::kHeaderHeight。
             // 曾经这里写死 24、而绘制侧从 +40 起，两套原点差 16px，
             // 结果点第 N 行选中第 N+1 行、点列头会选中第一行。
-            const int hdrBottom = rcContent_.top + theme::kHeaderHeight;
+            const int hdrBottom = rcContent_.top + theme::Rpx(theme::kHeaderHeight);
             // 【不区分父子行】详细信息页是扁平进程列表（detailRows_ 是
             // vector<ProcessEntry*>，没有 ViewRow，也就没有 indentLevel/
             // GroupHeaderRow）。tmwindow_details.cpp 全程按 kRowHeight 画，
             // 这里继续保持 kRowHeight，两边一致才是对的。
-            int row = (y - hdrBottom + detailScrollY_) / kRowHeight;
+            int row = (y - hdrBottom + detailScrollY_) / theme::Rpx(kRowHeight);
             if (y >= hdrBottom && row >= 0 &&
                 row < static_cast<int>(detailRows_.size())) {
                 const ProcessEntry* pe = detailRows_[row];
@@ -1687,10 +1697,10 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
             // 所以行区原点 = rcContent_.top + theme::kHeaderHeight。
             // 曾经这里写死 24、而绘制侧从 +40 起，两套原点差 16px，
             // 结果点第 N 行选中第 N+1 行、点列头会选中第一行。
-            const int hdrBottom = rcContent_.top + theme::kHeaderHeight;
+            const int hdrBottom = rcContent_.top + theme::Rpx(theme::kHeaderHeight);
             // 【不区分父子行】同左键分支：详细信息页是扁平列表，无子行概念，
             // 与 tmwindow_details.cpp 的 kRowHeight 保持一致。
-            int row = (y - hdrBottom + detailScrollY_) / kRowHeight;
+            int row = (y - hdrBottom + detailScrollY_) / theme::Rpx(kRowHeight);
             if (y >= hdrBottom && row >= 0 &&
                 row < static_cast<int>(detailRows_.size())) {
                 const ProcessEntry* pe = detailRows_[row];

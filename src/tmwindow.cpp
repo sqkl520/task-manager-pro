@@ -92,7 +92,22 @@ TmWindow::~TmWindow() {
 // 取不到才退系统 message font。三个 BuildFonts（本文件 / perfpage / pages_view）
 // 应当共用这一份，否则改一处主题另外六个页面纹丝不动。
 void TmWindow::BuildFonts() {
-    auto mk = [](int px, int weight) -> HFONT { return MakeUiFont(px, weight); };
+    // 【P0 高分屏】kFontSize* 全是 96 DPI 基准值，必须经 Rpx 缩放。
+    //
+    // 不缩放的后果实测（scratch/dpi_probe/font_probe）：框随 DPI 放大而字不放大，
+    // 卡片数值的 tmHeight/框高 填充率从 100% 掉到 192 DPI 的 50% ——
+    // 文字挤在放大后的框的左上角，这正是用户说的「高分屏怪怪的」。
+    //
+    // pages_view.cpp:343 的 `lf.lfHeight = -Rpx(px96)` 是同一处理，两者保持一致。
+    auto mk = [](int px, int weight) -> HFONT {
+        return MakeUiFont(theme::Rpx(px), weight);
+    };
+
+    // 【必须先释放旧字体】WM_DPICHANGED 会调本函数重建；不删旧的，
+    // 每次换显示器就泄漏 7 个 HFONT。GDI 句柄耗尽会让整个进程画不出东西。
+    auto del = [](HFONT& f) { if (f) { DeleteObject(f); f = nullptr; } };
+    del(fontBody_); del(fontBold_); del(fontNav_); del(fontCardTitle_);
+    del(fontCardValue_); del(fontCardSub_); del(fontGroup_);
 
     fontBody_      = mk(kFontSizeBody, FW_NORMAL);
     // 列头字重 = 常规，不是半粗。

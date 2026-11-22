@@ -243,11 +243,15 @@ void TmWindow::PaintCards(HDC hdc) {
     //     ⚠ 其中 21 / 49 不是字号，是三个文字框的分段边界：
     //       title 5..21、value 21..49、sub 49..bottom-3。
     //       它们**必须**与 fontCardTitle_/Value_/Sub_ 的 lfHeight 同步放大 ——
-    //       只放大框不放大字，文字在框里的相对高度会塌下去（96 DPI 下
-    //       fontCardValue_ 的 tmHeight≈30 占 value 框 28px 的 107%，本来就略裁；
-    //       150% 下若框放大到 42px 而字仍是 21px 的 30px 高，比例降到 71%，
-    //       观感变成"小字躺在大框里"，这与用户投诉的"高分屏怪怪的"是同一类问题）。
-    //       字体缩放不在本文件 —— 见 docs/audit/B02_paint_details_dpi.md §2。
+    //       只放大框不放大字，文字会越缩越小。实测（scratch/dpi_probe/font_probe.exe，
+    //       用 MM_ANISOTROPIC 把 window=96/viewport=dpi 模拟各 DPI 的 GDI 文字）：
+    //         fontCardValue_(21px) 的 tmHeight 与 value 框(28) 的填充率
+    //           dpi= 96  未缩放 28/28=100%    已缩放 28/28=100%
+    //           dpi=144  未缩放 27/42= 64%    已缩放 41/42= 97%
+    //           dpi=192  未缩放 28/56= 50%    已缩放 55/56= 98%
+    //       即：框随 DPI 放大而字不放大时，卡片数值的相对字号会掉到一半。
+    //       字体缩放不在本文件（BuildFonts 在 tmwindow.cpp）——
+    //       见 docs/audit/B02_paint_details_dpi.md §2。
     const int cardGap  = theme::Rpx(kCardGap);
     const int cardPad  = theme::Rpx(kCardPadding);
     const int totalW = rcCards_.right - rcCards_.left;
