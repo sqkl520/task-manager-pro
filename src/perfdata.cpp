@@ -758,9 +758,13 @@ bool PerfCollector::CollectOnce(PerfSnapshot& out) {
             if (nWithDelta > 0) {
                 out.cpuTotalPercent = sumUtil / nWithDelta;
                 out.cpuKernelPercent = sumKernelRatio / nWithDelta;
-            } else if (hasPrev_ && !prevTotalValid_) {
+            } else if (hasPrev_ && prevTotalValid_) {
                 // 本拍没有核产生增量（采样窗短于 15.625 ms 节拍）。
-                // 沿用上一拍的值，绝不发布 0 —— 0 会被用户读成「CPU 空闲」。
+                // **只有上一拍确实发布过有效值**，才能沿用 —— 这就是
+                // prevTotalValid_ 的作用。条件写成 `!prevTotalValid_`
+                // 会在「从未发布过有效值」时去读 prevTotalPercent_，
+                // 而它还是初始的 0.0，等于发布了假 0。
+                // 0 会被用户读成「CPU 空闲」，与下面第二段注释自相矛盾。
                 out.cpuTotalPercent = prevTotalPercent_;
                 out.cpuKernelPercent = prevTotalKernelPercent_;
             }

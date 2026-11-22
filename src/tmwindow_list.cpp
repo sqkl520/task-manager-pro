@@ -1081,9 +1081,9 @@ void TmWindow::PaintColumnHeader(HDC hdc) {
     // 一个人就占 90%+（A11 §1.3 用两个独立 API 交叉证实：pid0 的 delta 与
     // NtQSI(8) 的 ΣIdle 比值 = 1.0000）。这个知识现在对**别处**仍然有效：
     // `src/tmwindow.cpp:578`（卡片曲线）、`src/tmwindow_list.cpp` 底部
-    // PaintStatusBar、`src/pages_view.cpp:492`（用户页，那里**还没有**排除 pid 0，
-    // session 0 实测显示 71.56% 而真实只有 2.66%）。不要因为这里删了求和
-    // 就以为 PID 0 的问题没了。
+    // PaintStatusBar。用户页 `src/pages_view.cpp` 的 RefreshUsers 已在
+    // bf686a7 排除 pid 0（`if (p.pid == 0) continue;`，现约在 :622），
+    // 那里不需要再改。不要因为这里删了求和就以为 PID 0 的问题没了。
     //
     // 【首拍没有 CPU 基准 —— 也必须落到「—」】
     // 上面删掉兜底之后还有一个更细的洞：`perfSnap_` **非空不等于 CPU 有值**。

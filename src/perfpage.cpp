@@ -1363,12 +1363,21 @@ void PerfPage::PaintStatsRows(HDC hdc, const RECT& rc) const {
         PaintStatsRowsGeneric(hdc, rc);
         return;
     }
-    // 【上面这个分支以前是死代码】PaintStatsRows 的唯一调用点是
-    // PaintCpuPage 的末尾（perfpage.cpp:1690 附近），而 PaintCpuPage
-    // 只在 view_ == Cpu 时被调用 —— 所以 `view_ != Cpu` 恒为假，
-    // 内存页的「使用中 / 可用 / 已缓存 / 已提交」四行**从来没被画出来过**。
-    // 现在把通用统计挂到内存页自己的绘制路径上（见 PaintMemPage 末尾），
-    // 这个 return 保留作为防御：万一将来有别的页复用它，也不会画错。
+    // 【这段分支目前恒不可达 —— 是已知死代码，不是已修】
+    //
+    // PaintStatsRows 的唯一调用点在 PaintCpuPage 末尾，而 PaintCpuPage 只在
+    // view_ == Cpu 时被调用，所以 `view_ != Cpu` 恒为假。
+    // 也就是说 PaintStatsRowsGeneric 里那四行（使用中/可用/已缓存/已提交）
+    // **从来没有被画出来过**。
+    //
+    // 【为什么没去"修"它】内存页右侧属性列已经用另一种形式显示了同一批数据
+    //（PaintMemPage 的 static_memory 那一段：速度/使用中/可用/已提交/已缓存/
+    //  分页缓冲池/非分页缓冲池），把这里接上只会让同一批数字在一屏出现两次。
+    // 正确做法是删掉整个 PaintStatsRowsGeneric，而不是把它接通。
+    //
+    // 【为什么现在不删】删除要动 include/perfpage.h 的声明和本文件的实现，
+    // 属独立清理项，不夹在数据口径修复里做 —— 免得出问题时分不清是哪个改动
+    // 造成的。这里把 return 留着，作为将来复用时不会画错的防御。
 
     HFONT old = static_cast<HFONT>(SelectObject(hdc, fontBody_));
     SetBkMode(hdc, TRANSPARENT);
@@ -1887,17 +1896,36 @@ void PerfPage::PaintMemPage(HDC hdc, const RECT& rc) const {
             //   三套候选互不相同、且没有一张可信的原版内存页截图可裁决，改任何一套都是猜。
             //   故保留现有配色，仅把「主题声明值」完整列在这里供后续裁决。
             struct Seg { uint64_t bytes; COLORREF color; const wchar_t* name; };
-            uint64_t idleBytes = 0;
-            if (m.totalBytes > m.inUseBytes + m.modifiedBytes + m.standbyBytes) {
-                idleBytes = m.totalBytes - m.inUseBytes - m.modifiedBytes - m.standbyBytes;
-            }
+            // 【四段必须互不重叠】
+            //
+            // `MemBreakdown::inUseBytes = total - available`（perfdata.cpp:879），
+            // 而 available **不含** standby/modified —— 这两个列表是"没被任何
+            // 进程占用但也不是空闲"的页，属于 available 之外。所以 inUse
+            // 实际上**已经包含**了 standby 和 modified。
+            //
+            // 旧代码把 inUse 整段画成「使用中」，又单独画「已修改」「备用」，
+            // 于是这两类被算了两遍；末段只能用余数
+            //   total - inUse - modified - standby
+            // 来兜住总和，但那个余数**不等于** available，而是
+            //   available - standby - modified - 0
+            // ……少了一个 cachedBytes 量级。而图例把它标成「可用」，
+            // 与右栏属性列的「可用 = availableBytes」同名不同义。
+            // 本机实测两者差 2.92 GB，用户截图那台差 8.88 GB。
+            //
+            // 正确做法：把「使用中」扣掉已被另外两段画走的部分，末段直接用
+            // 真正的 available。这样四段之和仍等于 total，且末段与右栏同义。
+            const uint64_t usedExclusive =
+                (m.inUseBytes > m.modifiedBytes + m.standbyBytes)
+                    ? m.inUseBytes - m.modifiedBytes - m.standbyBytes
+                    : 0;
+            const uint64_t availBytes = m.availableBytes;
             Seg segs[] = {
-                { m.inUseBytes,     RGB(0x0A, 0x3E, 0x70), L"使用中" },  // 33852；主题 21 = #F4F2F4
+                { usedExclusive,    RGB(0x0A, 0x3E, 0x70), L"使用中" },  // 33852；主题 21 = #F4F2F4
                 { m.modifiedBytes,  RGB(0xC2, 0x5B, 0x36), L"已修改" },  // 33841；主题 22 = #EEE6F1
                 { m.standbyBytes,   RGB(0x7F, 0xBA, 0xE0), L"备用" },    // 33853；主题 20 = #FFFFFF
                 // 【MUI 佐证】最后一段原版逐字是「可用」= resstr(33854)，
                 // 之前写的「空闲」在 MUI 里根本没有这个词。
-                { idleBytes,        RGB(0xD8, 0xD8, 0xD8), L"可用" },    // 33854；主题 20 = #FFFFFF
+                { availBytes,       RGB(0xD8, 0xD8, 0xD8), L"可用" },    // 33854；主题 20 = #FFFFFF
             };
             // ↑ 四条：【主题实测 GetThemeColor，与上屏不符，沿用旧值】具体见上方说明
 
