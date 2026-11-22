@@ -156,6 +156,11 @@ private:
     struct CoreTimes { uint64_t idle, kernel, user; };
     std::vector<CoreTimes> prevCores_;
     bool hasPrev_ = false;
+    // 上一拍发布的总量。采样窗短于计数器节拍（15.625 ms）时没有核产生增量，
+    // 此时沿用上一拍的值而不是发布 0 —— 发布 0 等于谎报「CPU 空闲」。
+    double prevTotalPercent_ = 0.0;
+    double prevTotalKernelPercent_ = 0.0;
+    bool prevTotalValid_ = false;
 
     // 【PDH 句柄已全部移除 · 2026-11-21】
     // 原来这里有 diskQuery_ / netQuery_ / gpuQuery_ / gpuMemQuery_ 四个 void*：

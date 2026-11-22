@@ -201,8 +201,30 @@ void PerfCollector::ReadStaticCpuInfo() {
         RegCloseKey(k);
     }
 
-    // 物理核 / 逻辑核 / 缓存
+    // 物理核 / 逻辑核 / 插槽数 / 缓存
+    //
+    // 【P0 修复·插槽数】旧代码 `sockets_` 恒为 1（perfdata.h 里 `= 1` 初始化，
+    // 全项目零赋值），双路机器必然显示「插槽: 1」。
+    // 正确来源是 RelationProcessorPackage 的条目数。
     DWORD len = 0;
+    GetLogicalProcessorInformationEx(RelationProcessorPackage, nullptr, &len);
+    if (len > 0) {
+        std::vector<BYTE> buf(len);
+        if (GetLogicalProcessorInformationEx(RelationProcessorPackage,
+                reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(buf.data()), &len)) {
+            uint32_t pkgs = 0;
+            DWORD off = 0;
+            while (off < len) {
+                auto* p = reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(buf.data() + off);
+                if (p->Relationship == RelationProcessorPackage) ++pkgs;
+                if (p->Size == 0) break;
+                off += p->Size;
+            }
+            if (pkgs > 0) sockets_ = pkgs;
+        }
+    }
+
+    len = 0;
     GetLogicalProcessorInformationEx(RelationProcessorCore, nullptr, &len);
     if (len > 0) {
         std::vector<BYTE> buf(len);
@@ -221,38 +243,65 @@ void PerfCollector::ReadStaticCpuInfo() {
     SYSTEM_INFO si{};
     GetNativeSystemInfo(&si);
     logCores_ = si.dwNumberOfProcessors;
+    // 【P0 修复】GetNativeSystemInfo 在 >64 逻辑处理器（处理器组）时封顶 64。
+    // logCores_ 同时是采样缓冲区大小，PerfCollector 里还有一处
+    // `if (n > logCores_) n = logCores_;` —— 于是一台 192 线程机器会有
+    // 2/3 的核被静默丢弃，CPU 总利用率系统性偏低。一处错牵连四处。
+    // GetActiveProcessorCount(ALL_PROCESSOR_GROUPS) 才是全组的真实总数。
+    {
+        DWORD all = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
+        if (all > logCores_) {
+            // 超过 64 核需要按组分别查询（SystemProcessorPerformanceInformation
+            // 只覆盖当前组）。在没有处理器组支持的系统上 all 会等于原值。
+            logCores_ = all;
+        }
+    }
 
     // 缓存
-    // 说明：GetLogicalProcessorInformationEx(RelationCache) 会对**每个逻辑核**
-    // 返回条目。L1 每核两条（数据 + 指令），L2 每核一条，L3 每核一条但共享。
-    // 任务管理器的 "L1 缓存" 显示的是【数据缓存总量】(核数 × 单核容量)。
-    // 这里取单条最大值 × 物理核数，避免重复累加。
+    //
+    // 【语义】GetLogicalProcessorInformationEx(RelationCache) 按**缓存实例**返回
+    // 条目，不是按逻辑核：
+    //   本机 Xeon 服务器级 CPU 实测 31 条 = L1 20 条（每物理核 CacheData + CacheInstruction
+    //   各一条）+ L2 10 条（CacheUnified，每核一条）+ L3 1 条（全 die 共享）。
+    //
+    // 【任务管理器的口径 = 全部实例直接求和】，一处也不乘核数。
+    // 三个数据点交叉验证（docs/audit/A04_cache.md）：
+    //   5700X  8 核  原版 512 KB = (32 + 32) × 8     ← 用户截图
+    //   9700X  8 核  原版 640 KB = (48 + 32) × 8     ← docs/reference/perf_cpu_orig.png
+    //   Xeon  10 核  原版 640 KB = (32 + 32) × 10    ← 本机
+    // 只有「d 和 i 都算、全部求和」能同时解释这三行。
+    //
+    // 【历史】旧代码是 `maxL1 * physCores_`，两处都错：
+    //   1. 取 max 丢掉了 CacheInstruction → L1 只有 256 KB 而非 512 KB
+    //   2. 再乘核数是基于一句错误注释（原以为 API 已按逻辑核返回），实际重复放大
+    //   3. L3 取 max 在单 CCD 上碰巧对（5700X 只有一块 32 MB），
+    //      但 5900X 是 2×32 MB，原版显示 64 MB，取 max 会显示 32 MB
+    // A04 反汇编 taskmgr.exe RVA 0x28B6D 确认原版是 `add`，全函数无取大指令。
     len = 0;
     GetLogicalProcessorInformationEx(RelationCache, nullptr, &len);
     if (len > 0) {
         std::vector<BYTE> buf(len);
         if (GetLogicalProcessorInformationEx(RelationCache,
                 reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(buf.data()), &len)) {
-            uint64_t maxL1 = 0, maxL2 = 0, maxL3 = 0;
+            uint64_t sumL1 = 0, sumL2 = 0, sumL3 = 0;
             DWORD off = 0;
             while (off < len) {
                 auto* p = reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(buf.data() + off);
+                if (off + p->Size > len) break;      // 防御越界
                 if (p->Relationship == RelationCache) {
                     // 注意：CACHE_DESCRIPTOR.CacheSize 单位是【字节】，不是 KB
                     uint64_t sz2 = static_cast<uint64_t>(p->Cache.CacheSize);
                     switch (p->Cache.Level) {
-                    case 1: if (sz2 > maxL1) maxL1 = sz2; break;
-                    case 2: if (sz2 > maxL2) maxL2 = sz2; break;
-                    case 3: if (sz2 > maxL3) maxL3 = sz2; break;
+                    case 1: sumL1 += sz2; break;
+                    case 2: sumL2 += sz2; break;
+                    case 3: sumL3 += sz2; break;
                     }
                 }
                 off += p->Size;
             }
-            // L1/L2 是每核独立的，总量 = 单核 × 核数；L3 共享，只取单份
-            uint32_t pc = physCores_ ? physCores_ : 1;
-            l1_ = maxL1 * pc;
-            l2_ = maxL2 * pc;
-            l3_ = maxL3;
+            l1_ = sumL1;
+            l2_ = sumL2;
+            l3_ = sumL3;
         }
     }
 
@@ -430,8 +479,21 @@ void PerfCollector::ThreadProc() {
         }
         DWORD waitMs = refresh_.exchange(false) ? 0 : intervalMs_;
         if (!running_.load()) break;
-        if (waitMs > 0 && wakeEvent_) {
-            WaitForSingleObject(wakeEvent_, waitMs);
+        if (waitMs > 0) {
+            // 【P0 修复】旧代码是 `if (waitMs > 0 && wakeEvent_)`：CreateEventW
+            // 失败时 wakeEvent_ 为 NULL，这个 if 整段跳过，while 循环退化成
+            // 忙循环，intervalMs_ 完全失效。实测周期 3.0 ms 对 interval=1000，
+            // 改成 16000 也还是 3.07 ms。
+            //
+            // 后果：两次采样间隔短于计数器节拍（15.625 ms）时所有核 delta 为 0，
+            // CPU 利用率被算成接近 0。这是「真值 96% 显示 9%」的触发条件。
+            //
+            // 现在：事件不可用时退回 Sleep，绝不允许忙循环。
+            if (wakeEvent_) {
+                WaitForSingleObject(wakeEvent_, waitMs);
+            } else {
+                Sleep(waitMs);
+            }
             refresh_.store(false);
         }
     }
@@ -461,6 +523,19 @@ bool PerfCollector::CollectOnce(PerfSnapshot& out) {
 
             double sumUtil = 0;
             double sumKernelRatio = 0;
+            // 【P0 修复】只有「本拍确实有增量」的核才计入分母。
+            //
+            // 旧代码无条件 `sumUtil / n`，但 `per[i]` 的计数器按 15.625 ms 的
+            // 时钟中断步进（实测增量恒为 156250 的整数倍）。若两次采样的间隔
+            // 短于一个节拍，多数核的 delta 为 0，`if (total > 0)` 直接跳过、
+            // utilPercent 保持 0，而分母仍是总核数 —— 于是总量被按「无增量核
+            // 所占比例」系统性拉低。实测：无增量核占 82.1% 时输出只有真值的
+            // 0.185 倍；占 0.1% 时 0.997 倍。这正是「真值 96% 显示 9%」的根因。
+            //
+            // 修完后：有增量的核求平均（这是原版 % Processor Time 的口径），
+            // 一个增量都没有时**保持上一拍的值**，不发布 0 —— 发布 0 等于
+            // 告诉用户「CPU 空闲」，那是假数据。
+            uint32_t nWithDelta = 0;
             for (uint32_t i = 0; i < n; ++i) {
                 uint64_t idle   = static_cast<uint64_t>(per[i].IdleTime.QuadPart);
                 uint64_t kernel = static_cast<uint64_t>(per[i].KernelTime.QuadPart);
@@ -471,6 +546,11 @@ bool PerfCollector::CollectOnce(PerfSnapshot& out) {
                 out.cores[i].userTime = user;
 
                 if (hasPrev_ && i < prevCores_.size()) {
+                    // 防御计数器回绕 / 核重排：增量必须单调，否则整拍作废。
+                    if (idle < prevCores_[i].idle || kernel < prevCores_[i].kernel ||
+                        user < prevCores_[i].user) {
+                        continue;
+                    }
                     uint64_t dIdle   = idle   - prevCores_[i].idle;
                     uint64_t dKernel = kernel - prevCores_[i].kernel;
                     uint64_t dUser   = user   - prevCores_[i].user;
@@ -485,15 +565,32 @@ bool PerfCollector::CollectOnce(PerfSnapshot& out) {
                         sumUtil += util;
                         sumKernelRatio += static_cast<double>(dKernel - dIdle) /
                                           static_cast<double>(total) * 100.0;
+                        ++nWithDelta;
                     }
                 }
             }
-            if (n > 0) {
-                out.cpuTotalPercent = sumUtil / n;
-                out.cpuKernelPercent = sumKernelRatio / n;
+            if (nWithDelta > 0) {
+                out.cpuTotalPercent = sumUtil / nWithDelta;
+                out.cpuKernelPercent = sumKernelRatio / nWithDelta;
+            } else if (hasPrev_ && !prevTotalValid_) {
+                // 本拍没有核产生增量（采样窗短于 15.625 ms 节拍）。
+                // 沿用上一拍的值，绝不发布 0 —— 0 会被用户读成「CPU 空闲」。
+                out.cpuTotalPercent = prevTotalPercent_;
+                out.cpuKernelPercent = prevTotalKernelPercent_;
+            }
+            if (nWithDelta > 0) {
+                prevTotalPercent_ = out.cpuTotalPercent;
+                prevTotalKernelPercent_ = out.cpuKernelPercent;
+                prevTotalValid_ = true;
             }
 
-            prevCores_.resize(n);
+            // 【修复】旧代码无条件 `hasPrev_ = true`。核数先缩后长时，resize()
+            // 把新增下标填成 0，下一拍会算出 `1 - 1.3e12/9e11` 这类「看着正常
+            // 但完全错误」的值。现在只有 prevCores_ 完整覆盖 n 时才认它。
+            if (prevCores_.size() != n) {
+                prevCores_.resize(n);
+                hasPrev_ = false;          // 尺寸变了，这一轮的差分作废
+            }
             for (uint32_t i = 0; i < n; ++i) {
                 prevCores_[i].idle   = static_cast<uint64_t>(per[i].IdleTime.QuadPart);
                 prevCores_[i].kernel = static_cast<uint64_t>(per[i].KernelTime.QuadPart);
@@ -568,8 +665,19 @@ bool PerfCollector::CollectOnce(PerfSnapshot& out) {
     }
 
     // ---------- CPU 频率 ----------
-    // 【实测】CallNtPowerInformation(ProcessorInformation) 在 服务器级 CPU 上
-    // 恒返回 3001 MHz（无 Turbo），但仍要读，以便换机器时正确显示。
+    //
+    // 【P0 修复·基准速度】旧代码把注册表 `~MHz` 当标称频率直接显示，但它不是标称值：
+    //   `~MHz` = BCLK × 倍频，而真实 BCLK 是 99.77 MHz 而不是理想 100。
+    //   本机实测 `~MHz` = 2993，而 ProcessorNameString 写的是 `@ 3.00GHz`。
+    //   用户那台 5700X 同理：3393 = 34 × 99.79，名称串写的是 `@ 3.40GHz`。
+    //   → 界面永远是 3.39 GHz 而不是 3.40 GHz，偏差恒在、方向恒向下。
+    //
+    // 正确来源就是下面这个 buffer 里的 MaxMhz（本机实测 3001）。它之前被
+    // 完整丢弃了 —— 同一个结构体只取了 CurrentMhz。
+    //
+    // 注意：这里**每轮刷新** baseMhz_，不再是「只读一次」。因为 MaxMhz 来自
+    // 电源管理接口，休眠/换电源计划后可能变；而且旧代码"只读一次"意味着
+    // 一旦启动瞬间读错就永久错。
     {
         const ULONG bufSz = logCores_ * sizeof(TMP_PROCESSOR_POWER_INFORMATION);
         if (bufSz > 0) {
@@ -577,7 +685,19 @@ bool PerfCollector::CollectOnce(PerfSnapshot& out) {
             if (CallNtPowerInformation(ProcessorInformation, nullptr, 0,
                                        buf.data(), bufSz) == ERROR_SUCCESS) {
                 auto* info = reinterpret_cast<TMP_PROCESSOR_POWER_INFORMATION*>(buf.data());
-                if (logCores_ > 0) out.cpuCurrentMhz = info[0].CurrentMhz;
+                // 多核取最大值：info[0] 可能是停核(parked)，值不可靠。
+                // CurrentMhz 取 max 反映加速频率（4.63 GHz 这种）；
+                // MaxMhz 是标称值，各核一致，取 max 同样安全。
+                ULONG maxCur = 0, maxRated = 0;
+                for (uint32_t i = 0; i < logCores_; ++i) {
+                    if (info[i].CurrentMhz > maxCur)  maxCur  = info[i].CurrentMhz;
+                    if (info[i].MaxMhz     > maxRated) maxRated = info[i].MaxMhz;
+                }
+                out.cpuCurrentMhz = maxCur;
+                if (maxRated > 0) {
+                    baseMhz_ = maxRated;
+                    out.cpuBaseMhz = maxRated;
+                }
             }
         }
     }
