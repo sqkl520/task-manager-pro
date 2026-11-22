@@ -35,6 +35,48 @@ void FmtUptime(uint64_t sec, wchar_t* out, size_t n) {
                static_cast<unsigned long long>(s));
 }
 
+// ---- 历史曲线的时间轴映射 ----
+//
+// 【一手 bug】以前四处曲线（侧栏迷你图 / 主图 PaintChart / 逐核格子 PaintHistCell /
+//   GPU 引擎格 PaintEngineChart）都写成：
+//       int px = left + (n > 1 ? i * span / (n - 1) : 0);
+//   `n` 是**当前已有点数**，不是容量 60。开屏第 2 秒只有 3 个点，这 3 个点就横跨
+//   整格宽度 —— 横轴被放大约 60/3 = 20~30 倍，看起来像「刚开机 CPU 就在剧烈震荡」。
+//   同一张图上，纵轴是真实 0..100，横轴却是「n 个点铺满」。两个轴一个诚实一个不诚实。
+//
+// 【修法】步长按**固定容量** kPoints 算，未填充的部分留空：
+//   第 3 秒的 3 个点只占最左边 3/59 宽，随时间向右生长，第 60 个采样点才铺满。
+//   满 60 点时 i*(span)/(kPoints-1) 的取值与旧公式逐像素相同（n == kPoints），
+//   所以稳态画面不变，只修开头那一段时间。
+//
+// 【未决，这一轮不解决】原版曲线是「从左往右铺满」还是「贴右边缘生长」，现有证据
+//   判不了：唯一经得起验真的原版截图（scratch/scan/original_win10.png）里那条曲线
+//   的 uptime 是「开机时长」，与「曲线已经采了多少秒」无关，两者无法互推。
+//   本轮**只修「拉伸」这个确定的错误，方向维持现状**（0 = 最旧 = 最左边）。
+inline int HistoryX(int left, int spanPx, int i) {
+    constexpr int kCap = PerfHistory::kPoints;   // 60
+    if (kCap <= 1 || spanPx <= 0) return left;
+    if (i < 0) i = 0;
+    if (i > kCap - 1) i = kCap - 1;              // 越界钳制，绝不让点画到框外
+    return left + i * spanPx / (kCap - 1);
+}
+
+// ---- 网络吞吐量的量程档位 ----
+//
+// 【MUI 佐证】原版网络图的单位随量级切换，单位串是 32875 bps / 32876 Kbps /
+//   32877 Mbps / 32878 Gbps（docs/specs/O_strings.md）。
+// 【为什么抽成函数】主图（PaintNetPage）与侧栏迷你图以前**各自算一套**：
+//   主图按十进阶梯挑档，侧栏按「该实例本窗历史峰值」归一 —— 同一份数据在
+//   两处画出的形状不一样，这正是「一张卡点开前后对不上」的来源。
+//   现在两边共用这一个档位函数，侧栏的横竖比例与主图逐点一致。
+struct NetLimit { double mbps; const wchar_t* label; };
+inline NetLimit NetLimitFor(double peakMbps) {
+    if (peakMbps <= 1.0)   return NetLimit{ 1.0,    L"1 Mbps" };
+    if (peakMbps <= 10.0)  return NetLimit{ 10.0,   L"10 Mbps" };
+    if (peakMbps <= 100.0) return NetLimit{ 100.0,  L"100 Mbps" };
+    return NetLimit{ 1000.0, L"1 Gbps" };
+}
+
 // 性能页 Sidebar 的热力图着色（比进程页更饱和，因为要区分 20 个格子）
 COLORREF CoreHeat(double util) {
     if (util < 0) util = 0;
@@ -548,16 +590,23 @@ void PerfPage::PaintSidebarMiniChart(HDC hdc, const RECT& rc,
         break;
     case PerfView::Network: {
         if (it.index >= 0 && it.index < hist_.netCount) {
-            // 收发各是一条 MB/s 曲线，卡片只有一格，取逐点最大值后按
-            // 「该实例历史峰值」归一到 0..100 —— 否则 1 Mbps 的网卡会是一条贴底直线。
+            // 收发各是一条 Mbps 曲线，卡片只有一格，取逐点最大值后按**档位量程**
+            // 归一到 0..100。
+            //
+            // 【失真修复】以前这里按「该实例本窗历史峰值」归一，即 mx = 本窗最大值，
+            //   于是 0.2 Mbps 的网卡和 900 Mbps 的网卡在侧栏里长得一模一样，
+            //   而卡片上的数字（发送/接收 Kbps）没有任何量程提示 —— 图和数字对不上。
+            //   现在改用与主图同一个档位函数（NetLimitFor），侧栏迷你图的纵轴
+            //   就是主图的纵轴，两处对同一份数据画出同一个形状。
             const double* s = hist_.netSentI[it.index];
             const double* r = hist_.netRecvI[it.index];
+            // 峰值只扫**已有点**（hist_.count），不扫未填充的环形槽位。
             double mx = 0.0;
-            for (int k = 0; k < PerfHistory::kPoints; ++k) {
-                double v = (std::max)(s[k], r[k]);
+            for (int k = 0; k < hist_.count; ++k) {
+                double v = (std::max)(hist_.At(s, k), hist_.At(r, k));
                 if (v > mx) mx = v;
             }
-            if (mx <= 0.0) mx = 1.0;
+            const double limit = NetLimitFor(mx).mbps;
             // ⚠ tmp 必须**按环形槽位**填，不能按时间顺序填：
             //   下面绘图用的是 hist_.At(src, i)，而 At() 内部会对下标做
             //   (head - count + i) % kPoints 的环形换算。如果这里按时间顺序存，
@@ -566,7 +615,7 @@ void PerfPage::PaintSidebarMiniChart(HDC hdc, const RECT& rc,
             for (int k = 0; k < PerfHistory::kPoints; ++k) {
                 const int ring = (hist_.head - hist_.count + k
                                   + PerfHistory::kPoints * 2) % PerfHistory::kPoints;
-                double v = (std::max)(s[ring], r[ring]) / mx * 100.0;
+                double v = (std::max)(s[ring], r[ring]) / limit * 100.0;
                 tmp[ring] = v > 100.0 ? 100.0 : v;
             }
             src = tmp.data();
@@ -599,7 +648,10 @@ void PerfPage::PaintSidebarMiniChart(HDC hdc, const RECT& rc,
         double v = hist_.At(src, i);
         if (v < 0) v = 0;
         if (v > 100) v = 100;
-        int px = plot.left + (n > 1 ? i * (pw - 1) / (n - 1) : 0);
+        // 【横轴失真修复】按固定容量 kPoints 算步长（不再是 n）：
+        //   开屏前几秒的少量点只占左侧一小段，不再被拉伸成整格宽。
+        //   见文件头部 HistoryX() 的说明。
+        int px = HistoryX(plot.left, pw - 1, i);
         int py = plot.bottom - static_cast<int>(v / 100.0 * (ph - 1) + 0.5);
         if (py < plot.top) py = plot.top;
         pts.push_back(POINT{ px, py });
@@ -945,6 +997,16 @@ void PerfPage::PaintChart(HDC hdc, const RECT& rcIn, const double* data, int cou
     // 把环形缓冲的一段映射成折线。
     // 抽成 lambda 是因为「显示内核时间」需要按**同一套时间轴与刻度**再画一条，
     // 两条曲线的 x/y 映射必须逐像素一致，否则叠加出来会错位。
+    //
+    // 【参数语义，务必与调用点一致】i 恒为**时间下标**（0 = 最旧，count-1 = 最新）：
+    //   - 环形缓冲调用点（CPU/内存/磁盘活动时间）传 head = hist_.head，
+    //     idx 由 (head - count + i) 换算回环形槽位；
+    //   - 已经按时间顺序摊平的调用点（磁盘速率 / 网络吞吐）传 head = count、
+    //     数组本身顺序存放，idx 退化成 i。
+    //   两种用法下 i 都是从左到右递增的时间轴，所以 x 只按 i 算即可。
+    //
+    // 【横轴失真修复】x 的步长按**固定容量** kPoints 算（HistoryX），
+    //   不再除以 count-1 —— 否则开屏 3 个点就会横跨整幅图（放大 20~30 倍）。
     auto buildPts = [&](const double* src) {
         std::vector<POINT> p;
         p.reserve(count);
@@ -953,7 +1015,7 @@ void PerfPage::PaintChart(HDC hdc, const RECT& rcIn, const double* data, int cou
             double v = src[idx];
             if (v > 100) v = 100;
             if (v < 0) v = 0;
-            int px = rc.left + 2 + (count > 1 ? i * (w - 1) / (count - 1) : 0);
+            int px = HistoryX(rc.left + 2, w - 1, i);
             int py = rc.bottom - 2 - static_cast<int>(v / 100.0 * (h - 1));
             p.push_back(POINT{ px, py });
         }
@@ -1072,7 +1134,11 @@ void PerfPage::PaintHistCell(HDC hdc, const RECT& cell, const double* vals, int 
                 double v = vals[k];
                 if (v < 0) v = 0;
                 if (v > 100) v = 100;
-                int px = plot.left + (n > 1 ? k * (pw - 1) / (n - 1) : 0);
+                // 【横轴失真修复】vals 是按时间正序（0 = 最旧）的已有点，
+                // 步长仍按固定容量 kPoints 算：开屏前几秒格子里的曲线只占左边
+                // 一小段，而不是两个点就拉满整格（20 核 × 拉伸 30 倍，整页
+                // 都在显示"剧烈震荡"，实际是刚开机没数据）。见 HistoryX()。
+                int px = HistoryX(plot.left, pw - 1, k);
                 int py = plot.bottom - static_cast<int>(v / 100.0 * (ph - 1) + 0.5);
                 if (py < plot.top) py = plot.top;
                 pts.push_back(POINT{ px, py });
@@ -1344,14 +1410,45 @@ void PerfPage::PaintStatsRows(HDC hdc, const RECT& rc) const {
     // ---- 第二组：进程 / 线程 / 句柄 ----
     y += 46;
     {
-        swprintf_s(b1, L"%u", snap_->totalProcesses);
+        // 【这三个数可能来自上一代的主快照】
+        //
+        // 主采集器与性能采集器是两个线程、两个独立 1Hz。主采集器跑完一轮
+        // 把计数塞进 PerfCollector，性能采集器下一拍读出来；到达顺序不保证，
+        // 实测约 53% 的帧这三个数是上一代的（进程数每秒抖 ±12、线程 ±100、
+        // 句柄 ±2100）。
+        //
+        // 光显示出来等于假装它是当代的。判据用 countsAge ——
+        // 由 PerfCollector 自己算「这份计数跨了几拍」，UI 不需要知道
+        // 主采集器的序号（那是另一个独立计数器，不可比）。
+        //
+        // 【阈值实测】age 稳定为 1（scratch/ageprobe 连测 20 次全是 1）：
+        // SetProcessCounts 在两次采集之间被调用，读到时已经跨了一拍 ——
+        // 这是相位决定的，不是缺陷。age == 1 表示「上一拍刚刷新过」，
+        // 进程数一秒内波动 ±12，完全可用。age >= 2 才是真的落后。
+        // 从未写入时 countsAge 是 0xFFFFFFFF，自然被挡在外面。
+        constexpr uint32_t kCountsFreshMax = 1;
+        const bool countsValid =
+            snap_->totalProcesses > 0 && snap_->countsAge <= kCountsFreshMax;
+
+        if (countsValid) {
+            swprintf_s(b1, L"%u", snap_->totalProcesses);
+        } else {
+            wcscpy_s(b1, L"—");
+        }
         int w1 = Box(rc.left, y, L"进程", b1);
 
-        swprintf_s(b2, L"%u", snap_->totalThreads);
+        if (countsValid) {
+            swprintf_s(b2, L"%u", snap_->totalThreads);
+        } else {
+            wcscpy_s(b2, L"—");
+        }
         int w2 = Box(rc.left + w1 + 20, y, L"线程", b2);
 
-        swprintf_s(b3, L"%llu",
-                   static_cast<unsigned long long>(snap_->totalHandles));
+        if (countsValid) {
+            swprintf_s(b3, L"%llu", static_cast<unsigned long long>(snap_->totalHandles));
+        } else {
+            wcscpy_s(b3, L"—");
+        }
         Box(rc.left + w1 + 20 + w2 + 20, y, L"句柄", b3);
     }
 
@@ -1538,17 +1635,40 @@ void PerfPage::PaintCpuPage(HDC hdc, const RECT& rc) const {
     const bool gridView = (chart_ == ChartMode::Logical || chart_ == ChartMode::Numa);
     if (gridView) {
         // 网格上方的两个标签。
-        // 【UIFILE 声明】元素名与文案都在：cpuChartTitle class=lheader content=34280「60 秒内的利用率 %」，
-        //   同一行右侧 rheader content=33836「100%」（S_duispec.md §3.4）。
-        // 【主题实测 GetThemeColor】两者都是 lheader/rheader → gtc(TASKMANAGER,44,0,3803) = #707070。
-        // 【无依据，沿用旧值】标签行高 16px 与 x 偏移无 UIFILE 值。
+        // 【UIFILE 声明】cpuChartTitle 的 content = resstr(34280)，同一行右侧
+        //   rheader content=33836「100%」（uifile_Taskmgr_30001_full.txt @d1d2 / @d1ee）。
+        // 【MUI 佐证】34280 的原文是「% 利用率」**不是**「60 秒内的利用率 %」——
+        //   后者是 34279。带时间窗的三条标题是独立字符串：
+        //     34276「4 分钟内的利用率 %」 / 34277「30 秒内的利用率 %」 /
+        //     34279「60 秒内的利用率 %」（mui_strings_all.txt:436-438）。
+        //   也就是说原版这条标题跟「更新速度 / 时间窗」联动。我方没有时间窗切换，
+        //   固定按 60 秒那档写。
+        //
+        // 【本次修的谎】以前这里恒写「60 秒内的利用率 %」，于是：
+        //   - 开屏第 3 秒就宣称「60 秒内」，图上却只有 3 个点；
+        //   - 采集周期是 WaitForSingleObject 相对等待，恒 > 1000ms，
+        //     60 个点的真实跨度 > 60 秒；
+        //   - UI 走代际号比对，UI 一卡就永久丢点，count 凑满 60 时真实跨度更长。
+        //   保守修法：标题反映**实际已采集的点数**（1Hz 标称下即秒数），
+        //   凑满 60 点后仍然显示「60 秒内」。
+        //   ⚠ 这是**下界**不是精确值：真实采样周期 ≥ 1000ms，所以真实跨度
+        //     只会比这里写的更大。要精确必须给每点打时间戳（改 PerfHistory
+        //     结构体 + 采集侧），风险大，本轮不做 —— 保留为已知缺口。
         {
             HFONT old = static_cast<HFONT>(SelectObject(hdc, fontSmall_));
             SetBkMode(hdc, TRANSPARENT);
 
+            wchar_t titleBuf[48];
+            const int spanPts = (hist_.count < PerfHistory::kPoints)
+                                    ? hist_.count : PerfHistory::kPoints;
+            // 0 点时不要写出「0 秒内」这种一眼假的文案，退回静态的「利用率 %」。
+            if (spanPts >= 2) {
+                swprintf_s(titleBuf, L"%d 秒内的利用率 %%", spanPts);
+            } else {
+                wcscpy_s(titleBuf, L"利用率 %");
+            }
             RECT lr{ chart.left + 1, chart.top - 16, chart.left + 200, chart.top };
-            DrawText2(hdc, L"60 秒内的利用率 %", &lr,
-                      DT_SINGLELINE | DT_LEFT, kAxisText);
+            DrawText2(hdc, titleBuf, &lr, DT_SINGLELINE | DT_LEFT, kAxisText);
 
             RECT rr{ chart.right - 60, chart.top - 16, chart.right, chart.top };
             DrawText2(hdc, L"100%", &rr,
@@ -2140,13 +2260,12 @@ void PerfPage::PaintNetPage(HDC hdc, const RECT& rc) const {
 
         // 【MUI 佐证】原版网络图的单位随量级切换，单位串是
         // 32875 bps / 32876 Kbps / 32877 Mbps / 32878 Gbps。
-        // 用十进阶梯挑档：1 / 10 / 100 / 1000 Mbps
-        double limit = 10.0;
-        const wchar_t* limitLabel = L"10 Mbps";
-        if (mxMbps <= 1.0)   { limit = 1.0;    limitLabel = L"1 Mbps"; }
-        else if (mxMbps <= 10.0)  { limit = 10.0;   limitLabel = L"10 Mbps"; }
-        else if (mxMbps <= 100.0) { limit = 100.0;  limitLabel = L"100 Mbps"; }
-        else                      { limit = 1000.0; limitLabel = L"1 Gbps"; }
+        // 档位函数抽到 NetLimitFor()，**与侧栏迷你图共用同一份** ——
+        // 以前两处各写一套（主图按十进阶梯、侧栏按本窗峰值归一），
+        // 同一份数据在卡片和正文里画出的形状不一样。
+        const NetLimit lim = NetLimitFor(mxMbps);
+        const double limit = lim.mbps;
+        const wchar_t* limitLabel = lim.label;
 
         for (int i = 0; i < PerfHistory::kPoints; ++i) {
             double v = (i < hist_.count) ? sampleAt(i) : 0.0;
@@ -2468,7 +2587,38 @@ void PerfPage::PaintEngineChart(HDC hdc, const RECT& rc, int engineType,
 
     // ---- 历史面积图 ----
     // 【修复】之前只按当前值画一条水平线，看不出变化趋势。
-    // 现在画真实的逐引擎历史曲线，量程自适应（否则 3% 的引擎看起来是平的）。
+    // 现在画真实的逐引擎历史曲线。
+    //
+    // 【量程：固定 0..100 —— 本次修复的核心】
+    //   旧实现是「自适应量程且不画上限」：
+    //       double ceilv = (mx > 0.5) ? (mx * 1.25) : 5.0;
+    //   实际利用率 3% 时 ceilv 变成 3.75，那 3% 会被画成 80% 的高度，
+    //   而格子右侧只写「3%」—— 图和数字直接矛盾，用户无从得知量程被改过。
+    //   实测失真倍数 = (100/ceilv)：ceilv=3.75 时是 26.7 倍，正要对应
+    //   「最高 26 倍」这个量级。
+    //
+    //   改成固定 0..100 而不是「自适应 + 画出上限」，理由有三条：
+    //   1) 【MUI 佐证，强度：中】GPU 页那一组字符串里唯一的一对纵轴刻度是
+    //      41009 "100%" / 41010 "0"（mui_strings_all.txt:788-789，紧挨
+    //      41007/41008「GPU %d」与 41011「GPU 内存」）。整张 MUI 表里
+    //      **没有任何动态上限格式串**（没有 "%d%%" 这类），也就是说原版没有
+    //      「把自适应出来的上限写到图上」这套语汇可用。
+    //      ⚠ 诚实标注：41009/41010 在 uifile_Taskmgr_30001_full.txt 里
+    //      **没有 resstr 引用**（grep 0 命中），所以「原版引擎图确实用这对刻度」
+    //      只是强推断（L_perf.md §5.4 也判为「已证实」，但那份文档同样没有
+    //      UIFILE 引用链）。不是 A 级像素证据。
+    //   2) 同一页的 CPU 逻辑处理器格、以及本页主图（PaintChart 传 L"100%"/L"0"）
+    //      都是固定 0..100。同一屏里一种轴固定、另一种轴偷偷自适应，本身就是
+    //      不一致，用户无法在两张图之间比较高低。
+    //   3) 「画出 ceilv」看似保留可读性，但格子只有 40~130px 高、右侧还被
+    //      当前百分比占着，多标一个会变的数字既挤又会跟「3%」打架；
+    //      而且真正需要的是**可信**，不是**好看**。
+    //   代价（已知并接受）：GPU 引擎利用率经常是个位数，固定 0..100 时曲线
+    //      会贴着底边成一条近乎水平的线。这是**真实情况**，不是缺陷 ——
+    //      原版也是这样。要看清趋势应该看「单个引擎」视图（格子更大），
+    //      而不是靠偷偷放大量程。
+    constexpr double kEngineRange = 100.0;
+
     RECT plot{ rc.left + 6, rc.top + 22, rc.right - 6, rc.bottom - 4 };
     int pw = plot.right - plot.left;
     int ph = plot.bottom - plot.top;
@@ -2489,24 +2639,16 @@ void PerfPage::PaintEngineChart(HDC hdc, const RECT& rc, int engineType,
             if (inst >= 0 && inst < PerfHistory::kMaxInstances)
                 histArr = hist_.gpuEngineI[inst][slot];
 
-            // 自适应量程：取历史最大值向上留 25%，下限 5%
-            double mx = 0.0;
-            for (int i = 0; i < hist_.count; ++i) {
-                double v = hist_.At(histArr, i);
-                if (v > mx) mx = v;
-            }
-            double ceilv = (mx > 0.5) ? (mx * 1.25) : 5.0;
-            if (ceilv > 100.0) ceilv = 100.0;
-
             const int n = hist_.count;
             std::vector<POINT> pts;
             pts.reserve(n);
             for (int i = 0; i < n; ++i) {
                 double v = hist_.At(histArr, i);
-                double t = v / ceilv;
+                double t = v / kEngineRange;
                 if (t > 1) t = 1;
                 if (t < 0) t = 0;
-                int px = plot.left + (n > 1 ? i * (pw - 1) / (n - 1) : 0);
+                // 【横轴失真修复】步长按固定容量算，见 HistoryX()。
+                int px = HistoryX(plot.left, pw - 1, i);
                 int py = plot.bottom - static_cast<int>(t * (ph - 1));
                 if (py < plot.top) py = plot.top;
                 pts.push_back(POINT{ px, py });

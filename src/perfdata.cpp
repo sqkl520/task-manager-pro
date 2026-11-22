@@ -60,7 +60,7 @@ struct SYS_PERF_INFO {
     ULONG IoReadOperationCount;          // +32
     ULONG IoWriteOperationCount;         // +36
     ULONG IoOtherOperationCount;         // +40
-    ULONG AvailablePages;                // +44  ★
+    ULONG AvailablePages;                // +44  ★（GMS 失败时作可用内存兜底）
     ULONG CommittedPages;                // +48  ★
     ULONG CommitLimit;                   // +52  ★
     ULONG PeakCommitment;                // +56
@@ -90,7 +90,10 @@ struct SYS_PERF_INFO {
     ULONG NonPagedPoolLookasideHits;     // +152
     ULONG PagedPoolLookasideHits;        // +156
     ULONG AvailablePagedPoolPages;       // +160
-    ULONG ResidentSystemCachePage;       // +164 ★
+    // +164。**本项目不再使用**：它与 standby 链表的页集重叠，把它算进「已缓存」
+    // 会重复计数（A11 §2.5）。字段保留只为维持到 +168 的偏移正确
+    // （后面 tail 的起点按 +168 算），并不读取。
+    ULONG ResidentSystemCachePage;       // +164 （保留占位，不读）
     // ... 后续字段不关心，但结构体要给够 344 字节
     BYTE  tail[344 - 168];
 };
@@ -174,10 +177,19 @@ std::shared_ptr<const PerfSnapshot> PerfCollector::GetSnapshot() const {
     return published_;
 }
 
-void PerfCollector::SetProcessCounts(uint32_t procs, uint32_t threads, uint64_t handles) {
-    procCounts_[0].store(procs, std::memory_order_relaxed);
-    procCounts_[1].store(threads, std::memory_order_relaxed);
-    handleCount_.store(handles, std::memory_order_relaxed);
+void PerfCollector::SetProcessCounts(uint32_t procs, uint32_t threads, uint64_t handles,
+                                     uint64_t snapshotSeq) {
+    // 四个值必须作为一个整体发布，否则读侧可能拼出「第 5 代的 seq + 第 6 代的
+    // threads」这种撕裂组合 —— 那正是本次要消灭的假配对，而独立 atomic
+    // 加上 acq/rel 并不能排除它（acq/rel 只保证顺序，不提供一致性快照）。
+    std::lock_guard<std::mutex> lk(procCountsMutex_);
+    procCounts_.procs   = procs;
+    procCounts_.threads = threads;
+    procCounts_.handles = handles;
+    procCounts_.seq     = snapshotSeq;
+    // 记下写入时刻的采集拍数，供 CollectOnce 算 age。
+    // 用 atomic 读，因为 collectTick_ 在采集线程自增、这里在 UI 线程读。
+    procCounts_.writtenAtTick = collectTick_.load(std::memory_order_relaxed);
 }
 
 void PerfCollector::ReadStaticCpuInfo() {
@@ -673,6 +685,10 @@ bool PerfCollector::CollectOnce(PerfSnapshot& out) {
     auto fn = GetNtQSI();
     if (!fn) return false;
 
+    // 本拍拍数 +1。SetProcessCounts（UI 线程）会读它来标记计数写入时刻，
+    // 下面的计数块再用它算 countsAge。
+    collectTick_.fetch_add(1, std::memory_order_relaxed);
+
     LARGE_INTEGER t0, t1, f;
     QueryPerformanceCounter(&t0);
     QueryPerformanceFrequency(&f);
@@ -771,17 +787,25 @@ bool PerfCollector::CollectOnce(PerfSnapshot& out) {
     }
 
     // ---------- 内存组成（NtQSI(2)，344 字节）----------
+    //
+    // 【口径统一】这里**不再**写 availableBytes，也不再写 cachedBytes：
+    //   · 可用：改用 GlobalMemoryStatusEx 的 ullAvailPhys（见下面那一块），
+    //     与进程页表头同源。两个 API 实测差 0~1.8 MB，但"口径一致"比"谁更准"
+    //     更重要 —— 同一屏上出现两个「可用」才是用户能看见的错。
+    //     本块读到的 AvailablePages 只作为 GMS 调用失败时的兜底。
+    //   · 已缓存：只等于 standby + modified（见 NtQSI(80) 那一块）。
+    // 本块仍在用的只有 已提交 / 提交限制 / 两个缓冲池。
+    uint64_t ntqsiAvailableBytes = 0;
     {
         SYS_PERF_INFO spi{};
         ULONG ret = 0;
         NTSTATUS st = fn(kSystemPerformanceInformation, &spi, sizeof(spi), &ret);
         if (NT_SUCCESS(st)) {
-            out.mem.availableBytes   = static_cast<uint64_t>(spi.AvailablePages) * kPageSize;
+            ntqsiAvailableBytes      = static_cast<uint64_t>(spi.AvailablePages) * kPageSize;
             out.mem.committedBytes   = static_cast<uint64_t>(spi.CommittedPages) * kPageSize;
             out.mem.commitLimitBytes = static_cast<uint64_t>(spi.CommitLimit) * kPageSize;
             out.mem.pagedPoolBytes   = static_cast<uint64_t>(spi.PagedPoolPages) * kPageSize;
             out.mem.nonPagedPoolBytes= static_cast<uint64_t>(spi.NonPagedPoolPages) * kPageSize;
-            out.mem.cachedBytes      = static_cast<uint64_t>(spi.ResidentSystemCachePage) * kPageSize;
         }
     }
 
@@ -797,15 +821,32 @@ bool PerfCollector::CollectOnce(PerfSnapshot& out) {
             uint64_t standby = 0;
             for (int i = 0; i < 8; ++i) standby += mli.PageCountByPriority[i];
             out.mem.standbyBytes = standby * kPageSize;
-            out.mem.cachedBytes += out.mem.standbyBytes + out.mem.modifiedBytes;
+            // 【口径修复】旧代码这里是 `cachedBytes += standby + modified`，而上一块
+            // 已经把 ResidentSystemCachePage 赋给了 cachedBytes，于是三项相加。
+            // 重叠有实测证据（scratch/c01/c01_mem.exe）：`available` 装不下
+            // Resident+standby+modified+free 四项之和（实测差 −0.73 GB），
+            // 所以 Resident 必然与其中至少一项重叠，三项相加即重复计数。
+            // 依据详述见 include/perfdata.h 里 cachedBytes 的注释。
+            // 这里用 `=` 而不是 `+=`：不依赖上一块是否执行成功。
+            out.mem.cachedBytes = out.mem.standbyBytes + out.mem.modifiedBytes;
         }
     }
 
-    // ---------- 物理内存总量 + 启动时间 ----------
+    // ---------- 物理内存总量 / 可用 + 启动时间 ----------
     {
         MEMORYSTATUSEX ms{};
         ms.dwLength = sizeof(ms);
-        if (GlobalMemoryStatusEx(&ms)) out.mem.totalBytes = ms.ullTotalPhys;
+        if (GlobalMemoryStatusEx(&ms)) {
+            out.mem.totalBytes = ms.ullTotalPhys;
+            // 【口径统一】可用内存的唯一来源 = ullAvailPhys（与进程页表头同源）。
+            // 实测与 NtQSI(2).AvailablePages×4096 差 0~1.8 MB（A11 §2.2），
+            // 但两处口径一致才是重点：性能页右栏「可用」与组合条第 4 段、
+            // 与进程页表头必须是同一个数。
+            out.mem.availableBytes = ms.ullAvailPhys;
+        } else if (ntqsiAvailableBytes > 0) {
+            // GMS 失败（几乎不可能）时退回 NtQSI(2)，避免「可用 = 0」这种谎报。
+            out.mem.availableBytes = ntqsiAvailableBytes;
+        }
 
         SYS_TIME_OF_DAY tod{};
         ULONG ret = 0;
@@ -1150,9 +1191,31 @@ bool PerfCollector::CollectOnce(PerfSnapshot& out) {
     out.l2CacheBytes = l2_;
     out.l3CacheBytes = l3_;
     out.virtualizationEnabled = virtEnabled_;
-    out.totalProcesses = procCounts_[0].load(std::memory_order_relaxed);
-    out.totalThreads = procCounts_[1].load(std::memory_order_relaxed);
-    out.totalHandles = handleCount_.load(std::memory_order_relaxed);
+    // 【进程/线程/句柄：记录来源代际，不"等"配对】
+    // 旧代码只是三个 atomic load，没有任何配对校验 —— 于是性能页显示的计数
+    // 可能是上一代甚至更早算出来的（A11 §3.3 实测约 53% 的帧）。
+    // 这里刻意**不等待**配对：等待会让性能页在计数器相位不利时整帧卡住，
+    // 那是用"卡顿"换"一致"，用户看得见的反而更糟。
+    // 正确做法是把来源代际如实带出去（countsSequence），让 UI 自己判断：
+    //   UI 手里有当前 Snapshot::sequence，lag = thatSeq - countsSequence；
+    //   lag == 0 才允许显示数字，否则显示「—」。接口约定见 include/perfdata.h。
+    // 一次加锁取四个值：保证 procs/threads/handles/seq 属于同一代（见头文件注释）。
+    {
+        std::lock_guard<std::mutex> lk(procCountsMutex_);
+        out.countsSequence = procCounts_.seq;
+        out.totalProcesses = procCounts_.procs;
+        out.totalThreads   = procCounts_.threads;
+        out.totalHandles   = procCounts_.handles;
+
+        // age = 本拍拍数 - 计数被写入时的拍数。
+        // 同一拍内写入又读出 → 0（可信）；跨过一拍 → 1（落后）。
+        // 这是"能检测"落地成"能判断"的关键：UI 只看这个数，不需要知道
+        // 主采集器的序号（两个独立计数器不可比）。
+        const uint64_t nowTick = collectTick_.load(std::memory_order_relaxed);
+        const uint64_t wr = procCounts_.writtenAtTick;
+        out.countsAge = (wr > 0 && nowTick >= wr)
+            ? static_cast<uint32_t>(nowTick - wr) : 0xFFFFFFFFu;   // 从未写入 → 极大值，UI 显示「—」
+    }
 
     // ---- GPU：每引擎使用率 + 适配器信息 ----
     // 走 D3DKMT。pid 列表由主采集器通过 SetProcessCounts 顺带传进来的不算，

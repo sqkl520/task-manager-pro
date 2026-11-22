@@ -1076,7 +1076,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, LPWSTR lpCmdLine, int) {
                         threads += e.threadCount;
                         handles += e.handleCount;
                     }
-                    g_perf->SetProcessCounts(procs, threads, handles);
+                    g_perf->SetProcessCounts(procs, threads, handles, snap->sequence);
                     g_win->SetSnapshot(snap);
                 }
                 if (g_perf->Sequence() >= 2) {
@@ -1181,7 +1181,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, LPWSTR lpCmdLine, int) {
                         threads += e.threadCount;
                         handles += e.handleCount;
                     }
-                    g_perf->SetProcessCounts(procs, threads, handles);
+                    g_perf->SetProcessCounts(procs, threads, handles, snap->sequence);
                     g_win->SetSnapshot(std::move(snap));
                 }
             }

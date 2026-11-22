@@ -1040,37 +1040,119 @@ void TmWindow::PaintColumnHeader(HDC hdc) {
     //
     // 【字号】原版数值字形高 12px（y=95..106），比列名（11px，y=117..127）大 1px。
     // 用 fontGroup_（13px 半粗）近似 —— 本机无法逐像素校准字体渲染，差 1px 可接受。
-    double sumCpuPct = 0.0;
-    double sumMemPct = 0.0;
-    if (snap_) {
-        // 【CPU 总体利用率：优先用系统真值】
-        // PerfSnapshot::cpuTotalPercent 是逐核 (1 - idle差分/总差分) 取平均得到的
-        // 系统级利用率（src/perfdata.cpp:498），这才是"CPU 使用率"的定义值。
-        //
-        // 【为什么不再用"排除 PID 0 后求和"】那样虽然也能得到接近的数，但：
-        //   1. 它依赖每个进程的差分都不丢失（新进程首轮没有基准，会被算成 0）
-        //   2. 内核时间、DPC/中断时间不属于任何进程，会漏掉
-        //   3. 进程在采集间隙退出，它的 CPU 时间就丢了
-        // 系统真值不受这些影响。有 perfSnap_ 就直接用。
-        //
-        // 【PID 0 那个坑仍然要记住】此前我加了"求和排除 pid 0"来修 94% 的 bug。
-        // 根因是 PID 0 是 System Idle Process，它的 CPU 时间 = **系统空闲**时间，
-        // 一个人就占 90%+，加进总和后汇总恒为 90~100%。
-        // 那个修法是对的（现在保留为兜底），但用系统真值更准。
-        if (perfSnap_) {
-            sumCpuPct = perfSnap_->cpuTotalPercent;
-        } else {
-            for (const auto& e : snap_->processes) {
-                if (e.pid == 0) continue;    // 兜底：跳过空闲进程
-                sumCpuPct += e.cpuPercent;
-            }
-            if (sumCpuPct > 100.0) sumCpuPct = 100.0;
-        }
-        if (snap_->totalPhysical > 0) {
-            const uint64_t used = snap_->totalPhysical - snap_->availablePhysical;
-            sumMemPct = static_cast<double>(used) /
-                        static_cast<double>(snap_->totalPhysical) * 100.0;
-        }
+    //
+    // 【两个汇总值「没有数据」与「真的是 0」必须分开】
+    // 0% 是一个**合法读数**（CPU 真的空闲 / 内存真的空着），不能拿 0 当"无数据"的
+    // 哨兵 —— 那样表头会把"还没采到"显示成"0%"，正是本项目反复踩的"静默降级成
+    // 假数据"。所以每个值配一个 has* 标志，绘制时无数据画「—」。
+    // 这条口径与 `include/perfdata.h` 的 `DiskSample::hasBaseline` 完全一致
+    // （那里写的是"界面必须显示「—」而不是 0 —— 显示 0 等于谎报磁盘刚才完全空闲"）。
+    // 【引用按符号写、不按行号】perfdata.* 正在被并行修改，行号会漂。
+    bool   hasSumCpu = false;
+    bool   hasSumMem = false;
+    double sumCpuPct  = 0.0;
+    double sumMemPct  = 0.0;
+
+    // ---------- CPU 总体利用率 ----------
+    //
+    // PerfSnapshot::cpuTotalPercent 是逐核 (1 - idle差分/总差分) 取平均得到的
+    // 系统级利用率（src/perfdata.cpp 的 `out.cpuTotalPercent = sumUtil / nWithDelta`），
+    // 这才是"CPU 使用率"的定义值。
+    // 【引用按符号写、不按行号】perfdata.cpp 正在被并行修改，行号会漂。
+    //
+    // 【已删除：`Σ_{pid≠0} e.cpuPercent` 兜底分支·2026-11-22】
+    //
+    // 旧代码是 `if (perfSnap_) 用系统真值; else 逐进程求和并钳 100`。那个兜底
+    // 是一条**不该存在的分支**：它不是"精度差一点"，而是"换了个定义"。
+    // A11 实测（docs/audit/A11_crosspage_consistency.md §1.3，同一秒两次复现）：
+    //     round1: 系统真值 29.36%  vs  兜底求和 11.72%   → 差 17.7 pp
+    //     round2: 系统真值 26.36%  vs  兜底求和 10.94%   → 差 15.4 pp
+    // 兜底**系统性偏低 15~22 pp**，因为：
+    //   1. 它依赖每个进程的差分都不丢失（新进程首轮没有基准，会被算成 0）
+    //   2. 内核时间、DPC/中断时间不属于任何进程，会漏掉
+    //   3. 进程在采集间隙退出，它的 CPU 时间就丢了
+    // 结果是：性能采集器晚到一拍，表头就从「38%」跳到「15%」，同一个表头在
+    // 不同时刻用两套公式 —— 用户没法知道此刻读到的是哪一套。
+    // 现在改成「未就绪就显示 —」：显示「—」是诚实的（"还没有数据"），
+    // 显示一个差 15~22 pp 的数是**不**诚实的。
+    //
+    // 【PID 0 那个坑仍然要记住】此前我加了"求和排除 pid 0"来修"汇总恒 94%"的 bug。
+    // 根因是 PID 0 是 System Idle Process，它的 CPU 时间 = **系统空闲**时间，
+    // 一个人就占 90%+（A11 §1.3 用两个独立 API 交叉证实：pid0 的 delta 与
+    // NtQSI(8) 的 ΣIdle 比值 = 1.0000）。这个知识现在对**别处**仍然有效：
+    // `src/tmwindow.cpp:578`（卡片曲线）、`src/tmwindow_list.cpp` 底部
+    // PaintStatusBar、`src/pages_view.cpp:492`（用户页，那里**还没有**排除 pid 0，
+    // session 0 实测显示 71.56% 而真实只有 2.66%）。不要因为这里删了求和
+    // 就以为 PID 0 的问题没了。
+    //
+    // 【首拍没有 CPU 基准 —— 也必须落到「—」】
+    // 上面删掉兜底之后还有一个更细的洞：`perfSnap_` **非空不等于 CPU 有值**。
+    // CollectOnce 的第一次调用 `hasPrev_ == false`，没有任何核产生增量，
+    // `cpuTotalPercent` 保持结构体默认值 0.0（src/perfdata.cpp 的
+    // `if (nWithDelta > 0)` 守卫），而这份快照照样会被发布成 sequence == 1
+    // （`seq = (published_ ? ...->sequence : 0) + 1`）。
+    // 于是只判 `perfSnap_ != null` 会在启动后第一秒把 **0%** 画上去 ——
+    // 那正是本次要根除的那种"看着像真读数、其实是没数据"的假值。
+    //
+    // 用 `sequence >= 2` 作判据：sequence 是 PerfCollector 自己发的发布计数，
+    // 1 号快照**按发布逻辑必然**没有 CPU 差分基准，这是可证的，不是猜的。
+    //
+    // ⚠ 交接项：这是**代理判据**。更干净的做法是 perfdata 在 PerfSnapshot 上
+    // 加一个 `bool cpuHasBaseline`（与 DiskSample::hasBaseline 同形），届时把
+    // 这里换成读那个字段。perfdata.* 不归本文件改，所以先按可证的发布序号判。
+    // 若将来采集侧改成"首拍自带基准"，这里会多显示一拍的「—」—— 那是有意的
+    // 单向退化：宁可短暂空着，不可短暂报假 0。
+    if (perfSnap_ && perfSnap_->sequence >= 2) {
+        sumCpuPct = perfSnap_->cpuTotalPercent;
+        hasSumCpu = true;
+    }
+
+    // ---------- 内存使用率 ----------
+    //
+    // 【已改为与 CPU 同源·2026-11-22】旧代码读的是主采集器 `snap_->totalPhysical
+    // / availablePhysical`，于是**同一个表头里并排的两个数来自两代快照**：
+    // CPU 来自性能采集器的 PerfSnapshot，内存来自主采集器的 Snapshot，两个线程
+    // 独立 1Hz、到达顺序不保证（见 SetPerfSnapshot 的注释，tmwindow.cpp:527）。
+    //
+    // 改成读 `perfSnap_->mem` 后的三条理由：
+    //  1. **不是换定义，只是换管道**。perfdata 已把内存口径统一到 GMS：
+    //     `mem.totalBytes = ullTotalPhys`、`mem.availableBytes = ullAvailPhys`
+    //     （src/perfdata.cpp，本轮由另一处改过）、`inUseBytes = total - available`
+    //     —— 与 collector.cpp:439-440 的 `(totalPhysical - availablePhysical)`
+    //     **逐字节同公式、同 API**。所以这次改动不会让表头数值跳变（A11 §2.2
+    //     实测两 API 差 0~1.8 MB，即 0.0~0.06 pp），不存在"静默换口径"的风险。
+    //  2. **同代际才是并排显示的前提**。两个 gauge 是"整机此刻"的一对读数，
+    //     必须同一时刻。分开取值时，内存快速变化（实测 1 秒可漂 32~80 MB，
+    //     即 0.1~0.24 pp）会让它们各自对应不同的秒。
+    //  3. **与性能页对齐**。性能页大字/侧栏卡/内存页曲线全部读
+    //     `mem.inUseBytes / mem.totalBytes`（perfpage.cpp 5 处），表头改读同一
+    //     字段后，A11 §5.2 那张表里"进程页表头 %"这一行的 ⚠️ 才真正消掉 ——
+    //     用户拿表头 "91%" 和性能页 "91%" 对账时必须一模一样。
+    //
+    // 【perfSnap_ 为空时也和 CPU 一样显示「—」】两个 gauge 的**来源**统一了，
+    // 所以「性能采集器根本没起来」时两格一起变成「—」。这是对的：perf 采集器
+    // 若长期起不来（NtQSI 不可用），说明这个程序赖以显示 CPU 的那条链路整体
+    // 失效，此时表头不该只补一半（"CPU —、内存 91%"看着像 bug，而且那个 91%
+    // 来自一条已经证明不可靠的链路）。
+    //
+    // 【为什么不写成兜底（perf 空时退回 snap_）】那又会造出第二条分支：
+    // 内存这一路虽然同口径，但"哪一代"仍会随可用性切换。这个项目对
+    // "静默降级"的教训已经足够多，能一条路走完的就不留两条。
+    //
+    // 【注意：这里**不**套 CPU 的 `sequence >= 2` warmup 守卫】
+    // 内存不需要差分基准：`inUseBytes/totalBytes` 是**瞬时量**，第一拍就有效。
+    // 而 CPU 的百分之多少是**差分**（Δidle/Δtotal），第一拍必然无基准。
+    // 两者"无数据"的成因不同，所以判据也不同 —— 内存只判 `totalBytes > 0`。
+    // 结果是**启动后第一秒**：CPU 显示「—」、内存已经是真值。这两格并不是
+    // "必须同时出现"，而是"同一份快照里各自能算出什么就显示什么"：
+    // CPU 此时确实测不出来，内存此时确实测出来了。差异只存在约 1 秒。
+    if (perfSnap_ && perfSnap_->mem.totalBytes > 0) {
+        // 分母为 0 时不可定义：totalBytes == 0 说明 GMS 失败，此时 inUseBytes
+        // 也是 0（perfdata 的 `if (totalBytes > 0)` 守卫），算出来会是一个
+        // "看着像 0% 占用"的假读数 —— 必须落到「—」。
+        sumMemPct = static_cast<double>(perfSnap_->mem.inUseBytes) /
+                    static_cast<double>(perfSnap_->mem.totalBytes) * 100.0;
+        hasSumMem = true;
     }
 
     for (int i = 0; i < kColCount; ++i) {
@@ -1162,16 +1244,27 @@ void TmWindow::PaintColumnHeader(HDC hdc) {
         // 几何来自真原版实测：数值区 y=95..106（带顶 92 起算 = rel 3..14），
         //             列名区 y=117..127（rel 25..35）。
         // 两行不重叠，所以直接用两个独立矩形，不做垂直居中冲突处理。
+        //
+        // 【无数据画「—」】perfSnap_ 还没到（或 perfSnap_->mem 不可定义）时，
+        // 这一格画「—」而不是 "0%"。理由见上方 sumCpuPct/sumMemPct 的注释：
+        // 0% 是合法读数，不能当"无数据"的哨兵。字符与全项目的占位符一致：
+        // U+2014（em dash），与 perfpage.cpp 里所有 `Put(..., L"—")` 同一个码点。
         if (i == 2 || i == 3) {
-            const double v = (i == 2) ? sumCpuPct : sumMemPct;
+            const bool   has = (i == 2) ? hasSumCpu : hasSumMem;
+            const double v   = (i == 2) ? sumCpuPct : sumMemPct;
             wchar_t num[16];
-            swprintf_s(num, L"%.0f%%", v);
+            if (has) swprintf_s(num, L"%.0f%%", v);
+            else     swprintf_s(num, L"—");
             HFONT oldSum = static_cast<HFONT>(SelectObject(hdc, fontGroup_));
             RECT sumCell{ left, rcColHeader_.top + theme::Scaled(3),
                           right, rcColHeader_.top + theme::Scaled(17) };
             DrawTextClipped(hdc, num, &sumCell,
                             DT_SINGLELINE | DT_VCENTER | kCols[i].align,
-                            kTextPrimary);
+                            // 「—」是"缺数据"的弱化状态，用次要字色；真数值仍用主字色。
+                            // 原版这两格都是纯黑（截图实测），但原版不画「—」
+                            // （它从第一帧就有数），所以这里没有可对照的原版像素，
+                            // 按本项目"占位符用次要色"的既有约定（perfpage 的 Put 系列同）。
+                            has ? kTextPrimary : kTextSecondary);
             SelectObject(hdc, oldSum);
         }
 

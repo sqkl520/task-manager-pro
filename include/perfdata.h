@@ -38,8 +38,22 @@ struct CpuCoreSample {
 };
 
 struct MemBreakdown {
-    uint64_t totalBytes = 0;        // 总物理内存
-    uint64_t availableBytes = 0;    // 可用
+    uint64_t totalBytes = 0;        // 总物理内存        ← GlobalMemoryStatusEx ullTotalPhys
+    uint64_t availableBytes = 0;    // 可用              ← GlobalMemoryStatusEx ullAvailPhys
+    // 「已缓存」= 备用 + 已修改。
+    //
+    // 【两项依据，分开写清，别把弱证据说成强证据】
+    // 1. **本项目自己的设计意图**：本字段从引入起注释就是「备用 + 已修改」，
+    //    而实现曾额外加了一项 −− 注释与实现不符，这里改的是实现，不是注释。
+    // 2. **重叠是实测证实的**（scratch/c01/c01_mem.exe，判据不依赖 available 的
+    //    内部拆分）：`available < ResidentSystemCachePage + standby + modified + free`
+    //    实测成立（−0.73 GB），而 available 不可能同时容下四个互不重叠的子集 ⇒
+    //    ResidentSystemCachePage 必然与其中至少一项重叠。所以三项相加是重复计数。
+    //    （旧实现实测比两项之和多约 0.5~1.0 GB。）
+    // 3. **「原版口径就是 standby+modified」这一条我拿不到直接证据**：
+    //    docs/specs/O_strings.md 只给出了图例字符串（34354「已缓存」/33854「备用」），
+    //    并没有给出原版的计算公式；A11 §2.5 的那句「原版口径=standby+modified」
+    //    是推断，不是测量。所以这里**不引用它当依据**，只当"方向上不冲突"。
     uint64_t cachedBytes = 0;       // 备用 + 已修改（"已缓存"）
     uint64_t standbyBytes = 0;      // 备用
     uint64_t modifiedBytes = 0;     // 已修改
@@ -48,7 +62,10 @@ struct MemBreakdown {
     uint64_t commitLimitBytes = 0;  // 提交限制
     uint64_t pagedPoolBytes = 0;    // 分页缓冲池
     uint64_t nonPagedPoolBytes = 0; // 非分页缓冲池
-    uint64_t inUseBytes = 0;        // 使用中 = total - available - cached
+    // 使用中 = 总量 − 可用。**不减 cachedBytes**：available 里已经含了可回收的
+    // standby 页，再减一次就是重复扣除。原版也是这个口径（A11 §2.3 实测原版
+    // 29.2 + 2.0 = 31.2 GB）。所以恒等式 `inUse + available == total` 成立。
+    uint64_t inUseBytes = 0;        // 使用中 = totalBytes - availableBytes
 };
 
 struct DiskSample {
@@ -131,10 +148,35 @@ struct PerfSnapshot {
     double diskTotalMBps = 0.0;
     double netMaxMbps = 0.0;
 
-    // 进程/线程/句柄（从主采集器复用）
+    // 进程/线程/句柄（从主采集器复用，见 PerfCollector::SetProcessCounts）
     uint32_t totalProcesses = 0;
     uint32_t totalThreads = 0;
     uint64_t totalHandles = 0;
+    // 上面三个数**来自哪一代**主采集器快照（取值空间 = tmp::Snapshot::sequence）。
+    // 0 = 从来没收到过计数（还没采到主快照，或调用方没传）。
+    //
+    // 【为什么需要它】主采集器与性能采集器是两个线程、两个独立代际号，性能线程
+    // 读计数的那一刻，手里的计数可能是上一代甚至更早的。实测同周期 1Hz +
+    // 250 ms 轮询下约 53% 的帧是上一代（docs/audit/A11 §3.3）。这里**不"等配对"**
+    // ——等待会让性能页卡住；只把来源代际**如实记下来**，让 UI 自己判断。
+    //
+    // 【UI 侧怎么用】countsSequence 与 PerfSnapshot::sequence **不是同一个计数器**，
+    // 不能互相比。正确比较对象是 UI 手里那份进程快照的代际号：
+    //     lag = <当前显示的 Snapshot::sequence> - countsSequence;
+    //     lag == 0  → 同一代，三个数可以直接显示；
+    //     lag >= 1  → 落后 lag 代，必须显示「—」或加「上一代」标注；
+    //     countsSequence == 0 或 totalProcesses == 0 → 显示「—」。
+    // 绝对不要因为 lag != 0 就把这三个数当成本代数字显示。
+    // 它会随计数一起被记进 PerfSnapshot::countsSequence，供 UI 判断是否为本代。
+    uint64_t countsSequence = 0;
+
+    // 【补充·本轮】上面那条接口约定的问题是：UI 手里只有 PerfSnapshot，
+    // 没有主采集器的 Snapshot::sequence，两个独立计数器没法直接比。
+    // 所以这里**同时给出 age** —— 这份计数从被写入到被读取，跨了性能线程几拍：
+    //   countsAge == 0 → 本次采集刚拿到
+    //   countsAge >= 1 → 已经落后，UI 应显示「—」而不是旧数字
+    // age 由 PerfCollector 自己维护，UI 不需要知道主线程的序号。
+    uint32_t countsAge = 0;
 
     double collectionMs = 0.0;
 };
@@ -151,8 +193,12 @@ public:
     std::shared_ptr<const PerfSnapshot> GetSnapshot() const;
     uint64_t Sequence() const { return publishedSeq_.load(std::memory_order_acquire); }
 
-    // 主采集器每轮把自己的进程/线程/句柄数塞进来（避免重复采集）
-    void SetProcessCounts(uint32_t procs, uint32_t threads, uint64_t handles);
+    // 主采集器每轮把自己的进程/线程/句柄数塞进来（避免重复采集）。
+    // snapshotSeq = 这份计数所属的那份 tmp::Snapshot 的代际号（Snapshot::sequence）。
+    // 它会随计数一起被记进 PerfSnapshot::countsSequence，供 UI 判断是否为本代。
+    // 【必须传】传 0 表示"来源未知"，UI 侧会当作不可信 → 显示「—」。
+    void SetProcessCounts(uint32_t procs, uint32_t threads, uint64_t handles,
+                          uint64_t snapshotSeq);
 
 private:
     void ThreadProc();
@@ -241,8 +287,29 @@ private:
     uint64_t l1_ = 0, l2_ = 0, l3_ = 0;
     bool virtEnabled_ = false;
 
-    std::atomic<uint32_t> procCounts_[3] = {};   // procs, threads, (handles 用下面)
-    std::atomic<uint64_t> handleCount_{0};
+    // 进程/线程/句柄计数 + 所属快照代际号。
+    //
+    // 【为什么用互斥量而不是几个 atomic】这里要发布的是**四个值的整体**
+    // （procs / threads / handles / seq）。用 4 个独立 atomic 时，写侧即使
+    // 用 release 写 seq，读侧也无法排除"读到 seq=5、但 threads 已经是第 6 代
+    // 写进去的值"的撕裂 —— acquire 只保证"看到 seq=5 就能看到 5 之前的写"，
+    // 不阻止读者看到 5 之后的写。撕裂出来的组合恰好是本次要消灭的假配对，
+    // 用 atomic 反而会把它藏起来。调用频率只有 4 Hz（UI 定时器）对 1 Hz 采集，
+    // 一个短临界区的代价完全可以忽略。
+    struct ProcCounts {
+        uint32_t procs = 0;
+        uint32_t threads = 0;
+        uint64_t handles = 0;
+        uint64_t seq = 0;        // 这份计数所属的 tmp::Snapshot::sequence；0 = 未喂过
+        // 写入时刻性能线程已经跑过的拍数。CollectOnce 每轮 ++，读取时相减得到 age。
+        uint64_t writtenAtTick = 0;
+    };
+    mutable std::mutex procCountsMutex_;
+    ProcCounts procCounts_;
+    // 性能线程的拍数。采集线程自增、UI 线程在 SetProcessCounts 里读，所以用 atomic。
+    std::atomic<uint64_t> collectTick_{0};
+    // 上一拍读取到的计数所属拍数（只在采集线程内读写，无需 atomic）
+    uint64_t countsSeenAtTick_ = 0;
 
     void ReadStaticCpuInfo();
 };
