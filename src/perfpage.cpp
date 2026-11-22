@@ -1294,10 +1294,15 @@ void PerfPage::PaintStatsRows(HDC hdc, const RECT& rc) const {
     //      UIFILE 只给 margin（20/8），没有行高；19/46 这些数是既有实现。
 
     if (view_ != PerfView::Cpu) {
-        // 非 CPU 页仍用原来的单行统计（那些页的规格 UIFILE 未逐项声明）
         PaintStatsRowsGeneric(hdc, rc);
         return;
     }
+    // 【上面这个分支以前是死代码】PaintStatsRows 的唯一调用点是
+    // PaintCpuPage 的末尾（perfpage.cpp:1690 附近），而 PaintCpuPage
+    // 只在 view_ == Cpu 时被调用 —— 所以 `view_ != Cpu` 恒为假，
+    // 内存页的「使用中 / 可用 / 已缓存 / 已提交」四行**从来没被画出来过**。
+    // 现在把通用统计挂到内存页自己的绘制路径上（见 PaintMemPage 末尾），
+    // 这个 return 保留作为防御：万一将来有别的页复用它，也不会画错。
 
     HFONT old = static_cast<HFONT>(SelectObject(hdc, fontBody_));
     SetBkMode(hdc, TRANSPARENT);
@@ -1390,11 +1395,18 @@ void PerfPage::PaintStatsRows(HDC hdc, const RECT& rc) const {
 
         KV(L"虚拟化:", snap_->virtualizationEnabled ? L"已启用" : L"已禁用");
 
-        if (snap_->l3CacheBytes) {
+        // 【三行各自独立】原版是三个独立元素、三个状态字节（A04 反汇编确认
+        // L1 行无条件写，L2/L3 各判各的计数器）。旧代码用一个 l3CacheBytes
+        // 管三行 —— L3 为 0 的机器连 L1/L2 一起消失。
+        if (snap_->l1CacheBytes) {
             swprintf_s(b1, L"%.0f KB", snap_->l1CacheBytes / 1024.0);
             KV(L"L1 缓存:", b1);
+        }
+        if (snap_->l2CacheBytes) {
             swprintf_s(b1, L"%.1f MB", snap_->l2CacheBytes / 1048576.0);
             KV(L"L2 缓存:", b1);
+        }
+        if (snap_->l3CacheBytes) {
             swprintf_s(b1, L"%.1f MB", snap_->l3CacheBytes / 1048576.0);
             KV(L"L3 缓存:", b1);
         }

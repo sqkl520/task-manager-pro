@@ -465,6 +465,22 @@ void PerfCollector::ThreadProc() {
     // 放在采集线程里做，不阻塞 UI。
     gpuInfoAvailable_ = gpuInfo_.Init();
 
+    // 【接上 ProbeDirectXVersion —— 它写好了但全项目零调用，GPU 页的
+    // 「DirectX 版本」因此永远显示「—」】
+    //
+    // 这个探测实测 480~1000 ms（瓶颈是加载 NVIDIA 用户态驱动），
+    // **绝不能**放进 CollectOnce 或绘制路径，否则每帧掉一秒。
+    // 这里在采集线程启动后跑一次；采集循环本身不等它 ——
+    // 主循环已经跑起来了，探测在后台完成后下一次 CollectOnce 自然会读到。
+    //
+    // 用一个分离线程而不是阻塞 ThreadProc：ThreadProc 一旦被拖住 1 秒，
+    // 性能页第一个快照就晚 1 秒发布，用户看到空白页。
+    std::thread([this]() {
+        if (!gpuInfoAvailable_) return;
+        std::wstring ver = gpuInfo_.ProbeDirectXVersion();
+        if (!ver.empty()) gpuInfo_.SetFirstAdapterDirectXVersion(ver);
+    }).detach();
+
     while (running_.load()) {
         auto snap = std::make_shared<PerfSnapshot>();
         if (CollectOnce(*snap)) {
@@ -1181,6 +1197,13 @@ bool PerfCollector::CollectOnce(PerfSnapshot& out) {
             g.dedicatedBytes = all[i].dedicatedInUse;
             g.sharedBytes = all[i].sharedInUse;
             out.gpus.push_back(std::move(g));
+        }
+        // 后台 ProbeDirectXVersion 完成后把结果并入第一张卡。
+        // 探测本身要 480~1000 ms，跑在分离线程里；这里只是把已经算好的
+        // 字符串搬进快照，成本可忽略。未完成时保持空串，UI 显示「—」。
+        if (!out.gpuAdapters.empty()) {
+            std::wstring dx = gpuInfo_.ProbedDirectXVersion();
+            if (!dx.empty()) out.gpuAdapters[0].directXVersion = dx;
         }
     }
 

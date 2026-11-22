@@ -29,6 +29,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <mutex>
 
 namespace tmp {
 
@@ -150,11 +151,25 @@ public:
     // 只用 LoadLibrary("d3d11.dll") + GetProcAddress，不引入链接依赖。
     std::wstring ProbeDirectXVersion();
 
+    // 后台探测完成后把结果登记到第一张卡。
+    //
+    // 【为什么不让 ProbeDirectXVersion 直接写 adapters_[0]】那个方法要
+    // 480~1000 ms，必须在后台线程跑；而 adapters_ 被采集线程每轮读、
+    // 被 UI 线程读，后台线程直接写会产生数据竞争。这里把结果存进一个
+    // 独立字段，由采集线程在下一轮把它合并进快照。
+    void SetFirstAdapterDirectXVersion(const std::wstring& v) {
+        std::lock_guard<std::mutex> lk(dxMutex_);
+        probedDirectX_ = v;
+    }
+    std::wstring ProbedDirectXVersion() const {
+        std::lock_guard<std::mutex> lk(dxMutex_);
+        return probedDirectX_;
+    }
+
     // 适配器信息（静态字段 Init 后有效；inUse/processCount 每轮更新）。
     // **返回第一个真实 GPU**，保持与单卡时代调用方的兼容。
     // 多卡机器请改用 Adapters()。
     const GpuAdapterInfo& Adapter() const { return adapters_.empty() ? emptyAdapter_ : adapters_[0]; }
-
     // 全部真实 GPU（按 D3DKMT 枚举顺序；Init 时过滤掉软件渲染器与纯显示适配器）。
     // 多卡机器（核显 + 独显）在这里会有 2 项。**不包含** ToDesk / GameViewer
     // 这类纯显示适配器 —— 判定依据见 gpuinfo.cpp 文件头第 11 条。
@@ -194,6 +209,9 @@ private:
     std::vector<GpuAdapterInfo> adapters_;
     // Adapter() 在 adapters_ 为空时的返回对象（绝不返回野引用）
     GpuAdapterInfo emptyAdapter_;
+    // 后台 ProbeDirectXVersion 的结果（探测要 480~1000 ms，不能碰 adapters_）
+    mutable std::mutex dxMutex_;
+    std::wstring probedDirectX_;
     std::vector<GpuEngineSample> engines_;
     std::vector<GpuEngineHistory> history_;
     double totalUtil_ = 0.0;
