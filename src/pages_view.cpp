@@ -432,14 +432,50 @@ void PagesView::Text(HDC hdc, const wchar_t* s, RECT* rc, UINT fmt, COLORREF c) 
 // 每一格的步进必须整数像素；SetPixelV 是唯一能保证「一格一格」落点的画法。
 // 步进经 Rpx() 后在高 DPI 下会变大，折角随之变大 —— 这是要的行为，
 // 但折角的**行数仍是 9**（不是把 9 也乘一次），否则 150% 下会画成 13 行的高胖箭头。
-void PagesView::DrawSortChevron(HDC hdc, int cx, int cy, bool desc, COLORREF color) const {
-    static const signed char kCx[9] = { 0, 1, 2, 3, 3, 3, 2, 1, 0 };
-    const int step = ChevronStepPx();
-    for (int i = 0; i < 9; ++i) {
-        // 升序时整条上下翻转
+std::wstring PagesView::ChevronPointsForTest(bool desc) {
+    // 与 DrawSortChevron 完全同一组落点计算，用固定原点 (0,0) 与 step=1。
+    //
+    // 【必须排序】断言要判断的是「两次画出来的**像素集合**是否相同」，
+    // 不是「绘制顺序是否相同」。旧图案左右对称，翻转行序后绘制顺序变了、
+    // 点集没变 —— 不排序的话断言会假阳性通过（实测踩过：改回对称图案后
+    // 断言仍 PASS，因为有序串不同但点集相同）。
+    std::wstring s;
+    wchar_t buf[32];
+    std::vector<std::pair<int,int>> pts;
+    for (int i = 0; i <= 4; ++i) {
         const int row = desc ? i : (8 - i);
-        SetPixelV(hdc, cx + kCx[i] * step, cy + row * step, color);
-        if (i == 4) SetPixelV(hdc, cx + 4 * step, cy + row * step, color);   // 折角多一格
+        pts.push_back({i, row});
+        pts.push_back({8 - i, row});
+    }
+    std::sort(pts.begin(), pts.end());
+    for (const auto& p : pts) {
+        swprintf_s(buf, L"%d,%d;", p.first, p.second);
+        s += buf;
+    }
+    return s;
+}
+
+void PagesView::DrawSortChevron(HDC hdc, int cx, int cy, bool desc, COLORREF color) const {
+    // 【图案必须能区分上下，旧图案不能】
+    //
+    // 旧 kCx = {0,1,2,3,3,3,2,1,0} 关于 i=4 对称。翻转只把行序倒过来
+    // （row = desc ? i : 8-i），而 kCx[i] == kCx[8-i]，所以升序和降序
+    // 落点逐像素相同 —— 实跑验证 10 个像素完全一致，方向根本看不出。
+    //
+    // 现在画一个真正的 V 形折角：宽度从两端向中心递增，但**上下不对称**——
+    // 上半段窄、下半段宽。翻转后上半变宽、下半变窄，视觉上就是 ▲ / ▼。
+    //
+    // 每行落点：左臂 x = cx + i，右臂 x = cx + (8 - i)，i 从 0 到 4。
+    // 行号 row 用 desc 决定方向，列位置与 row 无关 —— 这才是箭头。
+    const int step = ChevronStepPx();
+    for (int i = 0; i <= 4; ++i) {
+        // desc = ▼：窄在上、宽在下；asc = ▲：宽在上、窄在下
+        const int row = desc ? i : (8 - i);
+        const int y = cy + row * step;
+        // 左臂
+        SetPixelV(hdc, cx + i * step, y, color);
+        // 右臂（对称位置，间距随深度收窄）
+        SetPixelV(hdc, cx + (8 - i) * step, y, color);
     }
 }
 

@@ -164,6 +164,13 @@ private:
                           int flexWidth) const;
     // 排序指示器：desc=true 画 ▼，false 画 ▲。9 行高的细折角。
     void DrawSortChevron(HDC hdc, int cx, int cy, bool desc, COLORREF color) const;
+
+public:
+    // 【仅测试】把排序箭头的落点收集成字符串（"x,y;x,y;..."）。
+    // 用来证明 asc 与 desc 画出的形状**真的不同** —— 旧图案左右对称，
+    // 翻转行序后落点逐像素相同，升降序在界面上完全看不出。
+    static std::wstring ChevronPointsForTest(bool desc);
+private:
     // 当前页的列定义 + 弹性宽度基准。nullptr = 该页没有表格。
     const ColumnDef* CurCols(int& nCols, int& flexW) const;
     void PaintCellText(HDC hdc, const wchar_t* text, int x, int y, int w, int h,

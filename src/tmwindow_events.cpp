@@ -1193,16 +1193,30 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
             const int total = ContentHeight();
             const int view = ViewportHeight();
             if (total > view && view > 0) {
-                const int trackTop = rcList_.top;
-                const int trackH = view;
-                int thumbH = trackH * view / total;
-                if (thumbH < theme::Rpx(24)) thumbH = theme::Rpx(24);
+                // 【几何必须与绘制同源】
+                // 绘制侧 ScrollThumbRect()（tmwindow_list.cpp:2248）用的是
+                //   trackTop = rcList_.top + btnH
+                //   trackH   = view - btnH*2
+                //   thumbH   = clamp(trackH*view/total, kThumbMinLen, trackH)
+                // 拖拽侧以前自己抄了一份不同的式子（trackTop = rcList_.top、
+                // trackH = view、最小 24）。实测 view=600 total=2000 时，
+                // scrollY=0 抓滑块往下拖会立刻跳到 57：rel 多算了一个按钮的
+                // 高度，再被 (rel/span)*maxScroll 放大。
+                //
+                // 现在直接从绘制结果反解：ScrollThumbRect() 已知，
+                // thumbH 就是它的高度；trackH 由绘制公式反推。
+                const RECT thm = ScrollThumbRect();
+                const int btnH = theme::Rpx(17);          // kScrollBtnH（SCROLLBAR 主题实测）
+                const int trackTop = rcList_.top + btnH;
+                const int trackH = view - btnH * 2;
+                const int drewThumbH = thm.bottom - thm.top;
+                int thumbH = drewThumbH > 0 ? drewThumbH : theme::Rpx(11);
                 if (thumbH > trackH) thumbH = trackH;
 
-                int rel = y - scrollDragOffset_ - trackTop;
-                int span = trackH - thumbH;
+                const int maxScroll = total - view;
+                const int span = trackH - thumbH;
                 if (span > 0) {
-                    int maxScroll = total - view;
+                    const int rel = y - scrollDragOffset_ - trackTop;
                     int sy = rel * maxScroll / span;
                     if (sy < 0) sy = 0;
                     if (sy > maxScroll) sy = maxScroll;
@@ -1861,6 +1875,25 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
         // （第二次时进程已不存在，但 OnMenuCommand 仍会跑完整流程）。
         // 若将来去掉加速键表，才需要把下面这段恢复：
         //   if (wp == VK_DELETE) { OnMenuCommand(CMD_END_TASK); return 0; }
+
+        // 【必须按页签分派】scrollY_ 是**进程页**的滚动状态。没有守卫时，
+        // 在详细信息页 / 次要页按 PageDown 会偷偷改进程页位置 —— 切回去
+        // 才发现列表跳了一段。这与滚轮那个 bug 是同一类的下一半：
+        // 滚轮已经走 CurrentScrollTarget() 分派，键盘没有。
+        if (tabs_.Current() != TabId::Processes) {
+            // 非进程页：交给各自的滚动目标处理，语义与滚轮一致
+            const ScrollTarget tgt = CurrentScrollTarget();
+            const int rowPx = ScrollRowPx(tgt);
+            const int pagePx = (rcList_.bottom - rcList_.top) / (rowPx > 0 ? rowPx : 1) * rowPx;
+            switch (wp) {
+            case VK_NEXT:  ApplyScrollDelta(tgt, pagePx);  ClampScrollTarget(tgt); InvalidateAll(); return 0;
+            case VK_PRIOR: ApplyScrollDelta(tgt, -pagePx); ClampScrollTarget(tgt); InvalidateAll(); return 0;
+            case VK_HOME:  SetScrollOffset(tgt, 0);        InvalidateAll(); return 0;
+            case VK_END:   SetScrollOffset(tgt, MaxScrollOffset(tgt)); InvalidateAll(); return 0;
+            default: break;
+            }
+            return DefWindowProcW(hwnd_, msg, wp, lp);
+        }
 
         int bodyH = rcList_.bottom - rcList_.top;
         switch (wp) {

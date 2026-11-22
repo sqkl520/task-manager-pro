@@ -863,6 +863,16 @@ int RunSelfTest() {
         Mark(err.empty() ? 1 : 0,
              L"PagesView 布局与字体随 DPI 正确缩放",
              err.empty() ? Narrow(L"96/120/144/192 四档全部通过") : Narrow(err));
+
+        // 排序箭头方向必须可辨。旧图案 kCx 左右对称，翻转行序后落点逐像素
+        // 相同 —— 升序和降序在界面上画出来一模一样，方向完全看不出。
+        std::wstring down = PagesView::ChevronPointsForTest(true);
+        std::wstring up   = PagesView::ChevronPointsForTest(false);
+        Mark(down != up ? 1 : 0,
+             L"排序箭头升序与降序形状不同",
+             down != up
+                 ? Narrow(L"desc 与 asc 落点序列不同")
+                 : Narrow(L"desc 与 asc 落点完全相同 —— 方向不可辨"));
     }
 
     log.F("\n=== 结果: PASS %d / FAIL %d / SKIP %d ===\n", t.pass, t.fail, t.skip);
