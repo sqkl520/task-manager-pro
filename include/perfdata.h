@@ -15,6 +15,7 @@
 #pragma once
 
 #include <windows.h>
+#include <winioctl.h>   // DISK_PERFORMANCE / STORAGE_DEVICE_DESCRIPTOR / BusType*
 #include <vector>
 #include <string>
 #include <cstdint>
@@ -51,11 +52,28 @@ struct MemBreakdown {
 };
 
 struct DiskSample {
-    std::wstring name;
+    std::wstring name;              // "磁盘 0"
+    std::wstring driveLetters;      // "(C: D:)" —— 含括号，无盘符时为空
+    std::wstring mediaType;         // "SSD" / "HDD" / "USB" / "" 未知
+    std::wstring busType;           // "NVMe" / "SATA" / "USB" / "" —— 仅磁盘页「类型:」用
+
+    // 静态属性（枚举时采一次，不参与差分）
+    uint64_t capacityBytes = 0;     // 容量
+    uint64_t freeBytes = 0;         // 已格式化（可用）
+    bool isSystemDisk = false;
+    bool hasPageFile = false;
+
     double activePercent = 0.0;     // 活动时间 %
     double readMBps = 0.0;
     double writeMBps = 0.0;
     double avgResponseMs = 0.0;
+    uint32_t queueDepth = 0;
+
+    // 首轮没有基线时，上面四个差分字段不可定义。
+    // 界面必须显示「—」而不是 0 —— 显示 0 等于谎报「磁盘刚才完全空闲」。
+    bool hasBaseline = false;
+    // 分母为 0（这一拍没发生任何 IO）时响应时间同样不可定义。
+    bool responseDefined = false;
 };
 
 struct NetSample {
@@ -181,6 +199,23 @@ private:
 
     // 磁盘/网络差分状态（NtQSI(2) + GetIfTable2，都避开 PDH 通配符）
     LARGE_INTEGER qpcFreq_{};
+
+    // ---- 磁盘：逐盘 IOCTL_DISK_PERFORMANCE ----
+    struct DiskInfo {
+        std::wstring devPath;        // \\.\PhysicalDriveN
+        std::wstring name;           // 磁盘 N
+        std::wstring driveLetters;   // (C: D:) 或空
+        std::wstring mediaType;      // SSD / HDD / USB / 空
+        std::wstring busType;        // NVMe / SATA / USB / 空
+        uint64_t capacityBytes = 0;
+        uint64_t freeBytes = 0;
+        bool isSystemDisk = false;
+        bool hasPageFile = false;
+    };
+    std::vector<DiskInfo> diskInfos_;
+    bool diskEnumDone_ = false;
+    std::unordered_map<std::wstring, DISK_PERFORMANCE> prevDiskPerf_;
+    void EnumeratePhysicalDisks();
     LARGE_INTEGER prevDiskQpc_{};
     uint64_t prevDiskRead_ = 0;
     uint64_t prevDiskWrite_ = 0;

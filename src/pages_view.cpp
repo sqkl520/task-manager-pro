@@ -487,6 +487,12 @@ void PagesView::RefreshUsers() {
             u.processCount = 0;
         }
         for (const auto& p : snap_->processes) {
+            // 【排除 PID 0】System Idle Process 的 CPU 时间等于系统空闲时间。
+            // 不排除的话会被算成 session 0 的占用 —— 实测 71.56%，真实值 2.66%，
+            // 虚高 68.9 个百分点。进程页、详细信息页、历史曲线都已排除它
+            //（tmwindow.cpp:564/652/714/739、tmwindow_details.cpp:483），
+            // 只有这里漏了。
+            if (p.pid == 0) continue;
             for (auto& u : users_) {
                 if (static_cast<uint32_t>(p.sessionId) == u.sessionId) {
                     u.cpuPercent += p.cpuPercent;

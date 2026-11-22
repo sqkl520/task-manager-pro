@@ -605,7 +605,30 @@ void TmWindow::OnWheelDelta(int delta) {
     if (delta == 0) return;
 
     const ScrollTarget target = CurrentScrollTarget();
-    if (target == ScrollTarget::None) return;   // 性能页：没有可滚列表
+    if (target == ScrollTarget::None) {
+        // 【性能页】没有可滚列表，但左栏（侧栏）可能有超出视口的卡片 ——
+        // 分盘后 8 张磁盘卡 + 网卡 + GPU 会超过一屏，旧行为是静默丢弃。
+        // 现在把滚轮转给侧栏。只有真的滚动了才重绘，避免无谓 invalidate。
+        if (tabs_.Current() == TabId::Performance && perfPage_.SidebarNeedsScroll()) {
+            // 一格 3 行，行高按卡片高度算；触控板按比例精确位移
+            const bool realWheel = (delta % WHEEL_DELTA) == 0;
+            int px;
+            if (realWheel) {
+                wheelRemainder_ += delta;
+                const int notches = wheelRemainder_ / WHEEL_DELTA;
+                wheelRemainder_ -= notches * WHEEL_DELTA;
+                if (notches == 0) return;
+                px = -notches * 60;      // 一格滚 60px（约一张卡的 88%）
+            } else {
+                px = -delta / 2;         // 触控板：精确位移
+            }
+            if (perfPage_.ScrollSidebar(px)) {
+                InvalidateRect(hwnd_, &perfPage_.Bounds(), FALSE);
+            }
+            return;
+        }
+        return;   // 性能页且侧栏不需要滚：确实无事可做
+    }
 
     const bool isRealWheel = (delta % WHEEL_DELTA) == 0;
 

@@ -20,10 +20,16 @@ void FmtBytesGB(uint64_t b, wchar_t* out, size_t n) {
 }
 
 void FmtUptime(uint64_t sec, wchar_t* out, size_t n) {
-    uint64_t h = sec / 3600;
-    uint64_t m = (sec % 3600) / 60;
-    uint64_t s = sec % 60;
-    swprintf_s(out, n, L"%llu:%02llu:%02llu",
+    // 【原版是 4 段 d:hh:mm:ss】证据：docs/reference/perf_cpu_orig.png 显示
+    // 「3:18:53:10」（3 天 18 小时 53 分 10 秒）。旧代码只有 3 段，
+    // 运行超过 24 小时会显示「84:17:51」而不是「3:12:17:51」。
+    const uint64_t d = sec / 86400;
+    uint64_t rem = sec % 86400;
+    const uint64_t h = rem / 3600;
+    const uint64_t m = (rem % 3600) / 60;
+    const uint64_t s = rem % 60;
+    swprintf_s(out, n, L"%llu:%02llu:%02llu:%02llu",
+               static_cast<unsigned long long>(d),
                static_cast<unsigned long long>(h),
                static_cast<unsigned long long>(m),
                static_cast<unsigned long long>(s));
@@ -380,12 +386,36 @@ void PerfPage::RebuildSidebarItems() {
     // 我方 SidebarItem 只有 name/sub/detail 三槽，且 perfdata 的 DiskSample 没有介质类型字段，
     // 所以这里保持 2 行（name + 读写合计）—— 这是**字段缺失**造成的，不是几何结论。
     // 单位「MB/s」来自 MUI 32881 的说明，本机显示即 MB/s。
+    // Win10 磁盘卡是 3 行（docs/reference 已验真）：
+    //   第 1 行 `磁盘 0 (C: D:)`  —— 名称 + 盘符列表
+    //   第 2 行 `SSD`             —— 介质类型（**不含总线**；`(NVMe)` 是 Win11 形态）
+    //   第 3 行 `读取: 0 KB/秒 写入: 0 …`
+    // 首轮没有基线时读写不可定义，必须显示「—」而不是 0 ——
+    // 显示 0 等于谎报「磁盘刚才完全空闲」。
     for (size_t i = 0; i < snap_->disks.size() && i < 8; ++i) {
         const auto& d = snap_->disks[i];
+
+        std::wstring title = d.name;
+        if (!d.driveLetters.empty()) {
+            title += L" ";
+            title += d.driveLetters;
+        }
+
+        // 介质类型优先；未知时留空（原版无数据时这一行是空的）
+        std::wstring sub = d.mediaType;
+
+        wchar_t detail[128];
+        if (d.hasBaseline) {
+            swprintf_s(detail, L"读取: %.1f MB/秒 写入: %.1f MB/秒",
+                       d.readMBps, d.writeMBps);
+        } else {
+            wcscpy_s(detail, L"读取: — 写入: —");
+        }
+
         items_.push_back({
-            d.name,
-            W(L"%.1f MB/s  写入: %.1f MB/s", d.readMBps, d.writeMBps),
-            L"",
+            title,
+            sub,
+            detail,
             PerfView::Disk, static_cast<int>(i),
             kChartLineDisk                 // 【主题实测 GetThemeColor】CHARTVIEW part 16 FILL = #4DA60C
         });
@@ -396,11 +426,31 @@ void PerfPage::RebuildSidebarItems() {
     }
 
     // ---- 网络（3 行）----
+    // Win10 原版的三行是：适配器名 / 连接类型 / 收发速率。
+    // 旧代码把第二行硬编码成 L"以太网"，于是 Wi-Fi 卡也显示「以太网」——
+    // 这是直接说谎（docs/reference/perf_cpu_orig.png 的 Wi-Fi 卡第二行不是它）。
     for (size_t i = 0; i < snap_->nets.size() && i < 4; ++i) {
         const auto& n = snap_->nets[i];
+        // 连接类型：从适配器名推断。含 "Wi" / "WLAN" / "Wireless" 判为 Wi-Fi。
+        std::wstring connType;
+        const std::wstring& nm = n.name;
+        if (nm.find(L"Wi-Fi") != std::wstring::npos ||
+            nm.find(L"WLAN")  != std::wstring::npos ||
+            nm.find(L"Wireless") != std::wstring::npos ||
+            nm.find(L"802.11") != std::wstring::npos) {
+            connType = L"Wi-Fi";
+        } else if (nm.find(L"VMware") != std::wstring::npos ||
+                   nm.find(L"Virtual") != std::wstring::npos ||
+                   nm.find(L"Hyper-V") != std::wstring::npos) {
+            connType = L"以太网";
+        } else if (n.hasName) {
+            connType = L"以太网";
+        } else {
+            connType = L"—";
+        }
         items_.push_back({
             n.name,
-            L"以太网",
+            connType,
             W(L"发送: %.1f Kbps  接收: %.1f Kbps",
               n.sendMbps * 1000.0, n.recvMbps * 1000.0),
             PerfView::Network, static_cast<int>(i),
@@ -679,13 +729,27 @@ void PerfPage::PaintSidebar(HDC hdc) const {
     const int miniTopOff  = Rpx(5);           // ActionButton padding.top 5rp
     const int textXOff    = miniLeftOff + Rpx(kMiniChartW) + Rpx(10);  // 图表右缘 + margin.right 10rp
 
-    int y = bounds_.top + Rpx(kSidebarTopPad);
-    for (size_t i = 0; i < items_.size(); ++i) {
-        const bool hasLine3 = !items_[i].detail.empty();
-        const int cardH = hasLine3 ? kSidebarCardH3 : kSidebarCardH2;
+    int y = bounds_.top + Rpx(kSidebarTopPad) - sidebarScroll_;
+    // 【分盘前置】旧代码 `if (item.bottom > bounds_.bottom) break;` 让超出的卡
+    // 静默消失 —— 分盘成 8 张后网卡和 GPU 卡会被直接丢掉，且无法滚到。
+    // 现在：整块侧栏设裁剪区，越界的卡**跳过绘制**（不是中断循环），
+    // 滚动用 sidebarScroll_ 承担。
+    const int savedDC = SaveDC(hdc);
+    IntersectClipRect(hdc, side.left, bounds_.top + Rpx(kSidebarTopPad),
+                      side.right, bounds_.bottom);
 
-        RECT item{ side.left + padL, y, side.left + padL + kSidebarCardW, y + cardH };
-        if (item.bottom > bounds_.bottom) break;
+    std::vector<int> sbTops, sbHeights;
+    SidebarLayout(sbTops, sbHeights);
+
+    for (size_t i = 0; i < items_.size(); ++i) {
+        const int cardH = sbHeights[i];
+        const int cardTop = y + sbTops[i];
+
+        RECT item{ side.left + padL, cardTop,
+                   side.left + padL + kSidebarCardW, cardTop + cardH };
+        // 完全在视口外就跳过（不是 break —— 下面的卡可能滚回来）
+        if (item.bottom <= bounds_.top + Rpx(kSidebarTopPad)) continue;
+        if (item.top >= bounds_.bottom) continue;
 
         // 高亮：selectedItem_ 是 items_ 的下标（由 OnClick / SyncSelectionToView 维护）。
         // 【P0-7】SyncSelectionToView 保证「正文页 ↔ 高亮卡片」始终一致，
@@ -729,7 +793,7 @@ void PerfPage::PaintSidebar(HDC hdc) const {
             // L3 明细（11px，灰）
             // 【无依据，沿用旧值】UIFILE 里侧栏没有第三档 gtf（sidebarDataHeader 也用 part 17 = 12px），
             //   11px 无出处；颜色 #707070 恰与 gtc(TASKMANAGER,17,0,3803) 的标签灰一致。
-            if (hasLine3) {
+            if (!items_[i].detail.empty()) {
                 SelectObject(hdc, fontSide3_);
                 RECT l3{ textX, item.top + 41, textX + textW, item.top + 57 };
                 DrawText2(hdc, items_[i].detail.c_str(), &l3,
@@ -741,6 +805,8 @@ void PerfPage::PaintSidebar(HDC hdc) const {
 
         y += cardH;   // 无间隙
     }
+
+    RestoreDC(hdc, savedDC);
 
     // 侧栏右侧分隔线。
     // 【UIFILE 声明】dashSidebarDivider 的几何：padding = rect(0rp,7rp,0rp,0rp)，
@@ -1940,11 +2006,44 @@ void PerfPage::PaintDiskPage(HDC hdc, const RECT& rc) const {
             DrawText2(hdc, val, &vr, DT_SINGLELINE | DT_RIGHT | DT_END_ELLIPSIS, kSubText);
             y += 17;
         };
-        Put(L"容量:", L"—");
-        Put(L"已格式化:", L"—");
-        Put(L"系统磁盘:", L"—");
-        Put(L"页面文件:", L"—");
-        Put(L"类型:", L"—");
+        // 五项现在都有真数据源（docs/audit/A14 §6.1）：
+        //   容量 / 已格式化  ← IOCTL_DISK_GET_LENGTH_INFO + GetDiskFreeSpaceExW
+        //   系统磁盘         ← 比对 %SystemDrive%
+        //   页面文件         ← 盘根下是否有 pagefile.sys
+        //   类型             ← STORAGE_DEVICE_DESCRIPTOR.BusType
+        wchar_t b[64];
+
+        auto FmtCap = [](uint64_t bytes, wchar_t* out2, size_t n2) {
+            double gb = static_cast<double>(bytes) / 1073741824.0;
+            if (gb >= 1000.0) swprintf_s(out2, n2, L"%.1f TB", gb / 1024.0);
+            else              swprintf_s(out2, n2, L"%.1f GB", gb);
+        };
+
+        if (d->capacityBytes) {
+            FmtCap(d->capacityBytes, b, 64);
+            Put(L"容量:", b);
+        } else {
+            Put(L"容量:", L"—");
+        }
+
+        if (d->freeBytes) {
+            FmtCap(d->freeBytes, b, 64);
+            Put(L"已格式化:", b);
+        } else {
+            Put(L"已格式化:", L"—");
+        }
+
+        Put(L"系统磁盘:", d->isSystemDisk ? L"是" : L"否");
+        Put(L"页面文件:", d->hasPageFile ? L"是" : L"否");
+
+        if (!d->mediaType.empty() && !d->busType.empty()) {
+            swprintf_s(b, L"%ls (%ls)", d->mediaType.c_str(), d->busType.c_str());
+            Put(L"类型:", b);
+        } else if (!d->mediaType.empty()) {
+            Put(L"类型:", d->mediaType.c_str());
+        } else {
+            Put(L"类型:", L"—");
+        }
         SelectObject(hdc, old);
     }
 }
@@ -2494,16 +2593,65 @@ int PerfPage::ClampInstance(int count) const {
     return i;
 }
 
+// ---- 侧栏滚动 ----
+
+int PerfPage::SidebarViewportHeight() const {
+    return bounds_.bottom - (bounds_.top + Rpx(kSidebarTopPad));
+}
+
+void PerfPage::SidebarLayout(std::vector<int>& tops, std::vector<int>& heights) const {
+    tops.clear();
+    heights.clear();
+    tops.reserve(items_.size());
+    heights.reserve(items_.size());
+    int y = 0;                       // 相对内容顶部的偏移，绘制时再加起点
+    for (size_t i = 0; i < items_.size(); ++i) {
+        const int h = items_[i].detail.empty() ? kSidebarCardH2 : kSidebarCardH3;
+        tops.push_back(y);
+        heights.push_back(h);
+        y += h;
+    }
+}
+
+int PerfPage::SidebarContentHeight() const {
+    std::vector<int> tops, heights;
+    SidebarLayout(tops, heights);
+    if (tops.empty()) return 0;
+    return tops.back() + heights.back();
+}
+
+bool PerfPage::SidebarNeedsScroll() const {
+    return SidebarContentHeight() > SidebarViewportHeight();
+}
+
+bool PerfPage::ScrollSidebar(int deltaPx) {
+    const int content = SidebarContentHeight();
+    const int view    = SidebarViewportHeight();
+    const int maxScroll = content - view;
+    if (maxScroll <= 0) {
+        sidebarScroll_ = 0;
+        return false;
+    }
+    int next = sidebarScroll_ + deltaPx;
+    if (next < 0) next = 0;
+    if (next > maxScroll) next = maxScroll;
+    if (next == sidebarScroll_) return false;
+    sidebarScroll_ = next;
+    return true;
+}
+
 bool PerfPage::OnClick(int x, int y) {
     if (x < bounds_.left || x >= bounds_.left + kSidebarWidth) return false;
     if (y < bounds_.top + Rpx(kSidebarTopPad)) return false;
     // 同 OnHover：点击可能早于本帧绘制，必须保证 items_ 就位。
     EnsureSidebarItems();
-    // 卡片高度分 61/68 两档且无间隙，必须逐项累加
-    int cy = bounds_.top + Rpx(kSidebarTopPad);
+    std::vector<int> tops, heights;
+    SidebarLayout(tops, heights);
+    const int top0 = bounds_.top + Rpx(kSidebarTopPad) - sidebarScroll_;
     for (size_t i = 0; i < items_.size(); ++i) {
-        int h = items_[i].detail.empty() ? kSidebarCardH2 : kSidebarCardH3;
-        if (y >= cy && y < cy + h) {
+        const int cardTop = top0 + tops[i];
+        const int cardBot = cardTop + heights[i];
+        if (y >= cardTop && y < cardBot) {
             selectedItem_ = static_cast<int>(i);
             // 【P0-7 核心】把卡片对应的**实例下标**记下来 —— 页面绘制读的是
             // 这个值，而不是侧栏行下标。以前只有 selectedItem_ 被写、被读，
@@ -2519,7 +2667,6 @@ bool PerfPage::OnClick(int x, int y) {
             itemsDirty_ = true;
             return true;
         }
-        cy += h;
     }
     return false;
 }
@@ -2531,11 +2678,15 @@ void PerfPage::OnHover(int x, int y) {
     int idx = -1;
     if (x >= bounds_.left && x < bounds_.left + kSidebarWidth &&
         y >= bounds_.top + Rpx(kSidebarTopPad)) {
-        int cy = bounds_.top + Rpx(kSidebarTopPad);
+        std::vector<int> tops, heights;
+        SidebarLayout(tops, heights);
+        const int top0 = bounds_.top + Rpx(kSidebarTopPad) - sidebarScroll_;
         for (size_t i = 0; i < items_.size(); ++i) {
-            int h = items_[i].detail.empty() ? kSidebarCardH2 : kSidebarCardH3;
-            if (y >= cy && y < cy + h) { idx = static_cast<int>(i); break; }
-            cy += h;
+            const int cardTop = top0 + tops[i];
+            if (y >= cardTop && y < cardTop + heights[i]) {
+                idx = static_cast<int>(i);
+                break;
+            }
         }
     }
     hoverItem_ = idx;

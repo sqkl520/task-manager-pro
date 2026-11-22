@@ -307,6 +307,17 @@ public:
     // 卡片一直亮着悬停色（项目历史上的「hover 泄漏」）。
     void ClearHover() { hoverItem_ = -1; }
 
+    // ---- 侧栏滚动 ----
+    // 性能页侧栏没有 ScrollViewer 的滚动通路（TmWindow 对性能页返回
+    // ScrollTarget::None），而原版 DUI 是 asneeded 滚动的。分盘后 8 张磁盘卡
+    // 加网卡 + GPU 会超出视口，旧代码 `if (item.bottom > bounds_.bottom) break;`
+    // 让超出的卡**静默消失**，用户既看不到也滚不到。
+    //
+    // 返回 true 表示这次滚动被消费（侧栏确实需要滚）。
+    bool ScrollSidebar(int deltaPx);
+    bool SidebarNeedsScroll() const;
+    void ResetSidebarScroll() { sidebarScroll_ = 0; }
+
     void Paint(HDC hdc) const;
 
     // 自监控
@@ -448,6 +459,16 @@ private:
     //   默认就是逐核网格。改动后 `CpuChartModeName()` 会返回「逻辑处理器」。
     ChartMode chart_ = ChartMode::Logical;
     int hoverItem_ = -1;
+
+    // 侧栏滚动偏移（像素）。0 = 顶部。
+    mutable int sidebarScroll_ = 0;
+
+    // 侧栏内容的垂直布局：返回每一项的 top 与高度。
+    // PaintSidebar / OnClick / OnHover 必须用同一份布局，否则加滚动后
+    // 「点到的卡」和「画出的卡」会错位。
+    void SidebarLayout(std::vector<int>& tops, std::vector<int>& heights) const;
+    int  SidebarContentHeight() const;
+    int  SidebarViewportHeight() const;
     // 侧栏里**被选中卡片的下标**（items_ 的下标），只用于高亮。
     mutable int selectedItem_ = 0;
     // 被选中卡片对应的**实例下标**（snap_->disks/nets/gpus 的下标）。
