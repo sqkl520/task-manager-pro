@@ -192,9 +192,17 @@ constexpr int kDetListBottomInset = 2;
 
 void FmtCpuD(double pct, wchar_t* b, size_t n) {
     b[0] = 0;
-    if (pct < 0.05) return;
-    if (pct < 1.0) swprintf_s(b, n, L"%.1f%%", pct);
-    else           swprintf_s(b, n, L"%.0f%%", pct);
+    // 【0 也要显示 "0%"，不能留空】
+    //
+    // 实测 MUI（LoadStringW 直读 zh-CN\taskmgr.exe.mui）：
+    //   37035 = "%s%%"
+    // 格式串是「数字 + %」，数字由格式化侧给。所以 0 时应显示 "0%"。
+    // 旧代码 `if (pct < 0.05) return;` 留空，与进程页 FmtCpuText 的
+    // 行为不一致 —— 同一列数值在两页一页有 0% 一页空白。
+    // （注意：O_strings.md 把这个 id 记成 37036，整体偏移 +1，勿引用。）
+    if (pct < 0.05)        swprintf_s(b, n, L"0%%");
+    else if (pct < 1.0)    swprintf_s(b, n, L"%.1f%%", pct);
+    else                   swprintf_s(b, n, L"%.0f%%", pct);
 }
 
 void FmtMemD(uint64_t bytes, wchar_t* b, size_t n) {

@@ -241,17 +241,24 @@ void FmtCpuText(double pct, wchar_t* buf, size_t cch) {
 void FmtMemText(uint64_t bytes, wchar_t* buf, size_t cch) {
     if (bytes == 0) { buf[0] = 0; return; }
     double kb = static_cast<double>(bytes) / 1024.0;
-    // 单位串用 `KB` 而不是 `K`。
-    // 【证据 docs/evidence/tm/mui3.txt:693】MUI 里内存类单位串是 `%s KB`，
-    // 同文件 `:454` 的速率串是 `1 KB/秒` —— Windows 一律写 `KB`，从不写裸 `K`。
-    // 此前这里写 `%.1f K`，少一个 B，是明显的拼写级错误。
+    // 【单位是 " K"，不是 " KB"】
+    //
+    // 实测：LoadLibraryEx(LOAD_LIBRARY_AS_DATAFILE) + LoadStringW 直接读
+    // zh-CN\taskmgr.exe.mui，单位表逐 id 如下（原始码点已验证）：
+    //   32875 bps      32876 Kbps     32877 Mbps     32878 Gbps      ← 网络速率
+    //   32879 字节/秒  32880 KB/秒    32881 MB/秒    32882 GB/秒     ← 磁盘速率
+    //   32883 " K"                                                   ← 内存
+    // 内存单位就是 " K"，没有 B。详细信息的 FmtMemD 一直是对的，
+    // 这里此前写成 " KB" 是错的，且旧注释引的 mui3.txt:693 与
+    // O_strings.md 都把 id 整体偏移了一位（O_strings.md 已知 +1 偏移）。
+    //
+    // 【速率走 KB/秒，内存走 K】两类单位不同，不要互相"统一"。
     //
     // 【未改：MB → GB 切换阈值与千位分隔符】
     // `02_rows.md` 主张原版 1,392.4 MB（≈1.36GB）仍显示 MB、且带千分位逗号，
-    // 但它的证据图 `6.png` **本机不存在**，无法复核；且 MUI 里同时存在
-    // `%1.0f MB %s` / `%1.0f GB %s` 两组格式串，反证 GB 分支确实存在。
-    // 故按「证据不足不改」保留现有 `<1GB 用 MB、否则 GB` 的分支。
-    if (kb < 1024.0)               swprintf_s(buf, cch, L"%.1f KB", kb);
+    // 但它的证据图 `6.png` **本机不存在**，无法复核。故按「证据不足不改」
+    // 保留现有 `<1GB 用 MB、否则 GB` 的分支。
+    if (kb < 1024.0)               swprintf_s(buf, cch, L"%.1f K", kb);
     else if (kb < 1048576.0)       swprintf_s(buf, cch, L"%.1f MB", kb / 1024.0);
     else                           swprintf_s(buf, cch, L"%.1f GB", kb / 1048576.0);
 }
@@ -1656,17 +1663,15 @@ void TmWindow::PaintRows(HDC hdc) {
                 // 但叠加式在将来出现斑马纹/图表单元底色时仍然正确。
                 // 这里用等价的白底合成值（列表背景恒为 #FFFFFF，
                 // 见 kBgWindow）以保持现有绘制路径简单。
-                FillSolidFast(hdc, clip, RGB(0xCD, 0xE8, 0xFF));   // 【系统API实测】LISS_SELECTED
-                // 【交接】theme.h 的 kBgNavSelected 现为 #A0CDF0（无依据）。
-                // 等 V agent 把它改成 #CDE8FF 后，这里改引用 theme::kBgNavSelected。
+                // 现在直接引用 theme 常量 —— 三套列表必须同色。
+                // 曾各自硬编码：进程页 #CDE8FF/#E5F3FF（值对但没走常量）、
+                // 次要页 #E5F3FB（蓝通道少 4 级，是值错）。同屏三种悬停色。
+                FillSolidFast(hdc, clip, theme::kBgNavSelected);   // 【系统API实测】LISS_SELECTED = #CDE8FF
             } else if (hov) {
                 // 悬停行：#0089FF @10.2% over #FFFFFF = #E5F3FF
                 // 【系统API实测】Explorer::ListView LISS_HOT 离屏渲染
                 // （U_render2_console.txt：`Explorer::ListView(1,2) #E5F3FF x8000`）。
-                // 【交接】theme.h 的 kRowHover 现为 #E5F3FB（蓝通道少 4 级，
-                // 且注释自认「未证实」）。等 V agent 改成 #E5F3FF 后，
-                // 这里改引用 theme::kRowHover。
-                FillSolidFast(hdc, clip, RGB(0xE5, 0xF3, 0xFF));
+                FillSolidFast(hdc, clip, theme::kRowHover);
             } else {
                 // 【依据：taskmgr.exe .data 色表，非截图】
                 // 不是给整行染色 —— 名称/状态列保持空白（露出窗口白底），

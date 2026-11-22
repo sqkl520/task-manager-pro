@@ -546,7 +546,10 @@ void PagesView::FillRow(HDC hdc, int x, int y, int w, int h, int rowIndex,
     if (selected) {
         Fill(hdc, row, kBgNavSelected);
     } else if (hovered) {
-        Fill(hdc, row, RGB(0xE5, 0xF3, 0xFB));
+        // 必须用 theme 常量。这里曾硬编码 RGB(0xE5,0xF3,0xFB)，
+        // 蓝通道比 theme::kRowHover(#E5F3FF) 少 4 级 —— 同一台机器上
+        // 进程页和次要页的悬停色不同，肉眼能看出偏灰。
+        Fill(hdc, row, kRowHover);
     }
     // 无交替条纹（与进程页一致）
     (void)rowIndex;
