@@ -76,8 +76,8 @@ body:
         exists because the stock Task Manager fails on large machines, so scale
         matters more here than in most projects.
       placeholder: |
-        Windows 10 Pro 22H2 22H2
-        Xeon 服务器级 CPU, 10C/20T, 32 GB
+        Windows 10 Pro 22H2
+        server-class CPU, 10C/20T, 32 GB
         100% display scaling, not elevated
         ~490 processes, ~8,450 threads
     validations:

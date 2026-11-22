@@ -1,6 +1,6 @@
 # 里程碑验证结果
 
-测量环境：Windows 10 Pro 22H2 22H2 / Xeon 服务器级 CPU (10C/20T @3.0GHz) / 32GB DDR3-1866
+测量环境：Windows 10 Pro 22H2 / 10 核 20 线程服务器级 CPU @3.0GHz / 32 GB
 测量时系统负载：约 490 进程 / 8,450 线程 / 188,000 句柄 / CPU 40–90%（另有 java Ghidra 任务在跑）
 
 ---

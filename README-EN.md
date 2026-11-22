@@ -28,7 +28,7 @@ blocking API.
 
 ### Measured (same machine, same load)
 
-Test machine: Xeon 服务器级 CPU (10C/20T) / 32 GB / Windows 10 22H2 22H2,
+Test machine: 10-core/20-thread server-class CPU / 32 GB / Windows 10 22H2,
 roughly 490 processes and 8,450 threads during measurement.
 
 | Metric | Stock | Task Manager Pro |

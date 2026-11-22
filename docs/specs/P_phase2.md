@@ -33,7 +33,7 @@
 | 物理内存总量 | `GlobalMemoryStatusEx` = 34,292,195,328 B（31.94 GB） | 实测 |
 | 已安装内存 | `GetPhysicallyInstalledSystemMemory` = 34,359,738,368 B（32.00 GiB） | 实测 |
 | 差值（=为硬件保留） | **67,543,040 B（64.4 MiB）** | 实测，两者相减 |
-| 磁盘 | 2 块 NVMe（2 x NVMe SSD），**不是 1 块** | `IOCTL_STORAGE_QUERY_PROPERTY` BusType=17(NVMe) |
+| 磁盘 | 2 块 NVMe（2 × NVMe SSD），**不是 1 块** | `IOCTL_STORAGE_QUERY_PROPERTY` BusType=17(NVMe) |
 | 卷 | `C:` → 物理盘 0 分区3；`D:` → 物理盘 1 | `IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS` |
 | 磁盘分区表 | 两块都是 **MBR**（`PartitionStyle=1`） | `IOCTL_DISK_GET_DRIVE_LAYOUT_EX` |
 | 网卡 | 7 条 `GetAdaptersAddresses` 返回项，其中真实物理 2 条（Realtek 有线 / TP-LINK 无线） | 实测 |
