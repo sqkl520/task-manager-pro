@@ -9,6 +9,7 @@
 #include "perfdata.h"
 #include "tmwindow.h"
 #include "menus.h"
+#include "pages_view.h"   // PagesView::SelfTestDpi()
 
 #include <windows.h>
 #include <commctrl.h>
@@ -842,6 +843,26 @@ int RunSelfTest() {
 
         g_win->ShowPage(0);
         Sleep(40);
+    }
+
+    // ---- 高分屏（DPI）自测 ----
+    // PagesView 自己实现了一整套断言（Rpx 在 4 个 DPI 下的绝对值、列宽比例、
+    // 布局自洽、字体随 DPI 重建、离屏 DIB 像素回读、滚动偏移换算）。
+    // 这里只是把它接进统一的自测汇总 —— 它返回空串表示全过。
+    {
+        log.W(L"\n=== 高分屏（DPI）自测 ===\n");
+        std::wstring err = PagesView::SelfTestDpi();
+        // Mark 的第三参是窄字符串，这里做一次转换（中文用 UTF-8）
+        auto Narrow = [](const std::wstring& w) {
+            if (w.empty()) return std::string();
+            int n = WideCharToMultiByte(CP_UTF8, 0, w.c_str(), -1, nullptr, 0, nullptr, nullptr);
+            std::string s(static_cast<size_t>(n > 0 ? n - 1 : 0), '\0');
+            if (n > 1) WideCharToMultiByte(CP_UTF8, 0, w.c_str(), -1, &s[0], n, nullptr, nullptr);
+            return s;
+        };
+        Mark(err.empty() ? 1 : 0,
+             L"PagesView 布局与字体随 DPI 正确缩放",
+             err.empty() ? Narrow(L"96/120/144/192 四档全部通过") : Narrow(err));
     }
 
     log.F("\n=== 结果: PASS %d / FAIL %d / SKIP %d ===\n", t.pass, t.fail, t.skip);

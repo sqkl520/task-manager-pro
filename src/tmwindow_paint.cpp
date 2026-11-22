@@ -14,20 +14,46 @@ namespace tmp {
 
 using namespace theme;
 
+// ---------- 本文件的 DPI 约定 ----------
+//
+// 【为什么一律写 theme::Rpx() 而不是裸 Rpx()】
+//   本文件有 `using namespace theme;`，而 include/perfpage.h 在 namespace tmp 里
+//   也定义了 `inline int Rpx(int)`。裸写 `Rpx(...)` 会因 using-directive 把
+//   theme::Rpx 注入 tmp 而**二义性编译失败**（C2668: 对重载函数的调用不明确）。
+//   实测复现过（scratch/probe_rpx.cpp），theme.h 的注释也警告过。
+//   不要「顺手」去掉限定，也不要改 perfpage.h（不归本文件）。
+//
+// 【哪些数字缩放、哪些不缩放】
+//   缩放：theme.h 的 96 DPI 基准常量（kCardGap / kCardPadding / kCardMinWidth）
+//         在本文件**使用处**包 Rpx()；本文件内的局部行内偏移（卡片三段文字的
+//         分段边界、图表留白、菜单位置）同样按基准值包 Rpx()。
+//   不缩放：1px 描边（CreatePen 宽度、DrawFrame 的 ±1）、
+//         DrawMiniChart 的 `w-1` / `h-2` / `rc.bottom-1`（相对矩形边界的取整修正，
+//         与 DPI 无关）。逐条理由写在各处。
+
 // ============ 绘制：菜单栏 ============
 
+// 【本函数当前不进绘制路径】rcMenu_ 在 BuildLayout 里被压成零高矩形
+// （`RECT{ 0, 0, W, 0 }`，见 tmwindow.cpp:185 / :248），而全项目对
+// PaintMenuBar 的调用点数为 0。保留它是为了不破坏接口；下面的几何
+// 仍然按 DPI 处理好，避免将来接回时留一个 96 DPI-only 的坑。
 void TmWindow::PaintMenuBar(HDC hdc) {
     FillSolid(hdc, rcMenu_, kBgWindow);
+    // -1 是物理像素修正（画在最后一行上），**不缩放**。
     DrawHLine(hdc, 0, rcMenu_.right, rcMenu_.bottom - 1, kLineNavBorder);
 
     HFONT old = static_cast<HFONT>(SelectObject(hdc, fontBody_));
     SetBkMode(hdc, TRANSPARENT);
 
+    // 菜单位置/宽度是 96 DPI 基准值，逐个走 Rpx()。
+    // 【注意】这三个 x/w 是「绝对左沿 + 宽度」的硬编码对，x(n+1) != x(n)+w(n)
+    // 的缝隙是靠 w 与 x 的差吸收的（8+64=72 < 76，留 4px）。缩放后缝也会跟着
+    // 缩放，比例关系保持不变。
     struct Item { const wchar_t* text; int x; int w; };
     Item items[] = {
-        { L"文件(F)", 8,   64 },
-        { L"选项(O)", 76,  66 },
-        { L"查看(V)", 146, 66 },
+        { L"文件(F)", theme::Rpx(8),   theme::Rpx(64) },
+        { L"选项(O)", theme::Rpx(76),  theme::Rpx(66) },
+        { L"查看(V)", theme::Rpx(146), theme::Rpx(66) },
     };
     for (auto& it : items) {
         RECT r{ it.x, 0, it.x + it.w, rcMenu_.bottom - 1 };
@@ -55,7 +81,11 @@ void TmWindow::DrawMiniChart(HDC hdc, const RECT& rc, const double* data, int co
     const int n = ChartHistory::kPoints;
     const int w = rc.right - rc.left;
     const int h = rc.bottom - rc.top;
-    if (w < 4 || h < 4) return;
+    // 最小可绘制尺寸。4 是 96 DPI 基准值：低于这个尺寸折线会退化成几段无法辨认的
+    // 短划。委托方 rc 已经是当前 DPI 的像素，所以门限也要跟着放大，否则 150%
+    // 下会在一个「物理 6px」的小矩形里硬画。
+    const int minSide = theme::Rpx(4);
+    if (w < minSide || h < minSide) return;
 
     double mx = 100.0;
     for (int i = 0; i < count; ++i) {
@@ -63,6 +93,13 @@ void TmWindow::DrawMiniChart(HDC hdc, const RECT& rc, const double* data, int co
         if (data[idx] > mx) mx = data[idx];
     }
 
+    // 【-1 / -2 不缩放】下面三处是**像素栅格修正**，不是布局量：
+    //   `w - 1`  —— 最后一个采样点落在 rc.right-1，避免画到矩形外一列
+    //   `h - 2`  —— 曲线留出 1px 顶部余量（GDI 折线以中心画，会上下各溢半像素）
+    //   `rc.bottom - 1` —— 填充多边形的底边
+    // 它们描述的是「相对矩形边界的 ±1」，与 DPI 无关；乘 Scaled() 后
+    // 125% 下 `w - 1` 变成 `w - 1`（MulDiv(1,120,96)=1 恰好不动），
+    // 150% 下会变成 2，反而把曲线从边上推开。
     std::vector<POINT> pts;
     pts.reserve(count);
     for (int i = 0; i < count; ++i) {
@@ -88,6 +125,9 @@ void TmWindow::DrawMiniChart(HDC hdc, const RECT& rc, const double* data, int co
         DeleteObject(fb);
     }
 
+    // 画笔宽度 1：折线是最细可见线，**不缩放**。缩放到 2px（200% 时）会让
+    // 迷你曲线明显变粗，而「原版在高 DPI 下是否加粗」没有证据 —— 见报告
+    // §「明确不缩放」第 2 条。边界 1px 描边同此口径。
     HPEN pen = CreatePen(PS_SOLID, 1, kChartLineCpu);
     HGDIOBJ old = SelectObject(hdc, pen);
     Polyline(hdc, pts.data(), static_cast<int>(pts.size()));
@@ -194,27 +234,44 @@ void TmWindow::PaintCards(HDC hdc) {
     cards[4].sub[0] = 0;
     cards[4].data = hist_.gpu;
 
+    // 【DPI —— 卡片区的三个来源要分清】
+    //   kCardGap / kCardMinWidth / kCardPadding 是 theme.h 的 96 DPI 基准常量，
+    //     在本文件**使用处**换算（theme.h 明确要求「在使用处包 theme::Scaled()」，
+    //     不能改常量本身 —— 那会连带影响 tmwindow.cpp 的 BuildLayout 与 menus.cpp）。
+    //   下面 5 / 21 / 49 / 3 / 10 / 40 / 8 七个数是本文件内的**局部**行内偏移，
+    //     没有共享者，同样按 96 DPI 基准处理。
+    //     ⚠ 其中 21 / 49 不是字号，是三个文字框的分段边界：
+    //       title 5..21、value 21..49、sub 49..bottom-3。
+    //       它们**必须**与 fontCardTitle_/Value_/Sub_ 的 lfHeight 同步放大 ——
+    //       只放大框不放大字，文字在框里的相对高度会塌下去（96 DPI 下
+    //       fontCardValue_ 的 tmHeight≈30 占 value 框 28px 的 107%，本来就略裁；
+    //       150% 下若框放大到 42px 而字仍是 21px 的 30px 高，比例降到 71%，
+    //       观感变成"小字躺在大框里"，这与用户投诉的"高分屏怪怪的"是同一类问题）。
+    //       字体缩放不在本文件 —— 见 docs/audit/B02_paint_details_dpi.md §2。
+    const int cardGap  = theme::Rpx(kCardGap);
+    const int cardPad  = theme::Rpx(kCardPadding);
     const int totalW = rcCards_.right - rcCards_.left;
     const int nCards = 5;
-    int cardW = (totalW - kCardGap * (nCards - 1)) / nCards;
-    if (cardW < kCardMinWidth) cardW = kCardMinWidth;
+    int cardW = (totalW - cardGap * (nCards - 1)) / nCards;
+    if (cardW < theme::Rpx(kCardMinWidth)) cardW = theme::Rpx(kCardMinWidth);
 
     for (int i = 0; i < nCards; ++i) {
-        int x = rcCards_.left + i * (cardW + kCardGap);
+        int x = rcCards_.left + i * (cardW + cardGap);
         RECT card{ x, rcCards_.top, x + cardW, rcCards_.bottom };
 
         FillSolid(hdc, card, kBgCard);
+        // DrawFrame 内部是 rc.bottom-1 / rc.right-1 的 1px 描边，不缩放。
         DrawFrame(hdc, card, kLineCard);
 
-        RECT tr{ card.left + kCardPadding, card.top + 5,
-                 card.right - kCardPadding, card.top + 21 };
+        RECT tr{ card.left + cardPad, card.top + theme::Rpx(5),
+                 card.right - cardPad, card.top + theme::Rpx(21) };
         SelectObject(hdc, fontCardTitle_);
         DrawTextClipped(hdc, cards[i].title, &tr, DT_SINGLELINE | DT_VCENTER | DT_LEFT,
                         kTextSecondary);
 
         SelectObject(hdc, fontCardValue_);
-        RECT vr{ card.left + kCardPadding, card.top + 21,
-                 card.right - kCardPadding, card.top + 49 };
+        RECT vr{ card.left + cardPad, card.top + theme::Rpx(21),
+                 card.right - cardPad, card.top + theme::Rpx(49) };
         // 规格书：主数值随负载变色（CPU 阈值 50% 橙 / 90% 红；内存阈值 80%）
         COLORREF vcolor = kTextPrimary;
         if (i == 0) {          // CPU
@@ -227,17 +284,19 @@ void TmWindow::PaintCards(HDC hdc) {
                         vcolor);
 
         SelectObject(hdc, fontCardSub_);
-        RECT sr{ card.left + kCardPadding, card.top + 49,
-                 card.right - kCardPadding, card.bottom - 3 };
+        RECT sr{ card.left + cardPad, card.top + theme::Rpx(49),
+                 card.right - cardPad, card.bottom - theme::Rpx(3) };
         DrawTextClipped(hdc, cards[i].sub, &sr, DT_SINGLELINE | DT_VCENTER | DT_LEFT,
                         kTextSecondary);
 
         // 右侧迷你曲线：占卡片右半部，与文字区上下留白
-        int chartW = (card.right - card.left) / 2 - kCardPadding;
-        if (chartW < 40) chartW = 40;
-        RECT cr{ card.right - kCardPadding - chartW, card.top + 10,
-                 card.right - kCardPadding, card.bottom - 10 };
-        if (cr.right - cr.left > 8 && cr.bottom - cr.top > 8) {
+        int chartW = (card.right - card.left) / 2 - cardPad;
+        if (chartW < theme::Rpx(40)) chartW = theme::Rpx(40);
+        RECT cr{ card.right - cardPad - chartW, card.top + theme::Rpx(10),
+                 card.right - cardPad, card.bottom - theme::Rpx(10) };
+        // 8 是「矩形太小就别画」的门限，与 DrawMiniChart 内部 minSide 同一口径。
+        const int minChart = theme::Rpx(8);
+        if (cr.right - cr.left > minChart && cr.bottom - cr.top > minChart) {
             DrawMiniChart(hdc, cr, cards[i].data, hist_.count, hist_.head);
         }
     }

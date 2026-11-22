@@ -1,8 +1,13 @@
 // pages_view.h - 四个次要页面的绘制
 //
 // 统一表格样式（与进程页一致）：
-//   行高 32px / 列头 24px 白底 / 无交替条纹 / 无网格线
-//   行悬停 #E5F3FB / 行选中 #CCE8FF / 图标 16x16 左内边距 8px
+//   行高 28rp / 列头 24rp 白底 / 无交替条纹 / 无网格线
+//   行悬停 #E5F3FB / 行选中 #CCE8FF / 图标 16rp 左内边距 8rp
+//
+// 【单位】上面和下面所有几何值都是 **96 DPI 基准**（= 原版 UIFILE 的 rp 值，
+// 本机 100% 时 1rp = 1px）。主题 part 尺寸不随 DPI 变化（Aero.msstyles 只有
+// NormalSize 变体），所以绘制与命中测试处必须自己经 theme::Rpx() 换算，
+// 不许把 28 / 24 / 16 这些数字直接当像素用。
 #pragma once
 
 #include "pages_data.h"
@@ -22,6 +27,40 @@ public:
     ~PagesView();
 
     void BuildFonts();
+    // 字体是按「建字体时的 Dpi()」算死的（lfHeight = -Rpx(px)）。窗口换到另一块
+    // 缩放不同的显示器后 Dpi() 会变，已建好的 HFONT 不会自己变大，于是行高放大了
+    // 字还是旧的。绘制入口每次先调它：DPI 与建字体时不一致就重建。
+    void EnsureFonts() const;
+
+    // WM_DPICHANGED 时调用，oldDpi = 变更前的 DPI。
+    //
+    // 【为什么需要】scroll_ 是**像素**偏移，不是行号。DPI 变了以后
+    // 内容总高按比例变大，而 scroll_ 若原样保留，同一个像素值在新布局里
+    // 指向的是另一行 —— 用户会看到画面突然跳到约 2/3 的位置。这里把偏移
+    // 按 DPI 比例折算，保住"停在同一个位置"。
+    //
+    // 【调用时机】必须在 theme::SetDpi(newDpi) **之后**、下一次绘制之前。
+    // TmWindow 的 WM_DPICHANGED 已经调了 SetDpi，所以放在 BuildLayout() 旁边即可。
+    // 不调也不会崩，只是切换显示器时滚动位置会跳。
+    void OnDpiChanged(int oldDpi);
+
+    // ---- DPI 自测（供 main.cpp 的 --selftest 调用）----
+    //
+    // 返回空 = 全部通过；否则返回第一条失败项的说明。
+    // 内部会临时改 theme::SetDpi()，退出时恢复调用前的 DPI —— 调用方不需要
+    // 也不应该自己再恢复一次。
+    //
+    // 断言内容：
+    //   1) Rpx(28) 在 96/120/144/192 下分别等于 28/35/42/56
+    //   2) Rpx(180)（服务页名称列）在同样四个 DPI 下的绝对值
+    //   3) 一个具体列宽在 144/96 下的比值 == 1.5（整数交叉相乘，不用浮点）
+    //   4) 10 个几何常量在 96/144 下逐个等比
+    //   5) 弹性列布局自洽：列宽之和 == 表格宽（任何 DPI 下都成立）
+    //   6) 字体 lfHeight 走 Rpx()，且 DPI 变化后 EnsureFonts() 真的重建
+    //   7) 文字宽度取自 GetTextExtentPoint32W，随字体一起变大（不得二次缩放）
+    //   8) 真渲染回读：把 PaintServices 画进离屏 DIB，验列头底线的像素行
+    //   9) 滚动偏移的 DPI 折算（RescaleScrollPx 的算术 + 对象层幂等/不越界）
+    static std::wstring SelfTestDpi();
 
     void SetBounds(const RECT& rc) { bounds_ = rc; }
     const RECT& Bounds() const { return bounds_; }
@@ -203,10 +242,16 @@ private:
     static constexpr size_t kIconCacheMax = 512;
     mutable std::unordered_map<std::wstring, HICON> iconCache_;
 
-    HFONT fontBody_ = nullptr;
-    HFONT fontBold_ = nullptr;
-    HFONT fontSmall_ = nullptr;
-    HFONT fontTitle_ = nullptr;
+    // 【mutable 的原因】EnsureFonts() 是 const 的（四个 Paint* 都是 const），
+    // 但它要在 DPI 变化后就地重建这四个字体。它们对使用者仍然只读：
+    // 外部没有任何写入口，只有 EnsureFonts()/BuildFonts() 会改。
+    mutable HFONT fontBody_ = nullptr;
+    mutable HFONT fontBold_ = nullptr;
+    mutable HFONT fontSmall_ = nullptr;
+    mutable HFONT fontTitle_ = nullptr;
+    // 建上面四个字体时的 DPI。与当前 Dpi() 不等时 EnsureFonts() 会重建。
+    // 0 = 还没建过。
+    mutable int fontsDpi_ = 0;
 
     HICON GetIconFor(const std::wstring& path) const;
 

@@ -78,6 +78,8 @@ constexpr COLORREF kUserAvatarBox = RGB(0xE6, 0xE6, 0xE6);
 // chevron 10..15 / 头像块 32..41 / 用户名文字 51（user_icon_16x 的
 // 「字母 A 墨迹 x=816..943 → 逻辑 51.0..58.9」其实就是 Administrator 的首字母，
 // 即用户名文字的左沿）。
+// 【单位】下面这几个锚点都是 96 DPI 基准值（原版裁切按 100% 缩放取的），
+// 使用处必须经 Rpx() 换算，不能直接当像素加。
 constexpr int kUserChevronX = 10;
 constexpr int kUserAvatarX = 32;
 constexpr int kUserTextX = 51;
@@ -86,6 +88,7 @@ constexpr int kUserTextX = 51;
 // 【像素实测】数据行逻辑 x=10..22 是图标
 // （配色 rgb(165,201,240) 系浅蓝 + rgb(206,210,215) 灰，即蓝色齿轮），
 // 逻辑 x=25 起是 AJRouter 的 A 字形。
+// 【单位】同上，96 DPI 基准；使用处经 Rpx() 换算。
 constexpr int kServiceIconX = 8;
 constexpr int kServiceTextX = 25;
 constexpr COLORREF kServiceGearFill = RGB(0xA5, 0xC9, 0xF0);
@@ -119,14 +122,18 @@ void FmtMem(uint64_t bytes, wchar_t* buf, size_t cch) {
     else                     swprintf_s(buf, cch, L"%.1f GB", kb / 1048576.0);
 }
 
-// 服务行的 16×16 蓝色齿轮。
+// 服务行的 16rp×16rp 蓝色齿轮。
 //
 // 原版这个图标来自它的图像列表资源，本工程没有同款位图，这里用纯 GDI
 // 复刻：外圈 8 个齿 + 浅蓝圆盘 + 灰描边 + 中心挖空。
-// 16px 下只求「一眼是那个蓝色齿轮」，不做细节。
+// 16rp 下只求「一眼是那个蓝色齿轮」，不做细节。
+//
+// 【单位】下面所有偏移（中心 7、齿位 ±5/±7、齿块 −1..+2、圆盘 6/7、孔 3/4）
+// 都是 96 DPI 基准值，逐个经 Rpx() 换算 —— 否则在 150% 下齿轮仍是 16px，
+// 而它旁边的文字和行高都放大了，图标会明显偏小。
 void DrawServiceGear(HDC hdc, int x, int y) {
-    const int cx = x + 7;
-    const int cy = y + 7;
+    const int cx = x + Rpx(7);
+    const int cy = y + Rpx(7);
 
     HBRUSH fillB = CreateSolidBrush(kServiceGearFill);
 
@@ -134,26 +141,27 @@ void DrawServiceGear(HDC hdc, int x, int y) {
     for (int i = 0; i < 8; ++i) {
         static const int dx[8] = { 0,  5,  7,  5,  0, -5, -7, -5 };
         static const int dy[8] = { -7, -5, 0,  5,  7,  5,  0, -5 };
-        RECT tooth{ cx + dx[i] - 1, cy + dy[i] - 1,
-                    cx + dx[i] + 2, cy + dy[i] + 2 };
+        RECT tooth{ cx + Rpx(dx[i]) - Rpx(1), cy + Rpx(dy[i]) - Rpx(1),
+                    cx + Rpx(dx[i]) + Rpx(2), cy + Rpx(dy[i]) + Rpx(2) };
         FillRect(hdc, &tooth, fillB);
     }
 
     // 圆盘
     HGDIOBJ op = SelectObject(hdc, GetStockObject(NULL_PEN));
     HGDIOBJ ob = SelectObject(hdc, fillB);
-    Ellipse(hdc, cx - 6, cy - 6, cx + 7, cy + 7);
+    Ellipse(hdc, cx - Rpx(6), cy - Rpx(6), cx + Rpx(7), cy + Rpx(7));
     SelectObject(hdc, ob);
     SelectObject(hdc, op);
 
     // 灰描边 + 中心孔。
     // 注意：中心孔**不能填白色** —— 选中行整行是蓝底（kBgNavSelected），
     // 白色圆点会在蓝底上留下一个刺眼的白洞。这里只画一圈灰环。
+    // 笔宽保持 1 物理像素：这是线条不是几何，见本文件的 DPI 判断说明。
     HPEN pen = CreatePen(PS_SOLID, 1, kServiceGearLine);
     op = SelectObject(hdc, pen);
     ob = SelectObject(hdc, GetStockObject(NULL_BRUSH));
-    Ellipse(hdc, cx - 6, cy - 6, cx + 7, cy + 7);
-    Ellipse(hdc, cx - 3, cy - 3, cx + 4, cy + 4);
+    Ellipse(hdc, cx - Rpx(6), cy - Rpx(6), cx + Rpx(7), cy + Rpx(7));
+    Ellipse(hdc, cx - Rpx(3), cy - Rpx(3), cx + Rpx(4), cy + Rpx(4));
     SelectObject(hdc, ob);
     SelectObject(hdc, op);
     DeleteObject(pen);
@@ -163,11 +171,12 @@ void DrawServiceGear(HDC hdc, int x, int y) {
 
 // 用户行的展开箭头（折叠态 ►）。
 // 尺寸取自 user_icon_16x（逻辑宽 4.94、居中于行高）与 userpage_6x（15.0..19.8）。
+// 【单位】4 / 5 是 96 DPI 基准，经 Rpx() 换算。
 void DrawRowChevron(HDC hdc, int x, int cy) {
     POINT tri[3];
-    tri[0] = POINT{ x,     cy - 4 };
-    tri[1] = POINT{ x + 5, cy };
-    tri[2] = POINT{ x,     cy + 4 };
+    tri[0] = POINT{ x,           cy - Rpx(4) };
+    tri[1] = POINT{ x + Rpx(5),  cy };
+    tri[2] = POINT{ x,           cy + Rpx(4) };
     HBRUSH b = CreateSolidBrush(kChevronColor);
     HGDIOBJ ob = SelectObject(hdc, b);
     HGDIOBJ op = SelectObject(hdc, GetStockObject(NULL_PEN));
@@ -177,12 +186,25 @@ void DrawRowChevron(HDC hdc, int x, int cy) {
     DeleteObject(b);
 }
 
-// 用户行的 9×9 纯色头像占位块（无圆角，见 kUserAvatarBox 的注释）。
+// 用户行的 9rp×9rp 纯色头像占位块（无圆角，见 kUserAvatarBox 的注释）。
+// 【单位】4 / 9 是 96 DPI 基准，经 Rpx() 换算。
 void DrawUserAvatarBox(HDC hdc, int x, int cy) {
-    RECT box{ x, cy - 4, x + 9, cy + 5 };
+    RECT box{ x, cy - Rpx(4), x + Rpx(9), cy + Rpx(5) };
     HBRUSH b = CreateSolidBrush(kUserAvatarBox);
     FillRect(hdc, &box, b);
     DeleteObject(b);
+}
+
+// 滚动偏移的 DPI 换算：把「旧 DPI 下的像素」折成「新 DPI 下的像素」。
+//
+// 【为什么必须折】scroll_ 是**像素**偏移（见 pages_view.h 的说明），不是行号。
+// DPI 变了以后内容总高从 rows×Rpx(28) 按比例变大，而 scroll_ 若原样保留，
+// 同一像素值在新布局里指向的是另一行 —— 用户会看到画面突然跳到约 2/3 的位置。
+//
+// 旧 DPI ≤ 0 时返回原值：那是 scroll_ 必然为 0 的初始状态（没必要折，也折不了）。
+int RescaleScrollPx(int px, int fromDpi, int toDpi) {
+    if (fromDpi <= 0 || toDpi <= 0 || fromDpi == toDpi) return px;
+    return MulDiv(px, toDpi, fromDpi);
 }
 
 } // namespace
@@ -289,7 +311,26 @@ PagesView::~PagesView() {
 }
 
 void PagesView::BuildFonts() {
-    auto mk = [](int px, int w) -> HFONT {
+    fontsDpi_ = 0;      // 强制重建，见 EnsureFonts()
+    EnsureFonts();
+}
+
+// 字体是按「建字体那一刻的 Dpi()」算死的：lfHeight = -Rpx(px)。窗口被拖到
+// 另一块缩放不同的显示器上时 Dpi() 会变，而已建好的 HFONT 不会自己变大 ——
+// 结果是行高、列宽都跟着新 DPI 放大，字却还是旧的 12px，行高 42 配 12px 字。
+//
+// 所以每个绘制入口先调这里：比一下建字体时的 DPI 和当前 Dpi()，不一致就重建。
+// 字体族仍然沿用系统 message font（本机 = Microsoft YaHei UI），本轮只改字号；
+// 【约束】lfHeight 传的是**字符高度**（负值 = 逻辑单位），必须经 Rpx() 换算，
+// 不能把 12/10/14 直接当像素写死。
+void PagesView::EnsureFonts() const {
+    const int dpi = Dpi();
+    if (fontsDpi_ == dpi && fontBody_ && fontBold_ && fontSmall_ && fontTitle_) return;
+
+    auto del = [](HFONT& f) { if (f) { DeleteObject(f); f = nullptr; } };
+    del(fontBody_); del(fontBold_); del(fontSmall_); del(fontTitle_);
+
+    auto mk = [](int px96, int w) -> HFONT {
         NONCLIENTMETRICSW ncm{};
         ncm.cbSize = sizeof(ncm);
         LOGFONTW lf{};
@@ -298,20 +339,41 @@ void PagesView::BuildFonts() {
         } else {
             wcscpy_s(lf.lfFaceName, L"Segoe UI");
         }
-        lf.lfHeight = -px;
+        // ncm 里的 lfHeight 是按系统 DPI 给的，这里整条覆写，不会二次缩放。
+        lf.lfHeight = -Rpx(px96);
         lf.lfWeight = w;
         lf.lfQuality = CLEARTYPE_QUALITY;
         return CreateFontIndirectW(&lf);
     };
-    fontBody_  = mk(12, FW_NORMAL);
+    fontBody_  = mk(kFontSizeBody, FW_NORMAL);
     // 列头字重 = 常规，与其他页保持一致。
     // 【实测】进程页列头「状态」的横笔宽度分布 {1:8, 2:18, 3:8, 4:6}
     // 与正文同量级，说明原版各页列头都是常规体。
     // 此前这里用 FW_SEMIBOLD，导致同一个视觉元素在进程页是常规、
     // 在启动/用户/服务/应用历史记录页是半粗 —— 跨页自相矛盾。
-    fontBold_  = mk(12, FW_NORMAL);
+    fontBold_  = mk(kFontSizeHeader, FW_NORMAL);
     fontSmall_ = mk(10, FW_NORMAL);
     fontTitle_ = mk(14, FW_NORMAL);
+    fontsDpi_ = dpi;
+}
+
+// 见 pages_view.h 的说明。把像素偏移按 DPI 比例折算。
+//
+// 【为什么不改 fontsDpi_】这个函数只负责 scroll_；字体由 EnsureFonts() 在
+// 下一次绘制时自己发现并重建，两条路径互不依赖 —— 少调一次不至于让字永远错下去。
+void PagesView::OnDpiChanged(int oldDpi) {
+    const int newDpi = Dpi();
+    if (oldDpi <= 0 || oldDpi == newDpi) return;
+
+    scroll_ = RescaleScrollPx(scroll_, oldDpi, newDpi);
+
+    // 折算后可能越界（行数没变时不会，但数据可能在这期间变了）。
+    // 用 SetScrollPixels 而不是直接赋值，让钳制和 hover_ 清理只有一份实现。
+    SetScrollPixels(scroll_);
+
+    // 字体缓存键也要跟上：若调用方在 SetDpi 之后、下一次绘制之前调了这里，
+    // 顺手把 fontsDpi_ 置 0 会让 EnsureFonts() 多重建一次 —— 无害但浪费。
+    // 因此这里**不动** fontsDpi_，交给 EnsureFonts() 按 DPI 比对自行决定。
 }
 
 void PagesView::Fill(HDC hdc, const RECT& rc, COLORREF c) const {
@@ -340,6 +402,16 @@ void DrawVLine(HDC hdc, int x, int y1, int y2, COLORREF c) {
     SelectObject(hdc, o);
     DeleteObject(p);
 }
+
+// 排序折角的一格步进（像素）与总跨度。
+//
+// 【为什么不是 Rpx(9)】折角的 9 是一张 **9 行的像素图样**（每行一个 SetPixelV），
+// 不是一段可以任意缩放的几何长度。步进取 Rpx(1) 的整数值，图样行数恒为 9，
+// 这样高 DPI 下折角是「每格变大」而不是「行数变多」，同时保证相邻两行之间
+// 不会出现空行（若把 9 行按浮点比例拉伸再逐个取整，150% 下会出现虚线）。
+// 96 DPI 下 step == 1、跨度 == 9，与缩放前逐像素等价。
+int ChevronStepPx() { const int s = Rpx(1); return s > 0 ? s : 1; }
+int ChevronSpanPx() { return 9 * ChevronStepPx(); }
 } // namespace
 
 void PagesView::Text(HDC hdc, const wchar_t* s, RECT* rc, UINT fmt, COLORREF c) const {
@@ -352,22 +424,30 @@ void PagesView::Text(HDC hdc, const wchar_t* s, RECT* rc, UINT fmt, COLORREF c) 
 
 // 排序指示器。与进程页列头同形（那边逐像素对齐过真原版）：
 //   降序 ▼  升序 ▲
-//   9 行高、核心 1px 宽的细折角，抗锯齿由 GDI 的硬像素近似（无 alpha）。
+//   9rp 行高、核心 1rp 宽的细折角，抗锯齿由 GDI 的硬像素近似（无 alpha）。
 // 这里不追求像素级 —— 次要页的列表与进程页不是同一套控件，
 // 只保证「形状语义一致、颜色一致」。
+//
+// 【为什么用 SetPixelV 而不是 Polygon】折角本身是 1px 的像素图样，
+// 每一格的步进必须整数像素；SetPixelV 是唯一能保证「一格一格」落点的画法。
+// 步进经 Rpx() 后在高 DPI 下会变大，折角随之变大 —— 这是要的行为，
+// 但折角的**行数仍是 9**（不是把 9 也乘一次），否则 150% 下会画成 13 行的高胖箭头。
 void PagesView::DrawSortChevron(HDC hdc, int cx, int cy, bool desc, COLORREF color) const {
     static const signed char kCx[9] = { 0, 1, 2, 3, 3, 3, 2, 1, 0 };
+    const int step = ChevronStepPx();
     for (int i = 0; i < 9; ++i) {
         // 升序时整条上下翻转
         const int row = desc ? i : (8 - i);
-        SetPixelV(hdc, cx + kCx[i], cy + row, color);
-        if (i == 4) SetPixelV(hdc, cx + 4, cy + row, color);   // 折角多一格
+        SetPixelV(hdc, cx + kCx[i] * step, cy + row * step, color);
+        if (i == 4) SetPixelV(hdc, cx + 4 * step, cy + row * step, color);   // 折角多一格
     }
 }
 
 void PagesView::PaintTableHeader(HDC hdc, const RECT& rc, const ColumnDef* cols,
                                  int nCols, int flexWidth) const {
-    RECT hdr{ rc.left, rc.top, rc.right, rc.top + kHeaderHeight };
+    EnsureFonts();
+    const int headerH = Rpx(kHeaderHeight);
+    RECT hdr{ rc.left, rc.top, rc.right, rc.top + headerH };
     Fill(hdc, hdr, kBgHeader);
     HLine(hdc, hdr.left, hdr.right, hdr.bottom - 1, kLineHeader);
 
@@ -377,22 +457,24 @@ void PagesView::PaintTableHeader(HDC hdc, const RECT& rc, const ColumnDef* cols,
 
     int x = rc.left;
     for (int i = 0; i < nCols; ++i) {
-        int w = cols[i].flexible ? flexWidth : cols[i].width;
+        int w = cols[i].flexible ? flexWidth : Rpx(cols[i].width);
 
         // 列间竖线：只在列头带出现，数据区没有。
         // 【像素实测】x=184/234/643/743 处
         // 1px、rgb(244,244,244)~rgb(239,239,239)，纵向覆盖整个列头带，
         // 数据区 y=37.5 处这几列都是 rgb(246~251) 近白 —— 没有竖线。
+        // 竖线本身的笔宽是 1 物理像素（不缩放，见 DPI 判断说明）；
+        // 它离列头带上沿的内缩 4rp 要缩放。
         if (i > 0) {
-            DrawVLine(hdc, x, hdr.top + 4, hdr.bottom - 1, kLineHeaderCol);
+            DrawVLine(hdc, x, hdr.top + Rpx(4), hdr.bottom - 1, kLineHeaderCol);
         }
 
-        RECT cell{ x + kCellPadLeft, hdr.top, x + w - kCellPadRight, hdr.bottom };
+        RECT cell{ x + Rpx(kCellPadLeft), hdr.top, x + w - Rpx(kCellPadRight), hdr.bottom };
         UINT fmt = DT_SINGLELINE | DT_VCENTER | cols[i].align;
         Text(hdc, cols[i].title, &cell, fmt, kTextHeader);
 
         // 【排序箭头】当前页的排序列画一个细折角（降序 ▼ / 升序 ▲）。
-        // 位置：列名**右侧**。次要页的单元格左边距只有 4px（kCellPadLeft），
+        // 位置：列名**右侧**。次要页的单元格左边距只有 4rp（kCellPadLeft），
         // 放在左边会压到列边界竖线上；放右边既不会撞列名，也与进程页的
         // 「箭头在文字旁」观感一致。
         if (CurSortCol() == i) {
@@ -400,8 +482,10 @@ void PagesView::PaintTableHeader(HDC hdc, const RECT& rc, const ColumnDef* cols,
             HGDIOBJ oldf = SelectObject(hdc, fontBold_);
             GetTextExtentPoint32W(hdc, cols[i].title, lstrlenW(cols[i].title), &sz);
             SelectObject(hdc, oldf);
-            const int cx = x + kCellPadLeft + sz.cx + 4;
-            const int cy = hdr.top + (kHeaderHeight - 9) / 2;
+            // sz.cx 已经包含了字体缩放（字体本身是 -Rpx(12)），**不要再乘一次**。
+            // 只有「文字到箭头」的间隙 4 是几何常量，要缩放。
+            const int cx = x + Rpx(kCellPadLeft) + sz.cx + Rpx(4);
+            const int cy = hdr.top + (headerH - ChevronSpanPx()) / 2;
             DrawSortChevron(hdc, cx, cy, CurSortDesc(), kTextHeader);
         }
 
@@ -410,9 +494,12 @@ void PagesView::PaintTableHeader(HDC hdc, const RECT& rc, const ColumnDef* cols,
     SelectObject(hdc, old);
 }
 
+// 【单位约定】本函数的 x / y / w / h 参数**一律是已换算好的像素**，
+// 调用方传 flexW（已经由 bounds 算出来）、或 Rpx(cols[i].width)。
+// 只有内边距 kCellPadLeft / kCellPadRight 在这里缩放 —— 它们是 96 DPI 常量。
 void PagesView::PaintCellText(HDC hdc, const wchar_t* text, int x, int y, int w, int h,
                               UINT align, COLORREF color) const {
-    RECT cell{ x + kCellPadLeft, y, x + w - kCellPadRight, y + h };
+    RECT cell{ x + Rpx(kCellPadLeft), y, x + w - Rpx(kCellPadRight), y + h };
     UINT fmt = DT_SINGLELINE | DT_VCENTER | align | DT_END_ELLIPSIS;
     Text(hdc, text, &cell, fmt, color);
 }
@@ -430,9 +517,10 @@ void PagesView::FillRow(HDC hdc, int x, int y, int w, int h, int rowIndex,
 }
 
 int PagesView::HitRow(int y, int rowCount) const {
-    const int listTop = bounds_.top + kHeaderHeight;
+    const int listTop = bounds_.top + Rpx(kHeaderHeight);
     if (y < listTop) return -1;
-    int idx = (y - listTop + scroll_) / kRowHeight;
+    const int rh = Rpx(kRowHeight);
+    int idx = (y - listTop + scroll_) / rh;
     if (idx < 0 || idx >= rowCount) return -1;
     return idx;
 }
@@ -587,18 +675,22 @@ void PagesView::RefreshAppHistory() {
 // ============ 启动页 ============
 
 void PagesView::PaintStartup(HDC hdc) const {
+    EnsureFonts();
     RECT rc = bounds_;
+    const int headerH = Rpx(kHeaderHeight);
+    const int rowH = Rpx(kRowHeight);
 
     int fixed = 0;
     for (int i = 0; i < kStartupColCount; ++i) {
-        if (!kStartupCols[i].flexible) fixed += kStartupCols[i].width;
+        if (!kStartupCols[i].flexible) fixed += Rpx(kStartupCols[i].width);
     }
-    // 弹性列最小宽度 = 名称列的 exe 出厂宽 215。
+    // 弹性列最小宽度 = 名称列的 exe 出厂宽 215（96 DPI 基准，要缩放）。
     // 注意：不能用「max(下限, 剩余)」这种写法——窗口比下限还窄时会溢出到
     // 表格右界之外，把行底色画到滚动条/窗口边框上。这里改成剩余宽度不足
     // 下限时才用下限，并且所有单元格仍按同一组 x 推进，保证列对齐。
+    const int minFlexW = Rpx(215);
     int avail = static_cast<int>(rc.right - rc.left) - fixed;
-    int flexW = (avail > 215) ? avail : 215;
+    int flexW = (avail > minFlexW) ? avail : minFlexW;
 
     PaintTableHeader(hdc, rc, kStartupCols, kStartupColCount, flexW);
 
@@ -606,7 +698,7 @@ void PagesView::PaintStartup(HDC hdc) const {
     // 【MUI 硬证据】STRINGTABLE 里 39001 = 「没有可显示的启动项」，全表唯一一条。
     // 此前 startup_ 为空时列表区纯白，什么都不画。
     if (startup_.empty()) {
-        RECT msg{ rc.left, rc.top + kHeaderHeight, rc.right, rc.bottom };
+        RECT msg{ rc.left, rc.top + headerH, rc.right, rc.bottom };
         HFONT oldF = static_cast<HFONT>(SelectObject(hdc, fontBody_));
         SetBkMode(hdc, TRANSPARENT);
         Text(hdc, L"没有可显示的启动项", &msg,
@@ -629,18 +721,21 @@ void PagesView::PaintStartup(HDC hdc) const {
     // 下面的守卫 `if (y + kRowHeight <= rc.top + kHeaderHeight) continue;`
     // 只跳过**整行都在表头之上**的情况，半行重叠时照样往下画；
     // 而 FillRow / DrawIconEx / Text 都是直接落 DC 的，行底色会把表头盖住。
+    //
+    // 【IntersectClipRect 的边界值不缩放】它是 DC 裁剪矩形，参数是像素坐标；
+    // 这里的 top 用 headerH（已缩放），左右用 rc 的原值 —— 没有任何 ±1 修正量。
     const int savedDC = SaveDC(hdc);
-    IntersectClipRect(hdc, rc.left, rc.top + kHeaderHeight, rc.right, rc.bottom);
+    IntersectClipRect(hdc, rc.left, rc.top + headerH, rc.right, rc.bottom);
 
-    int y = rc.top + kHeaderHeight - scroll_;
+    int y = rc.top + headerH - scroll_;
     const int listBottom = rc.bottom;
 
     for (size_t i = 0; i < startup_.size(); ++i) {
-        if (y + kRowHeight <= rc.top + kHeaderHeight) { y += kRowHeight; continue; }
+        if (y + rowH <= rc.top + headerH) { y += rowH; continue; }
         if (y >= listBottom) break;
 
         const StartupItem& it = startup_[i];
-        FillRow(hdc, rc.left, y, rc.right - rc.left, kRowHeight,
+        FillRow(hdc, rc.left, y, rc.right - rc.left, rowH,
                 static_cast<int>(i), static_cast<int>(i) == selStartup_,
                 static_cast<int>(i) == hover_);
 
@@ -648,25 +743,28 @@ void PagesView::PaintStartup(HDC hdc) const {
 
         int x = rc.left;
 
-        // 名称（带 16×16 图标）
+        // 名称（带 16rp 图标）
+        // 图标尺寸用 Rpx(kIconSize)（theme.h：16rp = SM_CXSMICON @96），
+        // 不是写死 16 —— 高 DPI 下系统图标资源本身也是按 DPI 取的。
+        const int iconSz = Rpx(kIconSize);
         if (!it.exePath.empty()) {
             HICON ico = GetIconFor(it.exePath);
             if (ico) {
-                DrawIconEx(hdc, x + 8, y + (kRowHeight - 16) / 2, ico, 16, 16,
+                DrawIconEx(hdc, x + Rpx(8), y + (rowH - iconSz) / 2, ico, iconSz, iconSz,
                            0, nullptr, DI_NORMAL);
             }
         }
-        PaintCellText(hdc, it.name.c_str(), x + kIconSize + 12, y,
-                      flexW - kIconSize - 12, kRowHeight, DT_LEFT, tc);
+        PaintCellText(hdc, it.name.c_str(), x + iconSz + Rpx(12), y,
+                      flexW - iconSz - Rpx(12), rowH, DT_LEFT, tc);
         x += flexW;
 
-        PaintCellText(hdc, it.publisher.c_str(), x, y, kStartupCols[1].width, kRowHeight,
+        PaintCellText(hdc, it.publisher.c_str(), x, y, Rpx(kStartupCols[1].width), rowH,
                       DT_LEFT, tc);
-        x += kStartupCols[1].width;
+        x += Rpx(kStartupCols[1].width);
 
         PaintCellText(hdc, it.enabled ? L"已启用" : L"已禁用", x, y,
-                      kStartupCols[2].width, kRowHeight, DT_LEFT, tc);
-        x += kStartupCols[2].width;
+                      Rpx(kStartupCols[2].width), rowH, DT_LEFT, tc);
+        x += Rpx(kStartupCols[2].width);
 
         // 启动影响。
         //
@@ -684,10 +782,10 @@ void PagesView::PaintStartup(HDC hdc) const {
         // 本工程没有计量数据来源，所以这里恒为「未计量」。
         // 【此前】无条件写死「不适用」并用 kTextSecondary 次级灰 ——
         //   既选错了档（原版无数据时是「未计量」），也和同行其他列不同色。
-        PaintCellText(hdc, L"未计量", x, y, kStartupCols[3].width, kRowHeight,
+        PaintCellText(hdc, L"未计量", x, y, Rpx(kStartupCols[3].width), rowH,
                       DT_LEFT, tc);
 
-        y += kRowHeight;
+        y += rowH;
     }
 
     SelectObject(hdc, old);
@@ -719,14 +817,21 @@ bool PagesView::ToggleStartup(int index) {
 // ============ 用户页 ============
 
 void PagesView::PaintUsers(HDC hdc) const {
+    EnsureFonts();
     RECT rc = bounds_;
-
+    const int headerH = Rpx(kHeaderHeight);
+    const int rowH = Rpx(kRowHeight);
+    // 各列宽在这里算一次（96 DPI 常量 → 像素）。绘制与命中测试都经同一组
+    // Rpx() 换算，所以两边不会漂移。
+    int colW[kUserColCount];
     int fixed = 0;
     for (int i = 0; i < kUserColCount; ++i) {
-        if (!kUserCols[i].flexible) fixed += kUserCols[i].width;
+        colW[i] = kUserCols[i].flexible ? 0 : Rpx(kUserCols[i].width);
+        if (!kUserCols[i].flexible) fixed += colW[i];
     }
+    const int minFlexW = Rpx(215);
     int avail = static_cast<int>(rc.right - rc.left) - fixed;
-    int flexW = (avail > 215) ? avail : 215;
+    int flexW = (avail > minFlexW) ? avail : minFlexW;
 
     PaintTableHeader(hdc, rc, kUserCols, kUserColCount, flexW);
 
@@ -737,29 +842,29 @@ void PagesView::PaintUsers(HDC hdc) const {
     // 本页的行循环**连整行跳过都没有**（只有 `if (y >= rc.bottom) break;`），
     // 所以第一行只要带一点向上偏移就会直接把表头盖掉。
     const int savedDC = SaveDC(hdc);
-    IntersectClipRect(hdc, rc.left, rc.top + kHeaderHeight, rc.right, rc.bottom);
+    IntersectClipRect(hdc, rc.left, rc.top + headerH, rc.right, rc.bottom);
 
-    int y = rc.top + kHeaderHeight - scroll_;
+    int y = rc.top + headerH - scroll_;
 
     for (size_t i = 0; i < users_.size(); ++i) {
         if (y >= rc.bottom) break;
 
         const UserSession& u = users_[i];
-        FillRow(hdc, rc.left, y, rc.right - rc.left, kRowHeight,
+        FillRow(hdc, rc.left, y, rc.right - rc.left, rowH,
                 static_cast<int>(i), static_cast<int>(i) == selUser_,
                 static_cast<int>(i) == hover_);
 
         COLORREF tc = (static_cast<int>(i) == selUser_) ? kTextSelected : kTextPrimary;
         int x = rc.left;
 
-        // 用户名单元格 = 展开箭头 + 9×9 头像占位块 + 「域\用户」文字，
+        // 用户名单元格 = 展开箭头 + 9rp 头像占位块 + 「域\用户」文字，
         // 三个元素的横向锚点全部来自原版裁切（见文件头常量注释）：
         //   chevron 10..15 / 头像块 32..41 / 文字 51
         // 【此前】这里只有一行从 x+8 起画的纯文字，整组视觉元素全缺，
         // 用户名比原版左移 43px。
-        const int rowCy = y + kRowHeight / 2;
-        DrawRowChevron(hdc, x + kUserChevronX, rowCy);
-        DrawUserAvatarBox(hdc, x + kUserAvatarX, rowCy);
+        const int rowCy = y + rowH / 2;
+        DrawRowChevron(hdc, x + Rpx(kUserChevronX), rowCy);
+        DrawUserAvatarBox(hdc, x + Rpx(kUserAvatarX), rowCy);
 
         std::wstring display;
         // 【显示完整账户名(&S)】选项菜单里这一项只在**用户页**可点（menus.cpp:197），
@@ -781,36 +886,35 @@ void PagesView::PaintUsers(HDC hdc) const {
         }
 
         // 直接按绝对 x 画，不走 PaintCellText 的 kCellPadLeft，
-        // 否则文字会跑到 51+8=59。
+        // 否则文字会跑到 51+4=55。
         {
-            RECT cell{ x + kUserTextX, y, x + flexW - kCellPadRight, y + kRowHeight };
+            RECT cell{ x + Rpx(kUserTextX), y, x + flexW - Rpx(kCellPadRight), y + rowH };
             Text(hdc, display.c_str(), &cell,
                  DT_SINGLELINE | DT_VCENTER | DT_LEFT | DT_END_ELLIPSIS, tc);
         }
         x += flexW;
 
-        PaintCellText(hdc, u.stateText.c_str(), x, y, kUserCols[1].width, kRowHeight,
-                      DT_LEFT, tc);
-        x += kUserCols[1].width;
+        PaintCellText(hdc, u.stateText.c_str(), x, y, colW[1], rowH, DT_LEFT, tc);
+        x += colW[1];
 
         // 数值列格式与进程页完全一致（FmtCpu：0 值显示 0%，<1% 保留一位小数）
         wchar_t buf[64];
         FmtCpu(u.cpuPercent, buf, 64);
-        PaintCellText(hdc, buf, x, y, kUserCols[2].width, kRowHeight, DT_RIGHT, tc);
-        x += kUserCols[2].width;
+        PaintCellText(hdc, buf, x, y, colW[2], rowH, DT_RIGHT, tc);
+        x += colW[2];
 
         FmtMem(u.workingSet, buf, 64);
-        PaintCellText(hdc, buf, x, y, kUserCols[3].width, kRowHeight, DT_RIGHT, tc);
-        x += kUserCols[3].width;
+        PaintCellText(hdc, buf, x, y, colW[3], rowH, DT_RIGHT, tc);
+        x += colW[3];
 
         // 磁盘 / 网络 / GPU：没有 per-session 计数器，留空（与原版一致）
-        PaintCellText(hdc, L"", x, y, kUserCols[4].width, kRowHeight, DT_RIGHT, tc);
-        x += kUserCols[4].width;
-        PaintCellText(hdc, L"", x, y, kUserCols[5].width, kRowHeight, DT_RIGHT, tc);
-        x += kUserCols[5].width;
-        PaintCellText(hdc, L"", x, y, kUserCols[6].width, kRowHeight, DT_RIGHT, tc);
+        PaintCellText(hdc, L"", x, y, colW[4], rowH, DT_RIGHT, tc);
+        x += colW[4];
+        PaintCellText(hdc, L"", x, y, colW[5], rowH, DT_RIGHT, tc);
+        x += colW[5];
+        PaintCellText(hdc, L"", x, y, colW[6], rowH, DT_RIGHT, tc);
 
-        y += kRowHeight;
+        y += rowH;
     }
 
     SelectObject(hdc, old);
@@ -830,7 +934,10 @@ bool PagesView::OnClickUsers(int x, int y) {
 // ============ 服务页 ============
 
 void PagesView::PaintServices(HDC hdc) const {
+    EnsureFonts();
     RECT rc = bounds_;
+    const int headerH = Rpx(kHeaderHeight);
+    const int rowH = Rpx(kRowHeight);
 
     // 【已删除底部 40px 自绘按钮栏】
     // 原版服务页底部没有任何按钮栏：原版实拍
@@ -843,12 +950,15 @@ void PagesView::PaintServices(HDC hdc) const {
     // 保留按钮栏还会让表格少 40px、最后一行被硬裁。
     RECT tableRc = rc;
 
+    int colW[kServiceColCount];
     int fixed = 0;
     for (int i = 0; i < kServiceColCount; ++i) {
-        if (!kServiceCols[i].flexible) fixed += kServiceCols[i].width;
+        colW[i] = kServiceCols[i].flexible ? 0 : Rpx(kServiceCols[i].width);
+        if (!kServiceCols[i].flexible) fixed += colW[i];
     }
+    const int minFlexW = Rpx(120);
     int avail = static_cast<int>(tableRc.right - tableRc.left) - fixed;
-    int flexW = (avail > 120) ? avail : 120;
+    int flexW = (avail > minFlexW) ? avail : minFlexW;
 
     PaintTableHeader(hdc, tableRc, kServiceCols, kServiceColCount, flexW);
 
@@ -857,17 +967,17 @@ void PagesView::PaintServices(HDC hdc) const {
 
     // 【裁剪】同 PaintStartup：滚动量是像素，半行重叠的守卫挡不住行底色。
     const int savedDC = SaveDC(hdc);
-    IntersectClipRect(hdc, tableRc.left, tableRc.top + kHeaderHeight,
+    IntersectClipRect(hdc, tableRc.left, tableRc.top + headerH,
                       tableRc.right, tableRc.bottom);
 
-    int y = tableRc.top + kHeaderHeight - scroll_;
+    int y = tableRc.top + headerH - scroll_;
 
     for (size_t i = 0; i < services_.size(); ++i) {
-        if (y + kRowHeight <= tableRc.top + kHeaderHeight) { y += kRowHeight; continue; }
+        if (y + rowH <= tableRc.top + headerH) { y += rowH; continue; }
         if (y >= tableRc.bottom) break;
 
         const ServiceItem& s = services_[i];
-        FillRow(hdc, tableRc.left, y, tableRc.right - tableRc.left, kRowHeight,
+        FillRow(hdc, tableRc.left, y, tableRc.right - tableRc.left, rowH,
                 static_cast<int>(i), static_cast<int>(i) == selService_,
                 static_cast<int>(i) == hover_);
 
@@ -884,37 +994,37 @@ void PagesView::PaintServices(HDC hdc) const {
         //   这一行是决定性证据。
         // 此前名称列用 displayName、描述列用 SERVICE_CONFIG_DESCRIPTION 的长描述段落，
         // **两列内容全错位**（306 行 × 2 列）。
-        DrawServiceGear(hdc, x + kServiceIconX, y + (kRowHeight - 16) / 2);
+        // 齿轮的 y 偏移用 Rpx(kIconSize) 而不是写死 16 —— 高 DPI 下齿轮本身
+        // 也按 Rpx 放大（见 DrawServiceGear），两者必须同源，否则图标偏上/偏下。
+        DrawServiceGear(hdc, x + Rpx(kServiceIconX), y + (rowH - Rpx(kIconSize)) / 2);
         {
-            // 文字左沿 = 逻辑 25（原版实测），不走 PaintCellText 的 +8 内边距
-            RECT cell{ x + kServiceTextX, y, x + kServiceCols[0].width - kCellPadRight,
-                       y + kRowHeight };
+            // 文字左沿 = 逻辑 25（原版实测），不走 PaintCellText 的 4rp 内边距
+            RECT cell{ x + Rpx(kServiceTextX), y, x + colW[0] - Rpx(kCellPadRight),
+                       y + rowH };
             Text(hdc, s.name.c_str(), &cell,
                  DT_SINGLELINE | DT_VCENTER | DT_LEFT | DT_END_ELLIPSIS, tc);
         }
-        x += kServiceCols[0].width;
+        x += colW[0];
 
         wchar_t buf[32];
         buf[0] = 0;
         if (s.pid != 0) swprintf_s(buf, L"%u", s.pid);
-        PaintCellText(hdc, buf, x, y, kServiceCols[1].width, kRowHeight, DT_RIGHT, tc);
-        x += kServiceCols[1].width;
+        PaintCellText(hdc, buf, x, y, colW[1], rowH, DT_RIGHT, tc);
+        x += colW[1];
 
         // 描述列 = **显示名**（DisplayName）。原版这一列不是长描述文本，
         // 长描述只在「属性」对话框/工具提示里出现。
         // 颜色用正文色 —— `svc_header_4x.png` 里 `AllJoyn Router Service`
         // 与名称列 `AJRouter` 是同一种近黑，不是次级灰。
-        PaintCellText(hdc, s.displayName.c_str(), x, y, flexW, kRowHeight, DT_LEFT, tc);
+        PaintCellText(hdc, s.displayName.c_str(), x, y, flexW, rowH, DT_LEFT, tc);
         x += flexW;
 
-        PaintCellText(hdc, s.stateText.c_str(), x, y, kServiceCols[3].width, kRowHeight,
-                      DT_LEFT, tc);
-        x += kServiceCols[3].width;
+        PaintCellText(hdc, s.stateText.c_str(), x, y, colW[3], rowH, DT_LEFT, tc);
+        x += colW[3];
 
-        PaintCellText(hdc, s.group.c_str(), x, y, kServiceCols[4].width, kRowHeight,
-                      DT_LEFT, tc);
+        PaintCellText(hdc, s.group.c_str(), x, y, colW[4], rowH, DT_LEFT, tc);
 
-        y += kRowHeight;
+        y += rowH;
     }
 
     SelectObject(hdc, old);
@@ -952,9 +1062,12 @@ bool PagesView::StopService(int index) {
 // ============ 应用历史记录页 ============
 
 void PagesView::PaintAppHistory(HDC hdc) const {
+    EnsureFonts();
     RECT rc = bounds_;
+    const int headerH = Rpx(kHeaderHeight);
 
-    const int noteH = 44;
+    // 顶部说明条高 44rp。它以及下面所有偏移都是 96 DPI 基准值。
+    const int noteH = Rpx(44);
 
     // 顶部说明条（MUI 原文 38509：自 %1!s! 以来，当前用户和系统账户的资源使用情况。）
     RECT note{ rc.left, rc.top, rc.right, rc.top + noteH };
@@ -964,12 +1077,15 @@ void PagesView::PaintAppHistory(HDC hdc) const {
     HFONT old = static_cast<HFONT>(SelectObject(hdc, fontBody_));
     SetBkMode(hdc, TRANSPARENT);
 
-    RECT nr{ note.left + 12, note.top + 6, note.right - 140, note.top + 26 };
+    // 说明文字框：左内缩 12、上内缩 6、高 20、右留 140（给按钮让位）。
+    RECT nr{ note.left + Rpx(12), note.top + Rpx(6),
+             note.right - Rpx(140), note.top + Rpx(26) };
     Text(hdc, L"自 30 天前以来，当前用户和系统账户的资源使用情况。", &nr,
          DT_SINGLELINE | DT_VCENTER | DT_LEFT, kTextSecondary);
 
     // "删除使用情况历史记录" 按钮（MUI 38505）
-    RECT btn{ note.right - 172, note.top + 8, note.right - 12, note.top + 32 };
+    RECT btn{ note.right - Rpx(172), note.top + Rpx(8),
+              note.right - Rpx(12), note.top + Rpx(32) };
     Fill(hdc, btn, RGB(0xE1, 0xE1, 0xE1));
     HGDIOBJ op = SelectObject(hdc, GetStockObject(DC_PEN));
     SetDCPenColor(hdc, RGB(0xAD, 0xAD, 0xAD));
@@ -985,10 +1101,11 @@ void PagesView::PaintAppHistory(HDC hdc) const {
     RECT tableRc{ rc.left, note.bottom, rc.right, rc.bottom };
     int fixed = 0;
     for (int i = 0; i < kAppHistColCount; ++i) {
-        if (!kAppHistCols[i].flexible) fixed += kAppHistCols[i].width;
+        if (!kAppHistCols[i].flexible) fixed += Rpx(kAppHistCols[i].width);
     }
+    const int minFlexW = Rpx(198);
     int avail = static_cast<int>(tableRc.right - tableRc.left) - fixed;
-    int flexW = (avail > 198) ? avail : 198;
+    int flexW = (avail > minFlexW) ? avail : minFlexW;
     PaintTableHeader(hdc, tableRc, kAppHistCols, kAppHistColCount, flexW);
 
     // SRUM 不可用 → 显示 "无可用数据"（MUI 38507 原文，原版在 SRUM 被禁用时也这么显示）
@@ -996,7 +1113,7 @@ void PagesView::PaintAppHistory(HDC hdc) const {
         // 位置与原版无从比对（原版裁切图里只有
         // 「应用历史记录」六个字的放大，不含页面内容），这里在表格区内居中，
         // 与启动页空状态用同一种居中口径，保持四页内部一致。
-        RECT msg{ tableRc.left, tableRc.top + kHeaderHeight, tableRc.right, tableRc.bottom };
+        RECT msg{ tableRc.left, tableRc.top + headerH, tableRc.right, tableRc.bottom };
         // 与启动页空状态同色同位，四页口径一致（此前是 kTextDisabled 更浅的灰）
         Text(hdc, L"无可用数据", &msg,
              DT_SINGLELINE | DT_VCENTER | DT_CENTER, kTextSecondary);
@@ -1014,37 +1131,38 @@ void PagesView::PaintAppHistory(HDC hdc) const {
 
 // 当前页的列定义与弹性宽度基准。四个页各有一套（见 kXxxCols 的注释）。
 // 返回 nullptr 表示当前页没有表格（性能页等）。
+//
+// 【flexW 的单位是像素】返回前已经取过 Rpx()。调用方（HitHeaderAt）拿到的
+// 直接是像素宽度；而 cols[i].width 仍是 96 DPI 基准值，调用方要自己 Rpx()。
+// 这两者单位不同是刻意的：flexW 依赖运行时 bounds_，cols[].width 是常量表。
 const PagesView::ColumnDef* PagesView::CurCols(int& nCols, int& flexW) const {
     const RECT& rc = bounds_;
+    const int width = static_cast<int>(rc.right - rc.left);
     int fixed = 0;
     switch (currentTab_) {
     case 3:   // 启动
         for (int i = 0; i < kStartupColCount; ++i)
-            if (!kStartupCols[i].flexible) fixed += kStartupCols[i].width;
-        flexW = (static_cast<int>(rc.right - rc.left) - fixed > 215)
-                    ? static_cast<int>(rc.right - rc.left) - fixed : 215;
+            if (!kStartupCols[i].flexible) fixed += Rpx(kStartupCols[i].width);
         nCols = kStartupColCount;
+        flexW = (width - fixed > Rpx(215)) ? width - fixed : Rpx(215);
         return kStartupCols;
     case 2:   // 应用历史
         for (int i = 0; i < kAppHistColCount; ++i)
-            if (!kAppHistCols[i].flexible) fixed += kAppHistCols[i].width;
-        flexW = (static_cast<int>(rc.right - rc.left) - fixed > 198)
-                    ? static_cast<int>(rc.right - rc.left) - fixed : 198;
+            if (!kAppHistCols[i].flexible) fixed += Rpx(kAppHistCols[i].width);
         nCols = kAppHistColCount;
+        flexW = (width - fixed > Rpx(198)) ? width - fixed : Rpx(198);
         return kAppHistCols;
     case 4:   // 用户
         for (int i = 0; i < kUserColCount; ++i)
-            if (!kUserCols[i].flexible) fixed += kUserCols[i].width;
-        flexW = (static_cast<int>(rc.right - rc.left) - fixed > 215)
-                    ? static_cast<int>(rc.right - rc.left) - fixed : 215;
+            if (!kUserCols[i].flexible) fixed += Rpx(kUserCols[i].width);
         nCols = kUserColCount;
+        flexW = (width - fixed > Rpx(215)) ? width - fixed : Rpx(215);
         return kUserCols;
     case 6:   // 服务
         for (int i = 0; i < kServiceColCount; ++i)
-            if (!kServiceCols[i].flexible) fixed += kServiceCols[i].width;
-        flexW = (static_cast<int>(rc.right - rc.left) - fixed > 120)
-                    ? static_cast<int>(rc.right - rc.left) - fixed : 120;
+            if (!kServiceCols[i].flexible) fixed += Rpx(kServiceCols[i].width);
         nCols = kServiceColCount;
+        flexW = (width - fixed > Rpx(120)) ? width - fixed : Rpx(120);
         return kServiceCols;
     default:
         nCols = 0;
@@ -1055,7 +1173,7 @@ const PagesView::ColumnDef* PagesView::CurCols(int& nCols, int& flexW) const {
 
 int PagesView::HitHeaderAt(int x, int y) const {
     // 只在表头带内
-    if (y < bounds_.top || y >= bounds_.top + kHeaderHeight) return -1;
+    if (y < bounds_.top || y >= bounds_.top + Rpx(kHeaderHeight)) return -1;
     if (x < bounds_.left || x >= bounds_.right) return -1;
 
     int nCols = 0, flexW = 0;
@@ -1064,7 +1182,7 @@ int PagesView::HitHeaderAt(int x, int y) const {
 
     int cx = bounds_.left;
     for (int i = 0; i < nCols; ++i) {
-        const int w = cols[i].flexible ? flexW : cols[i].width;
+        const int w = cols[i].flexible ? flexW : Rpx(cols[i].width);
         if (x >= cx && x < cx + w) return i;
         cx += w;
     }
@@ -1185,7 +1303,7 @@ void PagesView::OnHover(int x, int y) {
         hover_ = -1;
         return;
     }
-    const int listTop = bounds_.top + kHeaderHeight;
+    const int listTop = bounds_.top + Rpx(kHeaderHeight);
     if (y < listTop) { hover_ = -1; return; }
 
     // 每个页的行数不同，取当前页的那一个
@@ -1197,7 +1315,7 @@ void PagesView::OnHover(int x, int y) {
         case 2: rowCount = static_cast<int>(appHistory_.size()); break;  // TabId::AppHistory
         default: hover_ = -1; return;
     }
-    const int idx = (y - listTop + scroll_) / kRowHeight;
+    const int idx = (y - listTop + scroll_) / Rpx(kRowHeight);
     hover_ = (idx >= 0 && idx < rowCount) ? idx : -1;
 }
 
@@ -1215,7 +1333,7 @@ int PagesView::CurRowCount() const {
 
 // 数据区高度（像素）= 页边界高 - 列头高。
 int PagesView::CurViewHeight() const {
-    const int h = static_cast<int>(bounds_.bottom - bounds_.top) - kHeaderHeight;
+    const int h = static_cast<int>(bounds_.bottom - bounds_.top) - Rpx(kHeaderHeight);
     return h > 0 ? h : 0;
 }
 
@@ -1225,9 +1343,14 @@ int PagesView::CurViewHeight() const {
 // 行高统一 kRowHeight，所以内容总高就是 rowCount × kRowHeight。
 // 这里算出来的 maxScroll 与 ScrollBy / ScrollByPixels 的钳制、以及
 // 绘制侧"最后一行能完整露出"三者用的是同一个式子。
+//
+// 【DPI】四处必须**同一个 Rpx() 口径**。若绘制侧用 Rpx(kRowHeight) 而这里用
+// 96 DPI 的裸 28，150% 下内容高会被算成实际的三分之二 —— 滚到底时最后
+// 一大截行永远到不了，且不会报错。下面 CurRowCount() * Rpx(kRowHeight)
+// 与 PaintXxx 的 rowH 是同一个表达式。
 int PagesView::MaxScrollPixels() const {
     if (currentTab_ < 0) return 0;
-    const int contentH = CurRowCount() * kRowHeight;
+    const int contentH = CurRowCount() * Rpx(kRowHeight);
     const int viewH = CurViewHeight();
     return (contentH > viewH) ? (contentH - viewH) : 0;
 }
@@ -1266,7 +1389,333 @@ void PagesView::ScrollBy(int lines) {
     // 现在：内容和视口都用像素算，maxScroll 可以不是 kRowHeight 的整数倍，
     // 滚到底时最后一行能完整露出，不会像原来那样留 22px 空白。
     // 钳制逻辑统一在 SetScrollPixels 里，这里不再重复一份（两处各写一遍必漂移）。
-    ScrollByPixels(lines * kRowHeight);
+    ScrollByPixels(lines * Rpx(kRowHeight));
+}
+
+// ==========================================================================
+// DPI 自测
+// ==========================================================================
+//
+// 【为什么必须有它】本机 96 DPI，Rpx() 恒等于恒等函数 —— 所有改动在本机
+// 逐像素等价，肉眼看不出任何差别，"看起来对"在这里没有任何信息量。
+// 唯一能判真假的办法是把 Dpi() 强行设成 120/144/192 再回读数值。
+//
+// 断言的都是**可判定为假**的性质：具体数值、比例、单调整性。
+// 不做"打印一下看看"这种无判据的输出。
+std::wstring PagesView::SelfTestDpi() {
+    wchar_t buf[512];
+
+    // 退出时恢复原 DPI。用 RAII 而不是在每个 return 前手写一遍 ——
+    // 中途 return 忘了恢复会让整个进程后续的所有 Scaled() 都按 192 算。
+    const int savedDpi = theme::Dpi();
+    struct DpiGuard {
+        int d;
+        ~DpiGuard() { theme::SetDpi(d); }
+    } guard{ savedDpi };
+
+    // ---- 1) Rpx(28) 在四个典型 DPI 下的绝对值 ----
+    //
+    // 28 是 theme.h 的 kRowHeight（UIFILE 里写死的 28rp），也是四个次要页
+    // 唯一共用的行高，选它做基准最有代表性。
+    struct Case { int dpi; int want28; int want180; };
+    const Case cases[] = {
+        {  96, 28, 180 },
+        { 120, 35, 225 },
+        { 144, 42, 270 },
+        { 192, 56, 360 },
+    };
+    for (const Case& c : cases) {
+        theme::SetDpi(c.dpi);
+        const int got28 = Rpx(28);
+        if (got28 != c.want28) {
+            swprintf_s(buf, L"Rpx(28) 在 %d DPI 下应为 %d，实得 %d",
+                       c.dpi, c.want28, got28);
+            return buf;
+        }
+        // 顺带把服务页名称列宽 180 也逐个 DPI 钉死。
+        const int got180 = Rpx(180);
+        if (got180 != c.want180) {
+            swprintf_s(buf, L"Rpx(180) 在 %d DPI 下应为 %d，实得 %d",
+                       c.dpi, c.want180, got180);
+            return buf;
+        }
+    }
+
+    // ---- 2) 具体列宽在 96 与 144 下的比例应约等于 1.5 ----
+    theme::SetDpi(96);
+    const int w96 = Rpx(180);
+    theme::SetDpi(144);
+    const int w144 = Rpx(180);
+    if (w96 <= 0) {
+        wchar_t b[128];
+        swprintf_s(b, L"96 DPI 下列宽为 %d，无法计算比例", w96);
+        return b;
+    }
+    // 用整数交叉相乘判 1.5：w144 * 2 == w96 * 3。精确，不受浮点误差影响。
+    if (w144 * 2 != w96 * 3) {
+        swprintf_s(buf, L"列宽 180rp 在 144/96 下比例应为 1.5（%d→%d），交叉相乘不等",
+                   w96, w144);
+        return buf;
+    }
+
+    // ---- 3) 其余几何常量必须跟着同一个比例走 ----
+    //
+    // 这一项防的是「改了列宽忘了行高 / 忘了内边距」这种漏改：
+    // 逐个比对 144 下的值是不是 96 下值的 1.5 倍。
+    const int scaledConsts[] = { kRowHeight, kHeaderHeight, kIconSize,
+                                 kCellPadLeft, kCellPadRight,
+                                 kUserChevronX, kUserAvatarX, kUserTextX,
+                                 kServiceIconX, kServiceTextX };
+    theme::SetDpi(96);
+    int v96[sizeof(scaledConsts) / sizeof(scaledConsts[0])];
+    for (size_t i = 0; i < sizeof(scaledConsts) / sizeof(scaledConsts[0]); ++i)
+        v96[i] = Rpx(scaledConsts[i]);
+    theme::SetDpi(144);
+    for (size_t i = 0; i < sizeof(scaledConsts) / sizeof(scaledConsts[0]); ++i) {
+        const int want = v96[i] * 3 / 2;
+        const int got = Rpx(scaledConsts[i]);
+        // 允许 1px 的整数取整差（例如 25rp 在 144 下是 37.5 → 38 或 37）。
+        if (got < want - 1 || got > want + 1) {
+            swprintf_s(buf, L"几何常量 %drp 在 96/144 下应为 %d→~%d，实得 %d",
+                       scaledConsts[i], v96[i], want, got);
+            return buf;
+        }
+    }
+
+    // ---- 4) 列宽之和必须等于表格宽度（布局自洽，任何 DPI 下都成立）----
+    //
+    // 这一项验证的不只是缩放，而是「绘制与命中测试用的是同一组换算」：
+    // CurCols() 给出的 flexW 加各固定列宽，必须正好铺满 bounds_ 的宽度。
+    // 若不成立，最后一列会和滚动条重叠或多出一截白条 —— 96 DPI 下也会错，
+    // 所以它在任何机器上都是有效断言。
+    {
+        PagesView pv;
+        const int dpis[] = { 96, 144 };
+        for (int d : dpis) {
+            theme::SetDpi(d);
+            const int tableW = 900;   // 随便一个宽度，只需自洽
+            pv.SetBounds(RECT{ 0, 0, tableW, 600 });
+            pv.SetCurrentTab(6);      // 服务页：4 固定 + 1 弹性
+            int nCols = 0, flexW = 0;
+            const ColumnDef* cols = pv.CurCols(nCols, flexW);
+            if (!cols || nCols != kServiceColCount) {
+                swprintf_s(buf, L"%d DPI 下服务页列数为 %d，应为 %d",
+                           d, nCols, kServiceColCount);
+                return buf;
+            }
+            int sum = 0;
+            for (int i = 0; i < nCols; ++i)
+                sum += cols[i].flexible ? flexW : Rpx(cols[i].width);
+            if (sum != tableW) {
+                swprintf_s(buf, L"%d DPI 下服务页列宽之和 %d ≠ 表格宽 %d",
+                           d, sum, tableW);
+                return buf;
+            }
+        }
+    }
+
+    // ---- 5) 字体：lfHeight 必须走 Rpx()，且 DPI 变了要重建 ----
+    //
+    // 【怎么判定】拿 TEXTMETRIC 的 tmHeight 做证据。字体若仍是 96 DPI 的
+    // -12，144 下 tmHeight 还是 17；走了 Rpx(12)=18 才会变大。
+    // 同时验证 EnsureFonts() 的缓存键：故意只改 Dpi() 不调 BuildFonts()，
+    // 下一次绘制前 EnsureFonts() 必须自己发现并重建。
+    {
+        PagesView pv;
+
+        theme::SetDpi(96);
+        pv.EnsureFonts();
+        const int dpiAfter96 = pv.fontsDpi_;
+        if (dpiAfter96 != 96) {
+            swprintf_s(buf, L"EnsureFonts() 记录的 DPI 为 %d，应为 96", dpiAfter96);
+            return buf;
+        }
+        auto measureBody = [&pv]() -> int {
+            HDC dc = GetDC(nullptr);
+            if (!dc) return -1;
+            HGDIOBJ old = SelectObject(dc, pv.fontBody_);
+            TEXTMETRICW tm{};
+            const int h = GetTextMetricsW(dc, &tm) ? static_cast<int>(tm.tmHeight) : -1;
+            SelectObject(dc, old);
+            ReleaseDC(nullptr, dc);
+            return h;
+        };
+        const int tm96 = measureBody();
+        if (tm96 <= 0) return L"96 DPI 下取不到 fontBody_ 的 TEXTMETRIC";
+
+        // 只改 DPI，**不**调 BuildFonts —— 模拟 WM_DPICHANGED 的真实时序。
+        theme::SetDpi(144);
+        pv.EnsureFonts();          // 应该自己发现 fontsDpi_ != 144 并重建
+        if (pv.fontsDpi_ != 144) {
+            swprintf_s(buf, L"DPI 改为 144 后 EnsureFonts() 未重建（fontsDpi_=%d）",
+                       pv.fontsDpi_);
+            return buf;
+        }
+        const int tm144 = measureBody();
+        if (tm144 <= tm96) {
+            swprintf_s(buf, L"144 DPI 的字高 %d 不大于 96 DPI 的 %d —— lfHeight 没走 Rpx()",
+                       tm144, tm96);
+            return buf;
+        }
+
+        // ---- 6) 文字宽度：已受字体影响，不得二次缩放 ----
+        //
+        // PaintTableHeader 里 `cx = x + Rpx(4) + sz.cx` 直接用 sz.cx。
+        // 若有人把它写成 Rpx(sz.cx)，144 下箭头会偏到列外。
+        // 判据：144 下的文字宽度应约等于 96 下的 1.5 倍（字体本身已经缩放过），
+        // 允许字距 hinting 造成的偏差，但不能接近 2.25 倍（= 二次缩放）。
+        auto measureText = [&pv]() -> int {
+            HDC dc = GetDC(nullptr);
+            if (!dc) return -1;
+            HGDIOBJ old = SelectObject(dc, pv.fontBold_);
+            SIZE sz{};
+            const int rc = GetTextExtentPoint32W(dc, L"启动影响", 4, &sz) ? sz.cx : -1;
+            SelectObject(dc, old);
+            ReleaseDC(nullptr, dc);
+            return rc;
+        };
+        theme::SetDpi(96);
+        pv.EnsureFonts();
+        const int tx96 = measureText();
+        theme::SetDpi(144);
+        pv.EnsureFonts();
+        const int tx144 = measureText();
+        if (tx96 <= 0 || tx144 <= 0) return L"取不到列头文字宽度";
+        // 1.5 倍附近：tx144×2 应落在 tx96×3 的 ±25% 内。
+        // 上限一侧卡在 1.85 倍，低于「二次缩放」会得到的 ~2.25 倍。
+        if (tx144 * 2 < tx96 * 3 * 3 / 4 || tx144 * 2 > tx96 * 3 * 37 / 20) {
+            swprintf_s(buf, L"文字宽度 96→144 为 %d→%d，比例异常（疑似二次缩放或未缩放）",
+                       tx96, tx144);
+            return buf;
+        }
+    }
+
+    // ---- 7) 真渲染回读：列头底线所在的 y ----
+    //
+    // 【为什么只回读常量不够】前面几项验的都是 Rpx() 本身和常量表 ——
+    // 它们只能证明"算术对"，不能证明 PaintServices 真的调了 Rpx()。
+    // 漏改一个绘制点，前面六项照样全绿。
+    //
+    // 这里把 PaintServices 真画进一张离屏 DIB，再扫描列头底线的位置：
+    //   PaintTableHeader 用 HLine(..., hdr.bottom - 1, kLineHeader) 画 #A0A0A0，
+    //   hdr.bottom = bounds_.top + Rpx(kHeaderHeight)。
+    // 96 DPI → 直线在第 23 行；144 DPI → Rpx(24)=36，直线在第 35 行。
+    // 只要有一条不成立，就是绘制点没走 DPI 换算。
+    {
+        const int dpis[] = { 96, 144 };
+        const int wantLineY[] = { 23, 35 };   // Rpx(24) - 1
+        for (int k = 0; k < 2; ++k) {
+            theme::SetDpi(dpis[k]);
+            PagesView pv;
+            pv.EnsureFonts();
+            const int W = 400, H = 300;
+            pv.SetBounds(RECT{ 0, 0, W, H });
+            pv.SetCurrentTab(6);          // 服务页（不需要数据，表头总会画）
+
+            BITMAPINFO bi{};
+            bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+            bi.bmiHeader.biWidth = W;
+            bi.bmiHeader.biHeight = -H;   // 负 = 自上而下，y 与屏幕一致
+            bi.bmiHeader.biPlanes = 1;
+            bi.bmiHeader.biBitCount = 32;
+            bi.bmiHeader.biCompression = BI_RGB;
+            void* bits = nullptr;
+            HDC screen = GetDC(nullptr);
+            HDC dc = screen ? CreateCompatibleDC(screen) : nullptr;
+            HBITMAP bmp = dc ? CreateDIBSection(dc, &bi, DIB_RGB_COLORS, &bits, nullptr, 0) : nullptr;
+            if (!dc || !bmp || !bits) {
+                if (bmp) DeleteObject(bmp);
+                if (dc) DeleteDC(dc);
+                if (screen) ReleaseDC(nullptr, screen);
+                return L"创建离屏 DIB 失败，无法做渲染回读";
+            }
+            HGDIOBJ oldBmp = SelectObject(dc, bmp);
+            // 先刷白，否则未绘制区域是 DIB 的初值 0（黑），也会命中扫描条件
+            RECT all{ 0, 0, W, H };
+            HBRUSH wb = CreateSolidBrush(RGB(255, 255, 255));
+            FillRect(dc, &all, wb);
+            DeleteObject(wb);
+
+            pv.PaintServices(dc);
+            GdiFlush();
+
+            // 在 x=5（名称列内，不与任何竖线重合）自上而下找 #A0A0A0。
+            const COLORREF want = kLineHeader;
+            const COLORREF* px = static_cast<const COLORREF*>(bits);
+            int foundY = -1;
+            for (int y = 0; y < H; ++y) {
+                if (px[y * W + 5] == want) { foundY = y; break; }
+            }
+
+            SelectObject(dc, oldBmp);
+            DeleteObject(bmp);
+            DeleteDC(dc);
+            if (screen) ReleaseDC(nullptr, screen);
+
+            if (foundY != wantLineY[k]) {
+                swprintf_s(buf,
+                    L"%d DPI 下渲染回读的列头底线 y=%d，应为 %d"
+                    L"（PaintTableHeader 没走 Rpx 或 HLine 位置不对）",
+                    dpis[k], foundY, wantLineY[k]);
+                return buf;
+            }
+        }
+    }
+
+    // ---- 9) 滚动偏移的 DPI 折算 ----
+    //
+    // scroll_ 是像素不是行号。DPI 从 96 变到 144 后，同一像素指向的行变了，
+    // 必须按比例折算才能"停在同一个位置"。这里直接验 RescaleScrollPx 的算术
+    // 和一个真实对象上的行为（OnDpiChanged 之后偏移按 1.5 倍变大且仍被钳制）。
+    {
+        struct SCase { int px, from, to, want; };
+        const SCase sc[] = {
+            { 0,   96, 144, 0   },
+            { 100, 96, 144, 150 },
+            { 150, 144, 96, 100 },
+            { 300, 96, 192, 600 },
+            { 100, 96,  96, 100 },   // 同 DPI 不变
+        };
+        for (const SCase& c : sc) {
+            const int got = RescaleScrollPx(c.px, c.from, c.to);
+            if (got != c.want) {
+                swprintf_s(buf, L"滚动偏移 %dpx 从 %d 折到 %d DPI 应为 %d，实得 %d",
+                           c.px, c.from, c.to, c.want, got);
+                return buf;
+            }
+        }
+
+        // 真实对象上只验「不越界、可重复调用、不破坏状态」。
+        //
+        // 【为什么不验"500px → 750px"】
+        // 那需要 pages_ 里真的有行。注入行数的唯一办法是加一个只给自测用的
+        // setter，而那正是本项目反复出现的「假功能」形态（有接口、无真实消费
+        // 路径）。用真实数据源（SCM/WTS）又会让自测依赖机器状态。
+        // 所以折算的**算术**用上面的纯函数用例钉死（5 个用例，覆盖 0 值、
+        // 正反向、跨 2 倍、同 DPI），对象层只验它不会把状态改坏。
+        {
+            PagesView pv;
+            pv.SetBounds(RECT{ 0, 0, 400, 200 });
+            pv.SetCurrentTab(3);           // 启动页（本对象没有数据源，行数 0）
+            theme::SetDpi(96);
+            const int before = pv.ScrollPixels();
+            theme::SetDpi(144);
+            pv.OnDpiChanged(96);
+            pv.OnDpiChanged(96);           // 重复调用必须幂等
+            if (pv.ScrollPixels() != before) {
+                swprintf_s(buf, L"无数据时 OnDpiChanged 把滚动偏移从 %d 改成了 %d",
+                           before, pv.ScrollPixels());
+                return buf;
+            }
+            if (pv.ScrollPixels() < 0 || pv.ScrollPixels() > pv.MaxScrollPixels()) {
+                swprintf_s(buf, L"OnDpiChanged 之后滚动偏移 %d 越界（maxScroll=%d）",
+                           pv.ScrollPixels(), pv.MaxScrollPixels());
+                return buf;
+            }
+        }
+    }
+
+    return std::wstring();   // 空 = 全过
 }
 
 } // namespace tmp
