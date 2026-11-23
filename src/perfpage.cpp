@@ -2008,7 +2008,26 @@ void PerfPage::PaintMemPage(HDC hdc, const RECT& rc) const {
         // 34349「速度:」+ 34366「%u MHz」—— static_memory 的第一项
         swprintf_s(line, 128, L"速度:   %u MHz", snap_->cpuCurrentMhz); Put(line);
         // 【MUI 佐证】34399 逐字是「使用中(已压缩)」，之前漏了「(已压缩)」后缀
-        FmtBytesGB(m.inUseBytes, gb, 32);
+        //
+        // 【数值必须与组合条第 1 段同源 —— 逆向实证】
+        // 原版 `AtmMemoryView::SetBarWidths` @0x1400BB704：
+        //   0x1400BB989  movaps xmm1,xmm4      ; xmm4 = 残差 T−(+250+258+260)
+        //   0x1400BB98C  call   0x1400BA0D4    ; 格式化 → 主值
+        //   0x1400BB9B4  lea    rcx,[rbp+0x80] ; 主值字符串
+        //   0x1400BBA25  call   0x14007567C    ; 写括号值（压缩量，未启用时 0）
+        //   0x1400BBA8A  lea    rcx,[0x140135CD8]  ; memory_inuse 文本缓冲
+        //   0x1400BBA91  call   0x14008C260        ; 合并成 "%1 (%2)"
+        // ⇒ 右栏「使用中」的主值 **就是** 组合条第 1 段的那个残差。
+        // 两处必须逐字节相等（用户截图里 19.1 vs 6.7 的差是我方 bug，不是原版设计）。
+        //
+        // 旧代码用 m.inUseBytes（= total − available），比残差多一个 modified
+        // （本机实测差 0.1 GB，右侧 26.0 vs 组合条 25.9）。
+        const uint64_t inuseResidual =
+            (m.totalBytes > (m.modifiedBytes + m.standbyBytes + m.freeBytes + m.zeroBytes))
+                ? (m.totalBytes - m.modifiedBytes - m.standbyBytes
+                   - m.freeBytes - m.zeroBytes)
+                : 0;
+        FmtBytesGB(inuseResidual, gb, 32);
         swprintf_s(line, 128, L"使用中(已压缩):   %s", gb); Put(line);
         FmtBytesGB(m.availableBytes, gb, 32);
         swprintf_s(line, 128, L"可用:   %s", gb); Put(line);
