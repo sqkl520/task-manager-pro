@@ -483,7 +483,7 @@ void TmWindow::ClampScroll() {
     int bodyH = rcList_.bottom - rcList_.top;
     int totalH = 0;
     for (const auto& r : rows_) {
-        totalH += RowHeightFor(r.kind == ViewRow::GroupHeaderRow, r.indentLevel);
+        totalH += RowHeightForPx(r.kind == ViewRow::GroupHeaderRow, r.indentLevel);
     }
     int maxScroll = (std::max)(0, totalH - bodyH);
     if (scrollY_ > maxScroll) scrollY_ = maxScroll;
@@ -1197,7 +1197,7 @@ void TmWindow::RebuildRows() {
     int bodyH = rcList_.bottom - rcList_.top;
     int totalH = 0;
     for (const auto& r : rows_) {
-        totalH += RowHeightFor(r.kind == ViewRow::GroupHeaderRow, r.indentLevel);
+        totalH += RowHeightForPx(r.kind == ViewRow::GroupHeaderRow, r.indentLevel);
     }
     int maxScroll = (std::max)(0, totalH - bodyH);
     if (scrollY_ > maxScroll) scrollY_ = maxScroll;

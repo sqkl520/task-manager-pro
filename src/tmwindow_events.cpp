@@ -125,7 +125,7 @@ int TmWindow::HitTestGroupHeader(int y) const {    // 【边界检查】与 HitT
     // 必须先命中判定再累加，否则子行会把下面的行全推错 6px。
     int ly = rcList_.top - scrollY_;
     for (size_t i = 0; i < rows_.size(); ++i) {
-        const int rh = RowHeightFor(rows_[i].kind == ViewRow::GroupHeaderRow, rows_[i].indentLevel);
+        const int rh = RowHeightForPx(rows_[i].kind == ViewRow::GroupHeaderRow, rows_[i].indentLevel);
         if (y >= ly && y < ly + rh) {
             return (rows_[i].kind == ViewRow::GroupHeaderRow) ? static_cast<int>(i) : -1;
         }
@@ -140,7 +140,7 @@ int TmWindow::HitTestRow(int y) const {
     // return，命中点之前最多遍历到屏幕首行，实际开销与原来相同。
     int ly = rcList_.top - scrollY_;
     for (size_t i = 0; i < rows_.size(); ++i) {
-        const int rh = RowHeightFor(rows_[i].kind == ViewRow::GroupHeaderRow, rows_[i].indentLevel);
+        const int rh = RowHeightForPx(rows_[i].kind == ViewRow::GroupHeaderRow, rows_[i].indentLevel);
         if (y >= ly && y < ly + rh) {
             return (rows_[i].kind == ViewRow::ProcessRow) ? static_cast<int>(i) : -1;
         }
@@ -364,7 +364,7 @@ int TmWindow::ScrollRowPx(ScrollTarget t) const {
 int TmWindow::FirstVisibleRowHeight() const {
     int acc = 0;
     for (size_t i = 0; i < rows_.size(); ++i) {
-        const int rh = RowHeightFor(rows_[i].kind == ViewRow::GroupHeaderRow,
+        const int rh = RowHeightForPx(rows_[i].kind == ViewRow::GroupHeaderRow,
                                     rows_[i].indentLevel);
         if (scrollY_ < acc + rh) return rh;
         acc += rh;
@@ -1441,7 +1441,7 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
                     int rhCur = 0;                       // 0 = 没有可滚的行
                     int acc = 0;
                     for (size_t i = 0; i < rows_.size(); ++i) {
-                        const int rh = RowHeightFor(rows_[i].kind == ViewRow::GroupHeaderRow,
+                        const int rh = RowHeightForPx(rows_[i].kind == ViewRow::GroupHeaderRow,
                                                     rows_[i].indentLevel);
                         if (scrollY_ < acc + rh) { rhCur = rh; break; }   // 停在 rows_[i] 内
                         acc += rh;
@@ -1456,7 +1456,7 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
                     int rhCur = 0;
                     int acc = 0;
                     for (size_t i = 0; i < rows_.size(); ++i) {
-                        const int rh = RowHeightFor(rows_[i].kind == ViewRow::GroupHeaderRow,
+                        const int rh = RowHeightForPx(rows_[i].kind == ViewRow::GroupHeaderRow,
                                                     rows_[i].indentLevel);
                         if (scrollY_ < acc + rh) { rhCur = rh; break; }
                         acc += rh;
@@ -1852,10 +1852,10 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
                     // 滚到最后一个子行时底部会被多切掉 6px。
                     int y = 0;
                     for (int i = 0; i < next; ++i) {
-                        y += RowHeightFor(rows_[i].kind == ViewRow::GroupHeaderRow,
+                        y += RowHeightForPx(rows_[i].kind == ViewRow::GroupHeaderRow,
                                           rows_[i].indentLevel);
                     }
-                    const int nextH = RowHeightFor(rows_[next].kind == ViewRow::GroupHeaderRow,
+                    const int nextH = RowHeightForPx(rows_[next].kind == ViewRow::GroupHeaderRow,
                                                    rows_[next].indentLevel);
                     int bodyH = rcList_.bottom - rcList_.top;
                     if (y < scrollY_) scrollY_ = y;
