@@ -2055,10 +2055,26 @@ void TmWindow::PaintRows(HDC hdc) {
                 // 图案本身不变、整体放大。96 DPI 下包围盒 = 6×9，逐格 1px，
                 // 与本轮改前**逐像素完全一致**。
                 const int glyphLeft = triL + theme::Rpx(3);   // 96 DPI: 9 + 3 = 12
-                // 折叠 ▶ 是 6 宽 × 9 高，展开 ▼ 是 9 宽 × 6 高（同一张表旋转 90°），
-                // 两者的**高**不同，所以各自按自己的高居中 —— 用同一个 top 会让 ▼ 偏高 1~2px。
-                const int glyphW = theme::Rpx(row.expanded ? kExpandoCols : kExpandoRows);  // 96 DPI: 6 : 9
-                const int glyphH = theme::Rpx(row.expanded ? kExpandoRows : kExpandoCols);  // 96 DPI: 9 : 6
+                // 折叠 ▶ 是 6 宽 × 9 高，展开 ▼ 是 9 宽 × 6 高（同一张表旋转 90°）。
+                //
+                // 【参数必须与 DrawExpandoChevron 内部的除数对应】
+                // 那个函数用 kExpandoCols(6) 做 boxW 的除数、kExpandoRows(9) 做
+                // boxH 的除数，且有 `if (boxW < 6) boxW = 6` / `if (boxH < 9) boxH = 9`
+                // 的兜底。所以：
+                //   折叠 ▶（不旋转，列数=6、行数=9）→ boxW 应传 6、boxH 应传 9
+                //   展开 ▼（旋转后列数=9、行数=6）→ boxW 应传 9、boxH 应传 6
+                // 但 boxH 传 6 会被兜底钳到 9 —— 展开态因此实际也画成 9×9，
+                // 与折叠态尺寸相同。这是既有行为，与本轮 DPI 改动无关，
+                // 本轮只负责不让 DPI 改动把它改坏。
+                //
+                // 【曾经的 bug】这里曾写成
+                //   glyphW = Rpx(expanded ? kExpandoCols : kExpandoRows)
+                //   glyphH = Rpx(expanded ? kExpandoRows : kExpandoCols)
+                // 折叠时 glyphW = Rpx(9) = 9 —— 宽传成了高，箭头画成 9×9 而非 6×9。
+                // 实拍：父提交 x[12..17] y[126..134]（6×9），该版本 x[12..20] y[128..136]（9×9）。
+                // 展开态因两个错误互相抵消反而正确，所以肉眼不易发现。
+                const int glyphW = theme::Rpx(row.expanded ? kExpandoRows : kExpandoCols);  // 96 DPI: 9 : 6
+                const int glyphH = theme::Rpx(row.expanded ? kExpandoCols : kExpandoRows);  // 96 DPI: 6 : 9
                 const int glyphTop = y + (rh - glyphH) / 2;
                 // 【两态共用一个左沿，是有意的】旋转把 (行 r, 列 c) 映到 (列 8−r, 行 c)，
                 // 因此两态的**尖端都落在列 4**（= 相对左沿 +4）。左沿相同 ⇒ 尖端 x 相同，
