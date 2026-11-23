@@ -1428,7 +1428,11 @@ LRESULT TmWindow::WndProc(UINT msg, WPARAM wp, LPARAM lp) {
                 // 【17 而不是 16】按钮高是 SM_CXVSCROLL = 17（tmwindow_list.cpp
                 // 的 kScrollBtnH）。这里原来写死 16，点击箭头最下面 1px 会落空，
                 // 落到"点轨道翻页"的分支上去。两处必须同源。
-                const int btnH = 17;
+                //
+                // 【DPI】17 是 96 DPI 基准值，必须 Rpx —— 绘制侧的箭头区已经
+                // 按 Rpx(17) 放大，命中侧不跟就会在高 DPI 下错位（点到箭头
+                // 下沿却翻一屏而不是一行）。
+                const int btnH = theme::Rpx(17);
                 // 【子行 22】行高不再相等，`scrollY_ ± kRowHeight` 会累积漂移
                 // （每越过一个子行就多滚 6px），几次之后箭头就把行滚到半截上。
                 // 改成"减去/加上当前那一行自己的行高"：这样无论行高怎么变，

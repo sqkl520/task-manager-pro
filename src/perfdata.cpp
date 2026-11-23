@@ -168,8 +168,14 @@ void PerfCollector::SetInterval(uint32_t ms) {
     // 不唤醒的话：从「低(4s)」切到「高(0.5s)」要等满 4 秒才生效，
     // 从「已暂停」切回任何档位则要等到下一次 RequestRefresh —— 用户会认为
     // 「菜单点了没反应」，正是本任务要消灭的那种假功能。
-    // 与 RequestRefresh() 同一个写法：只 SetEvent，不置 refresh_，
-    // 否则会把「改间隔」变成「立刻多采一次」，曲线出现额外的尖刺。
+    //
+    // 【副作用：会多采一拍】被唤醒时循环正卡在 WaitForSingleObject 上，
+    // 醒来后一定回到循环顶部再采一拍。所以切档位会让 sequence +1，
+    // 曲线出现一个额外的点。验收 agent 实测 seq 3→4 证实了这一点。
+    //
+    // 想避免它需要区分"因间隔变更而醒"和"因超时而醒"（例如比对醒来时刻
+    // 与预期时刻），复杂度不划算：切换档位是低频人工操作，多一个采样点
+    // 在 60 点曲线里肉眼看不出。**这里如实记录副作用，不假装它不存在。**
     if (wakeEvent_) SetEvent(wakeEvent_);
 }
 
@@ -508,9 +514,21 @@ void PerfCollector::ThreadProc() {
     }).detach();
 
     while (running_.load(std::memory_order_acquire)) {
-        // 采集这一拍之前先消费「立即刷新」标志：本次循环本来就要采，标志到此为止。
-        // **全函数唯一的 refresh_ 消费点**，所以下面 SetInterval/Stop 的唤醒
-        // 不会被误当成「多采一拍」——它们只 SetEvent，不置标志。
+        // 【诚实说明：refresh_ 目前是只写不读的死标志】
+        //
+        // 全项目对 refresh_ 只有两处写：RequestRefresh() 里 store(true)、
+        // 本行 store(false)。**没有任何一处读它** —— 唤醒机制实际靠的是
+        // wakeEvent_ 这个事件对象，循环被 SetEvent 叫醒后本来就回到这里
+        // 重新采一拍，不需要额外的布尔标志。
+        //
+        // 因此本行的 store(false) 是空操作。保留它只是为了避免"写了 true
+        // 却永远不清"这种更糟的半吊子状态。正确做法是连同 refresh_ 成员
+        // 一起删掉，但那要动 include/perfdata.h 的公开语义，属独立清理项。
+        //
+        // 【曾经写在这里的错误说法】原文写"全函数唯一的 refresh_ 消费点，
+        // 所以 SetInterval/Stop 的唤醒不会被误当成多采一拍" —— 前半句是
+        // 假的（没有任何消费点），后半句也不成立（SetInterval 确实会
+        // 多唤醒一次、多采一拍）。验收 agent 实测 seq 3→4 证实了这一点。
         refresh_.store(false, std::memory_order_relaxed);
 
         auto snap = std::make_shared<PerfSnapshot>();
@@ -551,10 +569,21 @@ void PerfCollector::ThreadProc() {
                 // -> 下一轮又阻塞在 INFINITE，正好是"一拍"。
                 // 若在这里也写 refresh_，就会出现两个写点，语义要靠时序猜。
             } else {
-                // 事件创建失败（极罕见）的降级路径：既不能用 INFINITE
-                // （没人能叫醒，Stop 会死锁），也不能不睡（忙循环）。
-                // 50 ms 的有界睡眠让暂停态 CPU 占用 ≈ 0，且不会拖慢退出。
-                Sleep(50);
+                // 事件创建失败（极罕见）的降级路径。
+                //
+                // 【陷阱】这里如果只是 Sleep(50) 然后 continue，就回到循环
+                // 顶部又采一拍 —— 暂停态变成 20 Hz 采集，CPU 上去了、
+                // 曲线还在动，等于没暂停。验收 agent 把这条记为 A6。
+                //
+                // 正确做法：睡完**再读一次间隔**，仍然是 0 就继续睡，
+                // 直到间隔被 SetInterval 改掉或 running_ 变 false。
+                // 这样暂停态既不忙循环、也不采集。
+                while (running_.load(std::memory_order_acquire) &&
+                       intervalMs_.load(std::memory_order_relaxed) == 0) {
+                    Sleep(50);
+                }
+                if (!running_.load(std::memory_order_acquire)) break;
+                continue;   // 间隔已非 0，回循环顶部正常采一拍
             }
             continue;
         }
