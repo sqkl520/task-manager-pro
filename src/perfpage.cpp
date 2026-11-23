@@ -1907,25 +1907,40 @@ void PerfPage::PaintMemPage(HDC hdc, const RECT& rc) const {
             // 于是这两类被算了两遍；末段只能用余数
             //   total - inUse - modified - standby
             // 来兜住总和，但那个余数**不等于** available，而是
-            //   available - standby - modified - 0
-            // ……少了一个 cachedBytes 量级。而图例把它标成「可用」，
-            // 与右栏属性列的「可用 = availableBytes」同名不同义。
-            // 本机实测两者差 2.92 GB，用户截图那台差 8.88 GB。
+            // 【口径已按原版逆向结果订正 —— 2026-11-24】
             //
-            // 正确做法：把「使用中」扣掉已被另外两段画走的部分，末段直接用
-            // 真正的 available。这样四段之和仍等于 total，且末段与右栏同义。
-            const uint64_t usedExclusive =
-                (m.inUseBytes > m.modifiedBytes + m.standbyBytes)
-                    ? m.inUseBytes - m.modifiedBytes - m.standbyBytes
-                    : 0;
-            const uint64_t availBytes = m.availableBytes;
+            // 原版 `AtmMemoryView::SetBarWidths` @0x1400BB704 的四段绑定
+            // （指令级实测，三份独立报告 G04/G06/G08 结论一致）：
+            //   slot0 = 残差 = total − (+0x250) − (+0x258) − (+0x260)  → BarchartInuse「使用中」
+            //   slot1 = +0x250 原值                                     → BarchartModified「已修改」
+            //   slot2 = +0x258 原值                                     → BarchartStandby「备用」
+            //   slot3 = +0x260 原值（只吃像素余量）                      → BarchartFree「可用」
+            // 元素序来自 0x140135960 的 4 条记录（每条 {resstrId, cnt, elemPtr}）：
+            //   33611 Inuse / 33612 Modified / 33613 Standby / 33614 Free
+            //
+            // 三条量的定义（G04 用 PDH 独立裁判，三次运行精确到 4 位小数）：
+            //   组合条「可用」= PDH \Memory\Free & Zero Page List Bytes  = free + zero
+            //   右栏「可用」  = GMS.ullAvailPhys = free + zero + standby
+            //   ⇒ 两处差恰好一个 standby（本机实测 7.20/5.84/5.89 GB，随 standby 变化）
+            //
+            // 【我上一版的错】第 4 段用了 availableBytes（= free+sb），
+            // 比原版多一个 sb；第 1 段用 inUse−md−sb，比原版少一个 sb。
+            // 两者恰好抵消 ⇒ 四段之和仍等于 total ⇒ **任何「和 == total」的自检都不报警**。
+            // 这就是这个 bug 能长期存活的机制，也是 D01 锐评当时没抓到它的原因。
+            //
+            // 现在：第 4 段直接用 free+zero，第 1 段用残差（与原版同构）。
+            // 残差兜底天然保证四段之和 == total，不需要额外的钳位凑数。
+            const uint64_t freeZeroBytes = m.freeBytes + m.zeroBytes;
+            const uint64_t sumOther = m.modifiedBytes + m.standbyBytes + freeZeroBytes;
+            const uint64_t usedResidual =
+                (m.totalBytes > sumOther) ? (m.totalBytes - sumOther) : 0;
             Seg segs[] = {
-                { usedExclusive,    RGB(0x0A, 0x3E, 0x70), L"使用中" },  // 33852；主题 21 = #F4F2F4
-                { m.modifiedBytes,  RGB(0xC2, 0x5B, 0x36), L"已修改" },  // 33841；主题 22 = #EEE6F1
-                { m.standbyBytes,   RGB(0x7F, 0xBA, 0xE0), L"备用" },    // 33853；主题 20 = #FFFFFF
-                // 【MUI 佐证】最后一段原版逐字是「可用」= resstr(33854)，
-                // 之前写的「空闲」在 MUI 里根本没有这个词。
-                { availBytes,       RGB(0xD8, 0xD8, 0xD8), L"可用" },    // 33854；主题 20 = #FFFFFF
+                { usedResidual,     RGB(0x0A, 0x3E, 0x70), L"使用中" },  // 33611 Inuse（残差）
+                { m.modifiedBytes,  RGB(0xC2, 0x5B, 0x36), L"已修改" },  // 33612 Modified
+                { m.standbyBytes,   RGB(0x7F, 0xBA, 0xE0), L"备用" },    // 33613 Standby
+                // 33614 Free = 真正的空闲物理页（free + zero），不是 available。
+                // 右栏那个「可用」是 free+zero+standby，两处差一个 standby 是**原版行为**。
+                { freeZeroBytes,    RGB(0xD8, 0xD8, 0xD8), L"可用" },    // 33614 Free
             };
             // ↑ 四条：【主题实测 GetThemeColor，与上屏不符，沿用旧值】具体见上方说明
 

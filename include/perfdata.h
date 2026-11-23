@@ -57,7 +57,11 @@ struct MemBreakdown {
     uint64_t cachedBytes = 0;       // 备用 + 已修改（"已缓存"）
     uint64_t standbyBytes = 0;      // 备用
     uint64_t modifiedBytes = 0;     // 已修改
-    uint64_t freeBytes = 0;         // 空闲
+    uint64_t freeBytes = 0;         // 空闲（NtQSI(80).FreePageCount，不含 zero）
+    // 零页列表。原版组合条的「可用」= PDH `\Memory\Free & Zero Page List Bytes`
+    // = FreePageCount + ZeroPageCount（G04 用 PDH 独立裁判，三次运行差 < 0.001 GB）。
+    // 我方此前只算 freeBytes，少一项 zero —— 本机 zero 恒为 0，但在别的机器上可能非零。
+    uint64_t zeroBytes = 0;         // 零点页（NtQSI(80).ZeroPageCount）
     uint64_t committedBytes = 0;    // 已提交
     uint64_t commitLimitBytes = 0;  // 提交限制
     uint64_t pagedPoolBytes = 0;    // 分页缓冲池

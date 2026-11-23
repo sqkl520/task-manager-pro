@@ -895,6 +895,11 @@ bool PerfCollector::CollectOnce(PerfSnapshot& out) {
         NTSTATUS st = fn(kSystemMemoryListInformation, &mli, sizeof(mli), &ret);
         if (NT_SUCCESS(st)) {
             out.mem.freeBytes = static_cast<uint64_t>(mli.FreePageCount) * kPageSize;
+            // 【原版口径】组合条「可用」= Free & Zero Page List = free + zero。
+            // G04 用 PDH `\Memory\Free & Zero Page List Bytes` 做独立裁判，
+            // 三次运行与 free+zero 差 < 0.001 GB。本机 ZeroPageCount 恒为 0，
+            // 但别的机器可能非零，漏掉这一项会让「可用」偏小。
+            out.mem.zeroBytes = static_cast<uint64_t>(mli.ZeroPageCount) * kPageSize;
             out.mem.modifiedBytes = static_cast<uint64_t>(mli.ModifiedPageCount) * kPageSize;
             // 备用页 = PageCountByPriority 之和
             uint64_t standby = 0;
