@@ -23,6 +23,7 @@
 #include "iconcache.h"
 #include "tabs.h"
 #include "menus.h"
+#include "perfdata.h"     // AttachPerfCollector 内联用到 PerfCollector::SetInterval
 #include "perfpage.h"
 #include "pages_view.h"
 
@@ -187,6 +188,16 @@ public:
     // 简略视图自测的正反两面都靠这两个值判定，不靠截图颜色。
     int TabsHeightForTest() const { return rcTabs_.bottom - rcTabs_.top; }
     int ColHeaderHeightForTest() const { return rcColHeader_.bottom - rcColHeader_.top; }
+
+    // 「查看 → 更新速度」的端到端自测入口。
+    //
+    // 【为什么需要它】探针能证明 PerfCollector::SetInterval 本身是好的，
+    // 但证明不了**菜单这条线有没有接上** —— 「SetInterval 实现正确、UI 从不调用它」
+    // 这个项目里已经出现过太多次（updateIntervalMs_ 曾经只写不读就是原样）。
+    // 这里走的是**真实命令分发**：合成 CMD_UPDATE_* 交给 OnMenuCommand，
+    // 再由 ApplyInterval 下发，最后回读两个采集器各自的 Interval()。
+    // ms 必须取四档之一：500 / 1000 / 4000 / 0。返回 false 表示没有对应命令。
+    bool ApplyUpdateSpeedForTest(int ms, unsigned* outProcMs, unsigned* outPerfMs);
     // 直接把简略视图设成指定状态（幂等）。
     // 【为什么不是 Toggle】自测要从确定的起点出发；Toggle 依赖当前值，
     // 前面任何一项测试改了状态都会让这一项的结果不可重复。
@@ -381,8 +392,26 @@ private:
     // 就必须能触达 Collector；此前 updateIntervalMs_ 只写不读，
     // 四个档位完全是摆设。
     void* collector_ = nullptr;   // 实际类型 Collector*，避免头文件循环依赖
+    // 性能页采集器（实际类型 PerfCollector*），同一套指针传递方式。
+    // 「查看 → 更新速度」必须同时作用于两个采集器：只改 Collector 的话，
+    // 选了「低」性能页仍每秒刷新、选了「已暂停」曲线还在动 —— 菜单在说谎。
+    void* perfCollector_ = nullptr;
 public:
     void AttachCollector(void* c) { collector_ = c; }
+    // 挂上性能采集器时，**立刻**把当前的 updateIntervalMs_ 推给它。
+    //
+    // 【为什么不能只存指针】main.cpp 里 Start(1000) 是另一处硬编码，
+    // 和这里 updateIntervalMs_ 的初值 1000 是两个各写各的字面量。今天它们
+    // 碰巧相等，但想法不同步（比如以后把默认档改成 500，或给更新速度加
+    // 注册表持久化）就会出现「启动后性能页按 1 Hz 跑、菜单上却打着 500 的勾」
+    // —— 又一个菜单说谎。挂载即对齐，比值写在两处更可靠。
+    void AttachPerfCollector(void* c) {
+        perfCollector_ = c;
+        if (perfCollector_) {
+            static_cast<PerfCollector*>(perfCollector_)
+                ->SetInterval(static_cast<uint32_t>(updateIntervalMs_));
+        }
+    }
 private:
     void RebuildMenu();
     // 把 updateIntervalMs_ 同步给采集器（0 = 已暂停）

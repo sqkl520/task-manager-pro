@@ -153,10 +153,24 @@ PerfCollector::~PerfCollector() { Stop(); }
 
 void PerfCollector::Start(uint32_t intervalMs) {
     if (running_.exchange(true)) return;
-    intervalMs_ = intervalMs ? intervalMs : 1000;
+    intervalMs_.store(intervalMs ? intervalMs : 1000, std::memory_order_relaxed);
     if (!wakeEvent_) wakeEvent_ = CreateEventW(nullptr, FALSE, FALSE, nullptr);
     ReadStaticCpuInfo();
     thread_ = std::thread(&PerfCollector::ThreadProc, this);
+}
+
+void PerfCollector::SetInterval(uint32_t ms) {
+    // 0 = 「已暂停」。这里**不做** `ms ? ms : 1000` 的兜底 —— 那是 Start() 的
+    // 语义（启动时给 0 没意义），而 SetInterval(0) 是一个真实的用户选择，
+    // 兜底会把它悄悄变成「常规」，菜单立刻又开始说谎。
+    intervalMs_.store(ms, std::memory_order_relaxed);
+    // 立刻唤醒采集线程，让它按新间隔重新等待。
+    // 不唤醒的话：从「低(4s)」切到「高(0.5s)」要等满 4 秒才生效，
+    // 从「已暂停」切回任何档位则要等到下一次 RequestRefresh —— 用户会认为
+    // 「菜单点了没反应」，正是本任务要消灭的那种假功能。
+    // 与 RequestRefresh() 同一个写法：只 SetEvent，不置 refresh_，
+    // 否则会把「改间隔」变成「立刻多采一次」，曲线出现额外的尖刺。
+    if (wakeEvent_) SetEvent(wakeEvent_);
 }
 
 void PerfCollector::Stop() {
@@ -493,7 +507,12 @@ void PerfCollector::ThreadProc() {
         if (!ver.empty()) gpuInfo_.SetFirstAdapterDirectXVersion(ver);
     }).detach();
 
-    while (running_.load()) {
+    while (running_.load(std::memory_order_acquire)) {
+        // 采集这一拍之前先消费「立即刷新」标志：本次循环本来就要采，标志到此为止。
+        // **全函数唯一的 refresh_ 消费点**，所以下面 SetInterval/Stop 的唤醒
+        // 不会被误当成「多采一拍」——它们只 SetEvent，不置标志。
+        refresh_.store(false, std::memory_order_relaxed);
+
         auto snap = std::make_shared<PerfSnapshot>();
         if (CollectOnce(*snap)) {
             uint64_t seq;
@@ -505,24 +524,51 @@ void PerfCollector::ThreadProc() {
             }
             publishedSeq_.store(seq, std::memory_order_release);
         }
-        DWORD waitMs = refresh_.exchange(false) ? 0 : intervalMs_;
-        if (!running_.load()) break;
-        if (waitMs > 0) {
-            // 【P0 修复】旧代码是 `if (waitMs > 0 && wakeEvent_)`：CreateEventW
-            // 失败时 wakeEvent_ 为 NULL，这个 if 整段跳过，while 循环退化成
-            // 忙循环，intervalMs_ 完全失效。实测周期 3.0 ms 对 interval=1000，
-            // 改成 16000 也还是 3.07 ms。
+
+        // 等下一拍。间隔在这里重新读 —— 这就是「切档位立刻生效」的全部机制：
+        // 读之前先被 SetInterval 的 SetEvent 唤醒，于是每次醒来都拿到最新值。
+        const uint32_t iv = intervalMs_.load(std::memory_order_relaxed);
+        if (!running_.load(std::memory_order_acquire)) break;
+
+        if (iv == 0) {
+            // ---------- 已暂停：**阻塞等待**，绝不忙循环 ----------
             //
-            // 后果：两次采样间隔短于计数器节拍（15.625 ms）时所有核 delta 为 0，
-            // CPU 利用率被算成接近 0。这是「真值 96% 显示 9%」的触发条件。
-            //
-            // 现在：事件不可用时退回 Sleep，绝不允许忙循环。
+            // 【为什么必须真的阻塞】本分支一旦写成「不等待 / Sleep(0) /
+            // continue 到底」，while 会以全速空转：CollectOnce 每秒被调用
+            // 上万次，CPU 占用拉满，而且两次采样的间隔短于计数器节拍
+            // (15.625 ms)时所有核 delta 为 0，CPU 利用率被算成接近 0 ——
+            // 这正是本文件 ThreadProc 里记录的「真值 96% 显示 9%」塌陷的
+            // 触发条件。暂停的语义是「不再自动采集」，不是「每秒空转一千次」。
             if (wakeEvent_) {
-                WaitForSingleObject(wakeEvent_, waitMs);
+                WaitForSingleObject(wakeEvent_, INFINITE);
+                // Stop() 也是靠 SetEvent 把我们从 INFINITE 叫醒的。醒来后
+                // 间隔可能仍然是 0，如果不在这里查 running_ 就会立刻又回到
+                // INFINITE，Stop() 里的 thread_.join() 永久卡死，程序退不掉。
+                if (!running_.load(std::memory_order_acquire)) break;
+                // 这里**不碰** refresh_：暂停态下点「立即刷新」要求的是
+                // 「补采一拍后继续停住」。标志由 RequestRefresh 置位、由
+                // 循环开头的唯一消费点读走，醒来 -> continue -> 开头采集一拍
+                // -> 下一轮又阻塞在 INFINITE，正好是"一拍"。
+                // 若在这里也写 refresh_，就会出现两个写点，语义要靠时序猜。
             } else {
-                Sleep(waitMs);
+                // 事件创建失败（极罕见）的降级路径：既不能用 INFINITE
+                // （没人能叫醒，Stop 会死锁），也不能不睡（忙循环）。
+                // 50 ms 的有界睡眠让暂停态 CPU 占用 ≈ 0，且不会拖慢退出。
+                Sleep(50);
             }
-            refresh_.store(false);
+            continue;
+        }
+
+        // ---------- 正常运行：等满间隔，或被 SetInterval / RequestRefresh / Stop 唤醒 ----------
+        //
+        // 【P0 修复·保留】旧代码是 `if (waitMs > 0 && wakeEvent_)`：CreateEventW
+        // 失败时 wakeEvent_ 为 NULL，这个 if 整段跳过，while 循环退化成
+        // 忙循环，intervalMs_ 完全失效。实测周期 3.0 ms 对 interval=1000，
+        // 改成 16000 也还是 3.07 ms。现在事件不可用时退回 Sleep，绝不允许忙循环。
+        if (wakeEvent_) {
+            WaitForSingleObject(wakeEvent_, iv);
+        } else {
+            Sleep(iv);
         }
     }
 }

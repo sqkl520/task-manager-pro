@@ -9,6 +9,7 @@
 #include "tmwindow.h"
 #include "pages_view.h"
 #include "collector.h"
+#include "perfdata.h"
 
 #include <windowsx.h>
 #include <shellapi.h>
@@ -533,10 +534,49 @@ void TmWindow::ShowPropertiesDialog(uint32_t pid) {
 
 // ============ 菜单命令分发 ============
 
+// 「查看 → 更新速度」端到端自测入口。
+//
+// 关键点：它**不直接**调 SetInterval，而是合成菜单命令 ID 走 OnMenuCommand，
+// 与用户点菜单完全同一条路径（OnMenuCommand -> ApplyInterval -> 两个采集器）。
+// 若哪天有人把 ApplyInterval 里的性能采集器那两行删掉，这个函数会立刻暴露。
+bool TmWindow::ApplyUpdateSpeedForTest(int ms, unsigned* outProcMs, unsigned* outPerfMs) {
+    UINT cmd = 0;
+    switch (ms) {
+    case 500:  cmd = CMD_UPDATE_HIGH;   break;
+    case 1000: cmd = CMD_UPDATE_NORMAL; break;
+    case 4000: cmd = CMD_UPDATE_LOW;    break;
+    case 0:    cmd = CMD_UPDATE_PAUSED; break;
+    default:   return false;            // 不是合法档位
+    }
+    OnMenuCommand(cmd);
+    if (outProcMs) {
+        *outProcMs = collector_ ? static_cast<Collector*>(collector_)->Interval() : 0xFFFFFFFFu;
+    }
+    if (outPerfMs) {
+        *outPerfMs = perfCollector_
+            ? static_cast<PerfCollector*>(perfCollector_)->Interval() : 0xFFFFFFFFu;
+    }
+    return true;
+}
+
 void TmWindow::ApplyInterval() {
-    if (!collector_) return;
-    static_cast<Collector*>(collector_)->SetInterval(
-        static_cast<uint32_t>(updateIntervalMs_));
+    if (!collector_) {
+        // 理论上不会发生（main.cpp 在 Create() 之前就 Attach 了），
+        // 但「没接上」必须说出来，不能静默成功 —— 那样菜单又在说谎。
+        return;
+    }
+    const uint32_t ms = static_cast<uint32_t>(updateIntervalMs_);
+    static_cast<Collector*>(collector_)->SetInterval(ms);
+
+    // 【本轮的修复核心】性能页采集器也要跟着改。
+    //
+    // 此前这里只设了进程采集器，PerfCollector 的间隔只在 Start() 里赋值一次
+    // （main.cpp 硬编码 1000）—— 于是「更新速度」菜单对性能页完全无效：
+    // 选「低(4000)」性能页照样每秒刷新一次，选「已暂停(0)」曲线还在动。
+    // 用户看得见的那一页不听话，这个菜单项就是在说谎。
+    if (perfCollector_) {
+        static_cast<PerfCollector*>(perfCollector_)->SetInterval(ms);
+    }
 }
 
 void TmWindow::OnMenuCommand(UINT id) {
@@ -592,6 +632,12 @@ void TmWindow::OnMenuCommand(UINT id) {
         // 此前只 InvalidateAll()，数字不会变。
         if (collector_) {
             static_cast<Collector*>(collector_)->RequestRefresh();
+        }
+        // 性能采集器同样要真刷。这一条在「已暂停」档位下是关键路径：
+        // 暂停后性能线程阻塞在唤醒事件上，唯一能让它补采一拍的就是这里。
+        // 漏掉的话，「已暂停 + 立即刷新」在性能页上完全没反应。
+        if (perfCollector_) {
+            static_cast<PerfCollector*>(perfCollector_)->RequestRefresh();
         }
         InvalidateAll();
         return;

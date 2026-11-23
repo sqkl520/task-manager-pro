@@ -2645,9 +2645,73 @@ void PerfPage::PaintEngineChart(HDC hdc, const RECT& rc, int engineType,
     //      会贴着底边成一条近乎水平的线。这是**真实情况**，不是缺陷 ——
     //      原版也是这样。要看清趋势应该看「单个引擎」视图（格子更大），
     //      而不是靠偷偷放大量程。
+    //
+    // 【量程刻度：上一轮只改了量程、没画刻度 —— 本轮补上】
+    //   上一轮把这里从「自适应」改成「固定 0..100」（见上），但没有在格子里
+    //   写出任何纵轴数字。于是问题从「图说谎」变成「图不说话」：
+    //   一条贴着底边的线，用户无法判断它是 3% 还是 0.3%。
+    //   固定量程必须配刻度才有意义 —— 这正是本轮修复。
+    //
+    // 【方案选择：格内上下两行标 `100%` / `0`，与主图 PaintChart 同一套角落约定】
+    //   候选与取舍：
+    //   (b) 只标第一个格子 —— 拒绝。四个格子的纵轴完全相同，只标一格会让用户
+    //       以为那一格特殊（或被当成图例），其余三格仍然读不出量级。
+    //   (c) 右侧竖排小刻度 —— 拒绝。格宽虽够，但格高只有 46~130px，
+    //       竖排要么只剩 2~3 个刻度点、要么把 11px 文字挤成 4~5px 一行；
+    //       而且右侧已被当前百分比占着（见上面 pct 那一行）。
+    //   (d) 每 25% 一条淡网格线 —— 只能给出「分了 4 段」，给不出**绝对量级**：
+    //       用户仍然不知道满格是 100% 还是 40%，等于没解决本问题。
+    //       （若将来要加网格线，也应作为本方案的补充，而不是替代。）
+    //   (a) 上限右对齐贴绘图区上沿、下限左对齐贴绘图区下沿 —— 采用。
+    //       · 与主图 PaintChart 的角落约定逐字一致（那边是 `L"100%"`/`L"0"`，
+    //         上限右对齐、下限左对齐，见 :979-986），同一屏两张图读法相同；
+    //       · 字符串直接用 MUI 41009 `100%` / 41010 `0`
+    //         （docs/evidence/mui_strings_all.txt:788-789），不新造文案；
+    //       · 字体 fontSmall_ + 颜色 kAxisText，与主图轴标签同一档。
+    //       ⚠ 诚实标注（与上方 2634-2637 同一条）：41009/41010 在
+    //         uifile_Taskmgr_30001_full.txt 里**没有 resstr 引用**，所以
+    //         「原版引擎格确实用它当刻度」仍是强推断，不是像素证据。
+    //         本方案的**主要**依据是「与同页主图一致 + 固定量程必须可读」，
+    //         不是「原版这么画」。
+    //
+    // 【位置：为什么在格子内部，而主图在格子外部】
+    //   主图的轴标签画在图表矩形**外面**（top-16 / bottom..bottom+15），因为
+    //   主图上下都有空行。引擎格是 2×2 紧排、格子间距只有 8px，
+    //   往格子外画会压到相邻格子或标题行。所以在格内让出上下各一行 15px
+    //   （与主图下限行同为 15px，行高保持一致），绘图区上下各收 15px。
+    //   格子被窗口压得很矮时**不画刻度**：那种高度连一行 11px 文字都让不出来，
+    //   硬塞会把曲线压没。此时宁可无刻度，也不画出压在曲线上的文字。
+    //   阈值按**绘图区高度**判（不是格子高度）：绘图区 = 格高 − 26（上方标题区
+    //   22px + 下边距 4px），需 ≥ 46px（上下各 15px 刻度行 + 至少 16px 曲线），
+    //   即格高 ≥ 72px 才标。实测边界（探针 640 宽扫高度）：窗口高 240 → 格高
+    //   72 → **有**刻度；窗口高 235 → 格高 69 → **无**刻度。
     constexpr double kEngineRange = 100.0;
 
     RECT plot{ rc.left + 6, rc.top + 22, rc.right - 6, rc.bottom - 4 };
+    // 刻度行高 15px：与 PaintChart 的下限标签行（bottom..bottom+15）一致。
+    // 门槛分两维，任一不满足就**不画刻度**（宁可无刻度，也不画出压住曲线的文字）：
+    //   高：上下各一行 + 至少 16px 曲线高度；
+    //   宽：实测 `100%` 的像素宽 + 8px 余量（不能用固定值猜 —— 曾用固定 120px，
+    //       结果 500px 宽的窗口里格子内宽只有 108px、刻度被整对判掉）。
+    const int kAxisRowH = 15;
+    int labelW = 0;
+    {
+        SIZE sz{};
+        GetTextExtentPoint32W(hdc, L"100%", 4, &sz);
+        labelW = sz.cx;
+    }
+    const bool showScale =
+        (plot.bottom - plot.top) >= (kAxisRowH * 2 + 16) &&
+        (plot.right - plot.left) >= (labelW + 8);
+    if (showScale) {
+        plot.top    += kAxisRowH;
+        plot.bottom -= kAxisRowH;
+        // fontSmall_ 已在本函数 :2603 选中并保持到函数末尾，这里直接用。
+        RECT t{ plot.right - (labelW + 6), plot.top - kAxisRowH, plot.right, plot.top };
+        DrawText2(hdc, L"100%", &t, DT_SINGLELINE | DT_RIGHT, kAxisText);
+        RECT b{ plot.left, plot.bottom, plot.left + 24, plot.bottom + kAxisRowH };
+        DrawText2(hdc, L"0", &b, DT_SINGLELINE | DT_LEFT, kAxisText);
+    }
     int pw = plot.right - plot.left;
     int ph = plot.bottom - plot.top;
     if (pw > 8 && ph > 8 && hist_.count >= 2) {

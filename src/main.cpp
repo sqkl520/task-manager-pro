@@ -875,6 +875,40 @@ int RunSelfTest() {
                  : Narrow(L"desc 与 asc 落点完全相同 —— 方向不可辨"));
     }
 
+    // ---- 「查看 → 更新速度」端到端自测 ----
+    //
+    // 【这一项防的是什么】菜单四档此前只改进程采集器，性能采集器的间隔
+    // 只在 Start() 里赋值一次（硬编码 1000）。用户选「低(4000)」性能页仍按
+    // 1 Hz 刷新、选「已暂停(0)」曲线还在动 —— 菜单在说谎。
+    //
+    // 【判据】不看「菜单勾有没有挪」，而是回读**两个采集器各自的 Interval()**：
+    // 四档逐一合成真实命令（走 OnMenuCommand -> ApplyInterval），
+    // 两个都必须等于该档位。任何一个对不上就是 FAIL。
+    // 用 addSub 而不是写死项数：将来加档位不会静默漏测。
+    log.W(L"\n=== 更新速度菜单自测 ===\n");
+    {
+        struct SpeedCase { int ms; const wchar_t* name; };
+        const SpeedCase cases[] = {
+            { 500,  L"高(500ms)"   },
+            { 1000, L"常规(1000ms)" },
+            { 4000, L"低(4000ms)"  },
+            { 0,    L"已暂停(0)"   },
+        };
+        for (const auto& c : cases) {
+            unsigned procMs = 0xFFFFFFFFu, perfMs = 0xFFFFFFFFu;
+            const bool ok = g_win->ApplyUpdateSpeedForTest(c.ms, &procMs, &perfMs);
+            char d[200];
+            sprintf_s(d, "期望两个采集器都=%d；进程采集器=%u 性能采集器=%u%s",
+                      c.ms, procMs, perfMs, ok ? "" : "（无对应命令）");
+            Mark((ok && procMs == static_cast<unsigned>(c.ms) &&
+                  perfMs == static_cast<unsigned>(c.ms)) ? 1 : 0,
+                 (std::wstring(L"更新速度 ") + c.name + L" 同时作用于两个采集器").c_str(),
+                 d);
+        }
+        // 收尾：恢复常规档，免得影响后面的绘制/截图类检查
+        g_win->ApplyUpdateSpeedForTest(1000, nullptr, nullptr);
+    }
+
     log.F("\n=== 结果: PASS %d / FAIL %d / SKIP %d ===\n", t.pass, t.fail, t.skip);
     log.Close();
     return t.fail > 0 ? 1 : 0;
@@ -956,8 +990,11 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, LPWSTR lpCmdLine, int) {
     g_perf->Start(1000);
 
     g_win = new TmWindow();
-    // 把采集器挂到窗口上，这样「查看 → 更新速度」「立即刷新」才能真正生效
+    // 把采集器挂到窗口上，这样「查看 → 更新速度」「立即刷新」才能真正生效。
+    // **两个采集器都要挂**：更新速度要同时改变进程采集器和性能采集器的周期，
+    // 只挂进程采集器的话性能页会一直按 1 Hz 刷新（选「已暂停」曲线还在动）。
     g_win->AttachCollector(g_collector);
+    g_win->AttachPerfCollector(g_perf);
     // 自测 / 离屏截图模式下窗口不显示：SW_HIDE。
     // 窗口仍然存在、仍然能收消息，但不会出现在屏幕上，不抢焦点，不动用户鼠标。
     if (!g_win->Create(inst, (selfTest || offscreen) ? SW_HIDE : SW_SHOW)) {

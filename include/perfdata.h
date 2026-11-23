@@ -190,6 +190,20 @@ public:
     void Stop();
     void RequestRefresh();
 
+    // 运行时改采集间隔。语义与 Collector::SetInterval 逐条对齐：
+    //   ms > 0  → 自动采集周期改为 ms 毫秒
+    //   ms == 0 → 「已暂停」：采集线程阻塞在唤醒事件上，不再自动采集，
+    //             只有 RequestRefresh / SetInterval / Stop 能把它叫醒
+    //             （**不是**忙循环，见 perfdata.cpp ThreadProc 里的注释）
+    //
+    // 【为什么必须有这个】菜单「查看 → 更新速度」有 高(500)/常规(1000)/
+    // 低(4000)/已暂停(0) 四档。此前只有 Collector 有 SetInterval，性能采集器
+    // 的间隔只在 Start() 里赋值一次 —— 于是选了「低」性能页仍每秒刷新、
+    // 选了「已暂停」曲线还在动，菜单在说谎。
+    void SetInterval(uint32_t ms);
+    // 当前自动采集间隔（0 = 已暂停）。排查用，也让 UI 侧能自证一致性。
+    uint32_t Interval() const { return intervalMs_.load(std::memory_order_relaxed); }
+
     std::shared_ptr<const PerfSnapshot> GetSnapshot() const;
     uint64_t Sequence() const { return publishedSeq_.load(std::memory_order_acquire); }
 
@@ -210,7 +224,9 @@ private:
     std::atomic<bool> running_{false};
     std::atomic<bool> refresh_{false};
     std::atomic<uint64_t> publishedSeq_{0};
-    uint32_t intervalMs_ = 1000;
+    // 采集线程在 UI 线程之外读它，必须 atomic —— 旧代码是普通 uint32_t，
+    // 只有 Start() 一处写，所以没出问题；一旦支持运行时改间隔就是数据竞争。
+    std::atomic<uint32_t> intervalMs_{1000};
     HANDLE wakeEvent_ = nullptr;
 
     mutable std::mutex publishMutex_;

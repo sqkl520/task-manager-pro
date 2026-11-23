@@ -102,18 +102,44 @@ inline bool LiveVisible(int idx) {
     return g_liveVisible ? g_liveVisible[idx] : true;
 }
 
+// 第 idx 列**屏幕宽度 px**。
+//
+// 【单位 —— 先读这段再改，这里有一个**跨文件**的约束】
+//   · kCols[].width = **96 DPI 基准值**（theme.h 文件头约定）→ 用时要 Rpx()。
+//   · colWidths_     = **屏幕 px**。依据不是本文件的意愿，而是**写入方**：
+//     tmwindow_events.cpp 的拖拽分支直接写
+//         `colWidths_[c] = colDragStartW_ + (x - colDragStartX_)`
+//     两端都是屏幕坐标，**绕过** SetColumnWidth。那个文件不归本轮改，
+//     所以存储单位只能迁就它，否则高 DPI 下拖一次列宽就会二次放大。
+//   ⚠ 仅看 include/tmwindow.h 的默认 `{0,120,73,...}` 会误以为它存的是基准值
+//     （那组数恰好等于 kCols）。不是 —— 它们只在 **LoadColumnWidths 跑之前**
+//     是这个字面值；LoadColumnWidths 会把"没有寄存值"的列换算成屏幕 px（见那里）。
+//
+// 因此这里对存储值**不再 Rpx**（它已经是屏幕 px），只有回落 kCols 时才换算。
 inline int LiveW(int idx) {
     if (idx <= 0) return 0;
-    if (g_liveWidths && g_liveWidths[idx] > 0) return g_liveWidths[idx];
-    return kCols[idx].width;
+    if (g_liveWidths && g_liveWidths[idx] > 0) return g_liveWidths[idx];   // 已是屏幕 px
+    return theme::Rpx(kCols[idx].width);                                   // 基准值 → 屏幕
 }
 
 // 【列可见性】所有列几何都从这里派生，隐藏列**不占宽度**。
 // 只有「名称列 + 可见的固定列」参与累加，隐藏列一律跳过 ——
 // 这是「隐藏 CPU 后后面的列左移填位」得以成立的那一处判断。
+//
+// 【DPI】返回值是屏幕 px。绘制侧（ColX/ColW/每个单元格矩形）与命中侧
+// （HitTestColumn/HitTestColResize）都从这一处取，所以横向不存在
+// "改了绘制忘改命中"—— 两处是同一个函数。
 inline int VisW(int idx) {
     return LiveVisible(idx) ? LiveW(idx) : 0;
 }
+
+// 名称列左侧那条「展开箭头沟槽」的宽度（屏幕 px = Rpx(kIndentPerLevel)）。
+//
+// 【为什么要抽这个函数】kIndentPerLevel 在本文件里有 **7 个语义不同的使用点**
+// （见下方每个调用点的注释），全部漏包 Rpx 的话，125% 下沟槽只有 6px 而名字列
+// 内容却放大了 —— 箭头会压到图标上。抽成一个函数，任何一处漏用都会被
+// "全文件只有这一个来源"这条约束挡住。
+inline int IndentGutter() { return theme::Rpx(kIndentPerLevel); }
 
 // ===== 数据行左侧三段的位置（真原版截图实测）=====
 //
@@ -204,10 +230,16 @@ constexpr int kNameColWidth = 234;
 inline int NameColWidth(int availWidthIgnoringIndent) {
     int fixed = 0;
     for (int i = 1; i < kColCount; ++i) fixed += VisW(i);
-    // 【DPI】kNameColWidth 是 96 DPI 基准值；调用方传进来/回去的口径都**不含**
-    // kIndentPerLevel（调用方自己减、ColX/ColW 自己加），所以这里减掉未缩放的
-    // kIndentPerLevel：总占宽 = kIndentPerLevel + 返回值 = Scaled(234) ✓。
-    const int want = theme::Scaled(kNameColWidth) - kIndentPerLevel;   // 本机 = 228
+    // 【DPI —— 两个量必须同源缩放】
+    //   kNameColWidth 与 kIndentPerLevel 都是 96 DPI 基准值，这里**两个都包 Rpx**。
+    //   调用方传进来的 availWidthIgnoringIndent 也已减掉 **Rpx(kIndentPerLevel)**，
+    //   于是「名称列总占宽 = 沟槽 + 返回值 = Rpx(kNameColWidth)」这个恒等式
+    //   在任何 DPI 下都精确成立。
+    //
+    //   ⚠ 本轮修正：此前是 `Scaled(kNameColWidth) - kIndentPerLevel`（沟槽没包），
+    //   120 DPI 下总量 = 8 + (293−6) = 295 ≠ Rpx(234)=293，右侧多出 2px ——
+    //   列左界随之整体右移，而与列头/命中侧的 234 名义边界对不上。
+    const int want = theme::Rpx(kNameColWidth) - theme::Rpx(kIndentPerLevel);   // 96 DPI = 228
     const int availForName = availWidthIgnoringIndent - fixed;
     if (availForName >= want) return want;
     return availForName > 0 ? availForName : 0;
@@ -321,20 +353,45 @@ void TmWindow::LoadColumnWidths() {
     // Create 里被调用一次 —— 两件事都是「列视图的持久化状态」，同源同点恢复。
     LoadColumnVisibility();
 
+    // 【DPI —— 默认值必须换算成屏幕 px，且**必须在这里做**】
+    //   colWidths_ 的成员初值 `{0,120,73,...}` 是 **96 DPI 基准值**（恰好等于
+    //   kCols），而全文件（LiveW / EffectiveColWidth / HitTestColumn）都按
+    //   "colWidths_ 是屏幕 px" 读它。若注册表里没有值就直接返回，
+    //   高 DPI 下 73 这个数会原样当屏幕 px 用 —— 列宽停在 96 DPI 的大小，
+    //   正是本任务要修的「高 DPI 下列宽不放大」。
+    //   所以在**任何出口之前**把非 0 的项换算成屏幕 px（LoadColumnWidths
+    //   在 TmWindow::Create 里只调一次，早于第一次布局/绘制）。
+    auto toScreen = [](int base) { return base > 0 ? theme::Rpx(base) : base; };
+
     HKEY k = nullptr;
-    if (RegOpenKeyExW(HKEY_CURRENT_USER, kRegKey, 0, KEY_READ, &k) != ERROR_SUCCESS) return;
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, kRegKey, 0, KEY_READ, &k) != ERROR_SUCCESS) {
+        for (int i = 1; i < kSortColCount; ++i) colWidths_[i] = toScreen(kCols[i].width);
+        return;
+    }
 
     DWORD type = 0, cb = sizeof(colWidths_);
     BYTE buf[sizeof(colWidths_)] = {};
     if (RegQueryValueExW(k, kRegValue, nullptr, &type, buf, &cb) == ERROR_SUCCESS &&
         type == REG_BINARY && cb == sizeof(colWidths_)) {
         memcpy(colWidths_, buf, sizeof(colWidths_));
-        // 合法性校正：任何越界值回落到默认，避免读到坏数据后列宽错乱
+        // 合法性校正：任何越界值回落到默认，避免读到坏数据后列宽错乱。
+        //
+        // 【DPI】存进去的是**屏幕 px**（见 LiveW 的注释），所以上下限也要按
+        // 屏幕 px 判断 —— 与 SetColumnWidth 的 40/600 是同一个口径。
+        // 这里若用未缩放的 40/600，200% 下拖出来的 100 屏幕 px 会被误判成
+        // "合法"（它其实只相当于 50 基准）—— 不影响正确性，但会让
+        // "最小可读宽度"这条约束在高 DPI 下失效。
+        // ⚠ 落盘/读盘都是屏幕 px ⇒ **换 DPI 后同一份注册表会被重解释**，
+        //   这是既有格式的固有限制（写盘时不知道将来在什么 DPI 下读），
+        //   只在"拖过列宽 + 换缩放"这个组合下才可见，本轮不引入新格式。
         for (int i = 1; i < kSortColCount; ++i) {
             if (colWidths_[i] < 40 || colWidths_[i] > 600) {
-                colWidths_[i] = kCols[i].width;
+                colWidths_[i] = theme::Rpx(kCols[i].width);
             }
         }
+    } else {
+        // 键存在但没有本程序的值（或格式不符）：同样要换算默认值。
+        for (int i = 1; i < kSortColCount; ++i) colWidths_[i] = toScreen(kCols[i].width);
     }
     RegCloseKey(k);
 }
@@ -399,13 +456,27 @@ void TmWindow::SaveColumnWidths() {
     RegCloseKey(k);
 }
 
+// 第 col 列的**屏幕宽度 px**（绘制/命中/拖拽起点统一口径）。
+//
+// 【DPI】colWidths_ 是屏幕 px（见 LiveW 的注释：写入方是 events.cpp 的拖拽分支），
+// kCols[].width 是 96 DPI 基准值 —— 只有回落默认值那条分支要 Rpx()。
+// 与 LiveW() 必须逐值相同：一个给绘制/命中，一个给拖拽起点。一旦不同，
+// 拖同样的距离就会跳（"两套原点"在 DPI 维度的复现）。
 int TmWindow::EffectiveColWidth(int col) const {
     if (col <= 0 || col >= kSortColCount) return 0;
-    return colWidths_[col] > 0 ? colWidths_[col] : kCols[col].width;
+    return colWidths_[col] > 0 ? colWidths_[col] : theme::Rpx(kCols[col].width);
 }
 
+// 参数与存储都是**屏幕 px**（与 events.cpp 的拖拽写入保持一致）。
+// 见 LiveW 注释里那个跨文件约束 —— 这里不要做 DPI 换算，否则会与
+// 拖拽分支写下的值单位不一致。
 void TmWindow::SetColumnWidth(int col, int w, bool persist) {
     if (col <= 0 || col >= kSortColCount) return;
+    // 上限 600 不随 DPI 变：它的语义是"防止把整行挤没"，而窗口宽度本身
+    // 已经是屏幕 px，600 * scale 在 200% 下可能超过窗口宽度 —— 那时列宽
+    // 被窗口钳制，实际已经停止增长，再放大上限没有意义反而更难拖回。
+    // 下限 40 同理保持在屏幕 px（4096 宽的窗口在 200% 下也只有约 2000 逻辑像素，
+    // 40 屏幕 px 仍是"能看见一点"的量级）。
     if (w < 40) w = 40;
     if (w > 600) w = 600;
     colWidths_[col] = w;
@@ -514,9 +585,9 @@ bool TmWindow::ClickRowExpandoForTest(int row) {
     // 行顶 = rcList_.top - scrollY_ + 前面所有行的行高之和（同 HitTestRow 口径）
     int ly = rcList_.top - scrollY_;
     for (int i = 0; i < row; ++i) {
-        ly += RowHeightFor(rows_[i].kind == ViewRow::GroupHeaderRow, rows_[i].indentLevel);
+        ly += theme::RowHeightForPx(rows_[i].kind == ViewRow::GroupHeaderRow, rows_[i].indentLevel);
     }
-    const int rh = RowHeightFor(false, vr.indentLevel);
+    const int rh = theme::RowHeightForPx(false, vr.indentLevel);
     const int cy = ly + rh / 2;
     // 必须落在列表可视区内，否则这次"点击"在真实交互里根本不会发生
     if (cy < rcList_.top || cy >= rcList_.bottom) return false;
@@ -543,9 +614,9 @@ bool TmWindow::ClickRowForTest(int row) {
 
     int ly = rcList_.top - scrollY_;
     for (int i = 0; i < row; ++i) {
-        ly += RowHeightFor(rows_[i].kind == ViewRow::GroupHeaderRow, rows_[i].indentLevel);
+        ly += theme::RowHeightForPx(rows_[i].kind == ViewRow::GroupHeaderRow, rows_[i].indentLevel);
     }
-    const int rh = RowHeightFor(false, vr.indentLevel);
+    const int rh = theme::RowHeightForPx(false, vr.indentLevel);
     const int cy = ly + rh / 2;
     if (cy < rcList_.top || cy >= rcList_.bottom) return false;
 
@@ -670,7 +741,7 @@ int TmWindow::HitTestColResize(int x, int y) const {
     if (y < rcColHeader_.top || y >= rcColHeader_.bottom) return -1;
     if (x < rcColHeader_.left || x >= rcColHeader_.right) return -1;
 
-    const int nameW = NameColWidth(rcColHeader_.right - rcColHeader_.left - kIndentPerLevel);
+    const int nameW = NameColWidth(rcColHeader_.right - rcColHeader_.left - IndentGutter());
 
     // 起点与 HitTestColumn / PaintColumnHeader 一致：名称列从 rcColHeader_.left 起，
     // 宽度含那 18px 的展开箭头沟槽。否则拖拽边界与看到的列边界会错开 18px。
@@ -680,7 +751,7 @@ int TmWindow::HitTestColResize(int x, int y) const {
     // 拖了之后「什么都没有的空白处」宽度发生变化，非常诡异。
     int cx = rcColHeader_.left;
     for (int i = 0; i < kColCount; ++i) {
-        int w = (i == 0) ? (nameW + kIndentPerLevel) : EffectiveColWidth(i);
+        int w = (i == 0) ? (nameW + IndentGutter()) : EffectiveColWidth(i);
         if (i > 0 && !LiveVisible(i)) continue;     // 隐藏列不占位、不可拖
         cx += w;
         // 命中带宽 4px：边界像素本身 + 左侧 2px + 右侧 1px（左闭右开）。
@@ -688,7 +759,14 @@ int TmWindow::HitTestColResize(int x, int y) const {
         // 【修正 · _PLAN.md A-14 / 01-10c】原先是 `cx-3 .. cx+3`（7px 宽）。
         // 原版 listview 的可拖拽判定约 4..5px —— 7px 太宽，紧挨着边界点击
         // 会先被判成拖拽、排序点不动（列头点击与拖拽的优先级里拖拽在前）。
-        if (x >= cx - 2 && x <= cx + 1) return i;
+        //
+        // 【DPI —— 这是一个"命中容差"，要缩放；但不是 1px 修正】
+        // 不缩放的话，200% 下 4px 只相当于 96 DPI 的 2px，边界几乎点不中。
+        // 幅度缩放但**保持 −2/+1 的不对称**（左闭右开语义：边界像素归左邻列），
+        // 所以不能写成 `±Rpx(2)`。
+        // ⚠ 上限保护：容差不能超过相邻列宽，否则窄列（73px 在 200% 下也够）
+        // 会被整个吃掉 —— 这里 4*2=8 < 73*2，安全，无需额外钳制。
+        if (x >= cx - theme::Rpx(2) && x <= cx + theme::Rpx(1)) return i;
     }
     return -1;
 }
@@ -734,7 +812,7 @@ std::wstring DisplayName(const std::wstring& imageName) {
 int TmWindow::CurrentNameColWidth() const {
     g_liveWidths = colWidths_;
     g_liveVisible = colVisible_;
-    return NameColWidth(rcList_.right - rcList_.left - kIndentPerLevel);
+    return NameColWidth(rcList_.right - rcList_.left - IndentGutter());
 }
 
 void TmWindow::TreeTriangleX(int indentLevel, int& left, int& right) const {
@@ -760,10 +838,10 @@ void TmWindow::TreeTriangleX(int indentLevel, int& left, int& right) const {
     //
     // x0 = rcList_.left + kIndentPerLevel(6)，本机 rcList_.left = 0 ⇒ x0 = 6。
     // 沟槽左沿 9 ⇒ 相对 x0 偏移 3。
-    const int x0 = rcList_.left + kIndentPerLevel;
-    const int rowIndent = indentLevel * kTreeIndent;
-    left  = x0 + rowIndent + kArrowLeftOffset;    // 6 + 3 = 9
-    right = left + kArrowWidth;                    // 9 + 8 = 17
+    const int x0 = rcList_.left + IndentGutter();
+    const int rowIndent = indentLevel * theme::Rpx(kTreeIndent);
+    left  = x0 + rowIndent + theme::Rpx(kArrowLeftOffset);    // 96 DPI: 6 + 3 = 9
+    right = left + theme::Rpx(kArrowWidth);                   // 96 DPI: 9 + 8 = 17
 }
 
 int TmWindow::HitTestColumn(int x, int y) const {
@@ -773,7 +851,7 @@ int TmWindow::HitTestColumn(int x, int y) const {
     if (y < rcColHeader_.top || y >= rcColHeader_.bottom) return -1;
     if (x < rcColHeader_.left || x >= rcColHeader_.right) return -1;
 
-    const int nameW = NameColWidth(rcColHeader_.right - rcColHeader_.left - kIndentPerLevel);
+    const int nameW = NameColWidth(rcColHeader_.right - rcColHeader_.left - IndentGutter());
 
     // 名称列的单元格从 `rcColHeader_.left` 开始（宽度多出 kIndentPerLevel 的沟槽），
     // 其余列仍在原位置 —— 这样后续列边界与 `ColX()` 完全一致，不会整体偏 18px。
@@ -787,7 +865,7 @@ int TmWindow::HitTestColumn(int x, int y) const {
     int cx = rcColHeader_.left;
     for (int i = 0; i < kColCount; ++i) {
         int w = ColW(i, nameW);
-        if (i == 0) w += kIndentPerLevel;
+        if (i == 0) w += IndentGutter();
         if (x >= cx && x < cx + w) return i;
         cx += w;
     }
@@ -954,20 +1032,42 @@ inline COLORREF BlendOver(COLORREF fg, COLORREF bg, unsigned a) {
 }
 
 // 画应用行的展开/折叠箭头。
-//   left/top : 字形包围盒左上角（折叠态 6×9，展开态 9×6）
+//   left/top : 字形包围盒左上角（折叠态 6×9，展开态 9×6 —— 单位是**格子**）
 //   expanded : true = ▼（朝向下方），false = ▶（朝向右方）
 //   bg       : 本行实际底色，抗锯齿按它合成
+//   boxW/boxH: 字形在屏幕上的目标尺寸（已按 DPI 缩放），单位 px
+//
+// 【为什么收"目标尺寸"而不是收一个 step 倍数】
+// 覆盖率表的 9×6 是图案本身，**不能改行数/列数**（非整数倍缩放会让每行铺不满、
+// 出现裂纹）。但只把 1px 乘一个系数也不行：MulDiv(1,120,96) = 1，
+// 125% 下 step 仍是 1，等于完全没放大 —— 这是 MulDiv 在小整数上的必然结果。
+//
+// 正确做法是**把格子映射到一个已缩放的包围盒里**：
+//   格子 c 的左沿 = left + MulDiv(c,     boxW, kExpandoCols)
+//   格子 c 的右沿 = left + MulDiv(c + 1, boxW, kExpandoCols)
+// 相邻格子首尾相接、覆盖整个包围盒，既不变形也不重叠；96 DPI 下
+// boxW/boxH 恰好等于 6/9，逐格就是 1px，与本轮改前**逐像素一致**。
+// （row/col 数为 0 的分支不会出现：kExpandoRows/Cols 都是编译期非零常量。）
 //
 // 展开态由同一张表绕中心顺时针旋转 90° 得到：(row, col) → (col, 8-row)，
 // 因此 ▼ 占 9 列 × 6 行，折角落在最底一行。
-void DrawExpandoChevron(HDC hdc, int left, int top, bool expanded, COLORREF bg) {
+void DrawExpandoChevron(HDC hdc, int left, int top, bool expanded, COLORREF bg,
+                        int boxW, int boxH) {
+    if (boxW < kExpandoCols) boxW = kExpandoCols;   // 再小就丢格子，退回 1:1
+    if (boxH < kExpandoRows) boxH = kExpandoRows;
+    auto edge = [](int cell, int box, int cells) { return MulDiv(cell, box, cells); };
     for (int r = 0; r < kExpandoRows; ++r) {
         for (int c = 0; c < kExpandoCols; ++c) {
             const unsigned a = kExpandoMask[r][c];
             if (a == 0) continue;
-            const int px = expanded ? left + (kExpandoRows - 1 - r) : left + c;
-            const int py = expanded ? top + c : top + r;
-            const RECT one{ px, py, px + 1, py + 1 };
+            // 旋转后：(行 r, 列 c) → (列 8−r, 行 c)，两个方向的高宽互换。
+            const int cc = expanded ? (kExpandoRows - 1 - r) : c;   // 列方向格子号
+            const int rr = expanded ? c : r;                        // 行方向格子号
+            const int px0 = left + edge(cc,     boxW, kExpandoCols);
+            const int px1 = left + edge(cc + 1, boxW, kExpandoCols);
+            const int py0 = top  + edge(rr,     boxH, kExpandoRows);
+            const int py1 = top  + edge(rr + 1, boxH, kExpandoRows);
+            const RECT one{ px0, py0, px1, py1 };
             // 走本文件的画刷缓存：底色 × 覆盖率最多 18 种组合，条目数有界。
             FillSolidFast(hdc, one, BlendOver(kTextSecondary, bg, a));
         }
@@ -989,8 +1089,8 @@ void TmWindow::PaintColumnHeader(HDC hdc) {
     SetBkMode(hdc, TRANSPARENT);
     SetTextAlign(hdc, TA_LEFT | TA_TOP);
 
-    const int x0 = rcColHeader_.left + kIndentPerLevel;   // 给展开箭头留位
-    const int nameW = NameColWidth(rcColHeader_.right - rcColHeader_.left - kIndentPerLevel);
+    const int x0 = rcColHeader_.left + IndentGutter();   // 给展开箭头留位
+    const int nameW = NameColWidth(rcColHeader_.right - rcColHeader_.left - IndentGutter());
     // 列头「名称」的左距 = 列左界 + kCellPadLeft(8)。
     //
     // 【依据：主题 TMT_SIZINGMARGINS】`GetThemeMargins(HEADER, HEADERITEM,
@@ -1006,7 +1106,7 @@ void TmWindow::PaintColumnHeader(HDC hdc) {
     // 自称算出 46、代码实际是 64，注释与实现早就脱节。
     // 列头文字与行内图标/文字**不对齐**是正常的：列头是单元格语义，
     // 行内是「沟槽+图标+文字」语义，两者左界本来就不同。
-    const int nameLeft = rcColHeader_.left + kCellPadLeft;
+    const int nameLeft = rcColHeader_.left + theme::Rpx(kCellPadLeft);
 
     // 【排序列高亮：已删除 · 2026-11-21】
     //
@@ -1194,9 +1294,9 @@ void TmWindow::PaintColumnHeader(HDC hdc) {
             FillSolidFast(hdc, hr, RGB(0xD9, 0xEB, 0xF9));
         }
 
-        int left  = (i == 0) ? nameLeft : (cx + kCellPadLeft);
-        int right = (i == 0) ? (x0 + nameW - kCellPadRight)
-                             : (colRight - kCellPadRight);
+        int left  = (i == 0) ? nameLeft : (cx + theme::Rpx(kCellPadLeft));
+        int right = (i == 0) ? (x0 + nameW - theme::Rpx(kCellPadRight))
+                             : (colRight - theme::Rpx(kCellPadRight));
         // 【列头文字垂直位置 —— 真原版实测偏下 8.5px，不是垂直居中】
         // 原版 `docs/reference/original_win10.png`：列头带 y=92..135（44px，带顶 rel 0）。
         // 逐列扫描墨迹（docs/evidence/_hh_scan5.ps1）得到两组内容：
@@ -1500,8 +1600,8 @@ void TmWindow::PaintRows(HDC hdc) {
     const int savedDC = SaveDC(hdc);
     IntersectClipRect(hdc, rcList_.left, rcList_.top, rcList_.right, rcList_.bottom);
 
-    const int x0 = rcList_.left + kIndentPerLevel;
-    const int nameW = NameColWidth(rcList_.right - rcList_.left - kIndentPerLevel);
+    const int x0 = rcList_.left + IndentGutter();
+    const int nameW = NameColWidth(rcList_.right - rcList_.left - IndentGutter());
     const int bodyTop = rcList_.top;
     const int bodyBot = rcList_.bottom;
 
@@ -1567,23 +1667,33 @@ void TmWindow::PaintRows(HDC hdc) {
 
     for (size_t i = 0; i < rows_.size(); ++i) {
         const ViewRow& row = rows_[i];
-        // 行高统一走 theme::RowHeightFor()，本文件**不再有**任何行高字面量，
-        // 也不再手写 `(kind == GroupHeaderRow) ? ... : ...` 三元式。
-        // 【子行 22】组头/父行 28，子进程行（indentLevel > 0）22 —— UIFILE
+        // 行高统一走 theme::RowHeightForPx()（= RowHeightFor() 的已缩放版本），
+        // 本文件**不再有**任何行高字面量，也不再手写
+        // `(kind == GroupHeaderRow) ? ... : ...` 三元式。
+        // 【子行 22】组头 38、父行 28、子进程行（indentLevel > 0）22 —— UIFILE
         // 里父行 28rp、子行 22rp 是两个不同的 item 类型（30001 @0x147c），
         // 不是"同一种行多缩进一级"。
         //
+        // 【为什么是 Px 版】RowHeightFor() 返回的是 **96 DPI 基准值**（theme.h
+        // 文件头约定），直接拿来当屏幕 px 用，125% 下每行少 7px、组头少 10px，
+        // 而字体已经按 Rpx 放大了 —— 结果是文字被裁、越往下累积错位越多。
+        // RowHeightForPx() 就是"已经换算成屏幕 px"的那一个，绘制/命中都该用它。
+        //
         // 【旧依据已作废】此前这里写着「行高没有规范值，唯一可用的推导式是
         // 行高 = tmHeight + 2×pad，pad 取 5.5 得 28」——那是错的。行高不是
-        // 推导出来的，是 UIFILE 声明的（28rp / 22rp）；本机 96 DPI 下
-        // 1rp = 1px，所以就是 28 / 22 px。不要再把人引回推导。
+        // 推导出来的，是 UIFILE 声明的（28rp / 22rp）；96 DPI 下 1rp = 1px。
         //
         // 【行间不画分隔线】`LVS_EX_GRIDLINES` 默认关闭，主题也不提供行分隔线
         // part（T_uxspec.md §1.4）→ 本函数不画任何横线，靠留白分隔。
         //
-        // 下面所有 `y + rh`、`(rh - kIconSize) / 2`、`(rh - boxH) / 2`、
+        // 下面所有 `y + rh`、`(rh - iconSz) / 2`、`(rh - glyphH) / 2`、
         // 单元格/热力图矩形都用这个 `rh`，所以子行会自动整体变矮，不必另改。
-        const int rh = RowHeightFor(row.kind == ViewRow::GroupHeaderRow, row.indentLevel);
+        //
+        // ⚠【必须与命中侧同源】tmwindow_events.cpp 的 HitTestRow /
+        // HitTestGroupHeader / FirstVisibleRowHeight 读的是同一组行高。
+        // 它们目前仍是 **未缩放的 RowHeightFor()**，96 DPI 下逐值相同，
+        // 高 DPI 下绘制会比命中高 —— 见 docs/audit/E03_process_dpi.md 的交接单。
+        const int rh = theme::RowHeightForPx(row.kind == ViewRow::GroupHeaderRow, row.indentLevel);
 
         if (y + rh <= bodyTop) { y += rh; continue; }
         if (y >= bodyBot) break;
@@ -1655,17 +1765,20 @@ void TmWindow::PaintRows(HDC hdc) {
             // 实测 x=3..12 在 y=136..173 / y=482..519 两段都是 0 个非白像素，
             // 文字从 x=13 开始。删掉它会让「组头可折叠」这个可供性消失
             // （原版靠双击展开），属于交互改动而非纯对齐，故保留并记入报告。
-            int triX = x0 - 12;
+            // 【DPI】5 个偏移量全部是 96 DPI 基准值，逐项包 Rpx。
+            //   ⚠ 不要只缩一部分：三角的三条边如果一半缩放一半不缩，
+            //   高 DPI 下形状会歪（比如宽度对了、高度不够）。
+            int triX = x0 - theme::Rpx(12);
             int triY = y + rh / 2;
             POINT tri[3];
             if (row.expanded) {
-                tri[0] = POINT{ triX - 4, triY - 2 };
-                tri[1] = POINT{ triX + 4, triY - 2 };
-                tri[2] = POINT{ triX,     triY + 3 };
+                tri[0] = POINT{ triX - theme::Rpx(4), triY - theme::Rpx(2) };
+                tri[1] = POINT{ triX + theme::Rpx(4), triY - theme::Rpx(2) };
+                tri[2] = POINT{ triX,                 triY + theme::Rpx(3) };
             } else {
-                tri[0] = POINT{ triX - 2, triY - 4 };
-                tri[1] = POINT{ triX + 3, triY };
-                tri[2] = POINT{ triX - 2, triY + 4 };
+                tri[0] = POINT{ triX - theme::Rpx(2), triY - theme::Rpx(4) };
+                tri[1] = POINT{ triX + theme::Rpx(3), triY };
+                tri[2] = POINT{ triX - theme::Rpx(2), triY + theme::Rpx(4) };
             }
             // 【性能修复】原为每帧 CreateSolidBrush(tri) + 两次 SelectObject +
             // Polygon + 两次恢复 + DeleteObject。组头只有 3 行，
@@ -1676,7 +1789,7 @@ void TmWindow::PaintRows(HDC hdc) {
             SelectObject(hdc, fontGroup_);
             wchar_t gtext[128];
             swprintf_s(gtext, L"%s (%d)", GroupTitle(row.group), row.groupCount);
-            RECT tr{ x0, y, rcList_.right - 8, y + rh };
+            RECT tr{ x0, y, rcList_.right - theme::Rpx(8), y + rh };
             // 【文字色 = 蓝色 #1F59C3，不是正文黑】（Agent II 交接 H1-c）
             // 实测：组头文字框 y=150..165 x=13..76 的直方图里 #1F59C3 出现
             // 61 次（最高频），最暗像素就是它自己（没有任何更暗的像素）
@@ -1854,14 +1967,21 @@ void TmWindow::PaintRows(HDC hdc) {
             //
             // 锚点值来源已降级：原先引用的裁切图无法证明是原版（见 DisplayName
             // 上方的「证据复核」段）。现值靠 theme.h 的栅格支撑：
-            //   x0 = 列表左界 + kIndentPerLevel(18)
+            //   x0 = 列表左界 + 沟槽 Rpx(kIndentPerLevel)
             //   图标左 = x0 + kIconLeft(10) = rel 28
             //   图标槽 16×16（kIconSize，= SM_CXSMICON 在 96dpi 的值，【系统API实测】）
             //   文字左 = 28 + 16 + 6 = rel 50
-            int rowIndent = row.indentLevel * kTreeIndent;
-            RECT irc{ kRowIconLeft + rowIndent, y + (rh - theme::kIconSize) / 2,
-                      kRowIconLeft + rowIndent + theme::kIconSize,
-                      y + (rh - theme::kIconSize) / 2 + theme::kIconSize };
+            //
+            // 【DPI】kRowIconLeft / kRowTextLeft / kTreeIndent / kIconSize 全部是
+            // 96 DPI 基准值，**每一项都要包 Rpx**。只缩放其中一部分会让图标与文字
+            // 的相对间距在高 DPI 下被压缩（125% 时漏掉 kRowTextLeft 的话，文字会
+            // 压进图标）。这里四个量逐一换算。
+            const int rowIndent = row.indentLevel * theme::Rpx(kTreeIndent);
+            const int iconSz = theme::Rpx(theme::kIconSize);
+            const int iconLeft = theme::Rpx(kRowIconLeft) + rowIndent;
+            RECT irc{ iconLeft, y + (rh - iconSz) / 2,
+                      iconLeft + iconSz,
+                      y + (rh - iconSz) / 2 + iconSz };
             DrawAppIcon(hdc, irc, pe->imageName, pe->pid);
 
             // 展开/折叠箭头（只对有子进程的应用行画）
@@ -1928,10 +2048,17 @@ void TmWindow::PaintRows(HDC hdc) {
                 // 由同一张表绕中心旋转 90° 得到（主题里 EXPANDBUTTON /
                 // COLLAPSEBUTTON 是同一颗字形的两个方向），笔画权重因此完全一致。
                 // 这一点在报告里标为「推定」，不是实测。
-                const int glyphLeft = triL + 3;          // 9 + 3 = 12
+                // 【DPI —— 只缩放"包围盒"，不缩放"表行数"】
+                // 覆盖率表 kExpandoMask 是 9×6 的**像素图案**：把行/列数也乘上
+                // 缩放系数会让图案变形。正确做法是把这 9×6 个格子映射到
+                // 一个已按 DPI 缩放的包围盒里（DrawExpandoChevron 内部的 edge 映射），
+                // 图案本身不变、整体放大。96 DPI 下包围盒 = 6×9，逐格 1px，
+                // 与本轮改前**逐像素完全一致**。
+                const int glyphLeft = triL + theme::Rpx(3);   // 96 DPI: 9 + 3 = 12
                 // 折叠 ▶ 是 6 宽 × 9 高，展开 ▼ 是 9 宽 × 6 高（同一张表旋转 90°），
                 // 两者的**高**不同，所以各自按自己的高居中 —— 用同一个 top 会让 ▼ 偏高 1~2px。
-                const int glyphH = row.expanded ? kExpandoCols : kExpandoRows;   // 6 : 9
+                const int glyphW = theme::Rpx(row.expanded ? kExpandoCols : kExpandoRows);  // 96 DPI: 6 : 9
+                const int glyphH = theme::Rpx(row.expanded ? kExpandoRows : kExpandoCols);  // 96 DPI: 9 : 6
                 const int glyphTop = y + (rh - glyphH) / 2;
                 // 【两态共用一个左沿，是有意的】旋转把 (行 r, 列 c) 映到 (列 8−r, 行 c)，
                 // 因此两态的**尖端都落在列 4**（= 相对左沿 +4）。左沿相同 ⇒ 尖端 x 相同，
@@ -1939,7 +2066,8 @@ void TmWindow::PaintRows(HDC hdc) {
                 COLORREF rowBg = kBgWindow;
                 if (sel)      rowBg = RGB(0xCD, 0xE8, 0xFF);   // LISS_SELECTED
                 else if (hov) rowBg = RGB(0xE5, 0xF3, 0xFF);   // LISS_HOT
-                DrawExpandoChevron(hdc, glyphLeft, glyphTop, row.expanded, rowBg);
+                DrawExpandoChevron(hdc, glyphLeft, glyphTop, row.expanded, rowBg,
+                                   glyphW, glyphH);
             }
 
             // 名称（含缩进）
@@ -1958,8 +2086,9 @@ void TmWindow::PaintRows(HDC hdc) {
             // 6px 间距【无依据，沿用旧值】，属 Win32 官方间距集里没有的一个值
             // （官方是 5/7/11/13/16/17/18/23）；不用 5 或 7 是因为现有栅格
             // 已经按 6 对齐，改动会牵动 TreeTriangleX/图标槽的整条链。
-            int nameX = kRowTextLeft + rowIndent;
-            RECT nameRc{ nameX, y, x0 + nameW - kCellPadRight, y + rh };
+            // 【DPI】kRowTextLeft / kCellPadRight 都是 96 DPI 基准值，两个都包 Rpx。
+            const int nameX = theme::Rpx(kRowTextLeft) + rowIndent;
+            RECT nameRc{ nameX, y, x0 + nameW - theme::Rpx(kCellPadRight), y + rh };
             // 【性能 · 只报告，未改】
             // `ProcessDisplayName` 按值返回 std::wstring，每行一次堆分配/释放
             // （内部还会走 GetFileDescription 的哈希查找 —— 那个是 O(1)，
@@ -2013,8 +2142,8 @@ void TmWindow::PaintRows(HDC hdc) {
                 else if (cls_.notResponding.count(pe->pid)) statusText = L"无响应";
 
                 if (statusText) {
-                    RECT sr{ x0 + colX[1] + kCellPadLeft, y,
-                             x0 + colX[1] + LiveW(1) - kCellPadRight, y + rh };
+                    RECT sr{ x0 + colX[1] + theme::Rpx(kCellPadLeft), y,
+                             x0 + colX[1] + LiveW(1) - theme::Rpx(kCellPadRight), y + rh };
                     DrawTextClipped(hdc, statusText, &sr,
                                     DT_SINGLELINE | DT_VCENTER | DT_LEFT, textColor);
                 }
@@ -2031,7 +2160,7 @@ void TmWindow::PaintRows(HDC hdc) {
             if (LiveVisible(2)) {
                 int cx = x0 + colX[2];
                 FmtCpuText(shownCpu, buf, 64);
-                RECT cr{ cx + kCellPadLeft, y, cx + LiveW(2) - kCellPadRight, y + rh };
+                RECT cr{ cx + theme::Rpx(kCellPadLeft), y, cx + LiveW(2) - theme::Rpx(kCellPadRight), y + rh };
                 DrawTextClipped(hdc, buf, &cr, DT_SINGLELINE | DT_VCENTER | DT_RIGHT, textColor);
             }
 
@@ -2052,7 +2181,7 @@ void TmWindow::PaintRows(HDC hdc) {
                 } else {
                     FmtMemText(shownMem, buf, 64);
                 }
-                RECT mr{ cx + kCellPadLeft, y, cx + LiveW(3) - kCellPadRight, y + rh };
+                RECT mr{ cx + theme::Rpx(kCellPadLeft), y, cx + LiveW(3) - theme::Rpx(kCellPadRight), y + rh };
                 DrawTextClipped(hdc, buf, &mr, DT_SINGLELINE | DT_VCENTER | DT_RIGHT, textColor);
             }
 
@@ -2071,7 +2200,7 @@ void TmWindow::PaintRows(HDC hdc) {
                 } else {
                     FmtDiskText(shownDisk, buf, 64);
                 }
-                RECT dr{ cx + kCellPadLeft, y, cx + LiveW(4) - kCellPadRight, y + rh };
+                RECT dr{ cx + theme::Rpx(kCellPadLeft), y, cx + LiveW(4) - theme::Rpx(kCellPadRight), y + rh };
                 DrawTextClipped(hdc, buf, &dr, DT_SINGLELINE | DT_VCENTER | DT_RIGHT, textColor);
             }
 
@@ -2088,7 +2217,7 @@ void TmWindow::PaintRows(HDC hdc) {
                 } else {
                     FmtNetText(shownNet, buf, 64);
                 }
-                RECT nr{ cx + kCellPadLeft, y, cx + LiveW(5) - kCellPadRight, y + rh };
+                RECT nr{ cx + theme::Rpx(kCellPadLeft), y, cx + LiveW(5) - theme::Rpx(kCellPadRight), y + rh };
                 DrawTextClipped(hdc, buf, &nr, DT_SINGLELINE | DT_VCENTER | DT_RIGHT, textColor);
             }
 
@@ -2096,7 +2225,7 @@ void TmWindow::PaintRows(HDC hdc) {
             if (LiveVisible(6)) {
                 int cx = x0 + colX[6];
                 FmtGpuText(shownGpu, buf, 64);
-                RECT gr{ cx + kCellPadLeft, y, cx + LiveW(6) - kCellPadRight, y + rh };
+                RECT gr{ cx + theme::Rpx(kCellPadLeft), y, cx + LiveW(6) - theme::Rpx(kCellPadRight), y + rh };
                 DrawTextClipped(hdc, buf, &gr, DT_SINGLELINE | DT_VCENTER | DT_RIGHT, textColor);
             }
         }
@@ -2212,7 +2341,11 @@ void TmWindow::PaintStatusBar(HDC hdc) {
 
     HFONT old = static_cast<HFONT>(SelectObject(hdc, fontBody_));
     SetBkMode(hdc, TRANSPARENT);
-    RECT tr{ rcStatus_.left + 10, rcStatus_.top, rcStatus_.right - 10, rcStatus_.bottom };
+    // 【DPI】左右各 10px 内边距是 96 DPI 基准值。这是死代码（本函数零调用，
+    // 见函数头注释），但既然在范围内就一并改对 —— 留着未缩放的常量，
+    // 将来谁把它接回去就会直接继承这个 bug。
+    RECT tr{ rcStatus_.left + theme::Rpx(10), rcStatus_.top,
+             rcStatus_.right - theme::Rpx(10), rcStatus_.bottom };
     DrawTextClipped(hdc, text, &tr, DT_SINGLELINE | DT_VCENTER | DT_LEFT, kTextSecondary);
     SelectObject(hdc, old);
 }
@@ -2287,8 +2420,21 @@ void TmWindow::DrawHollowArrow(HDC hdc, const RECT& btn, bool up, COLORREF color
     // 【实测校验】原版上钮 y=136..152（17px）、箭头 y=142..147 ⇒ 偏移 6..11；
     // 下钮 y=776..792、箭头 y=782..787 ⇒ 偏移同样是 6..11。两端同一个公式。
     // （0 基坐标下这也等于 cy-2 .. cy+3，cy = 按钮垂直中心。）
+    //
+    // 【DPI —— 与展开箭头同一套处理】kArrowGlyphUp 是 6 行 × 7 列的**像素图案**，
+    // 行数/列数不能缩放（会变形）。做法是把这 6×7 个格子映射到已缩放的包围盒里：
+    // 96 DPI 下包围盒 = 6×7，每个格子 1px，与本轮改前**逐像素完全一致**；
+    // 高 DPI 下图案整体放大，笔画仍然连续。
+    const int gw = theme::Rpx(kArrowHalfW * 2 + 1);   // 字形宽：96 DPI = 7
+    const int gh = theme::Rpx(kArrowH);               // 字形高：96 DPI = 6
+    // 水平：以按钮中心对齐（缩放后宽度可能是偶数，用整数除法居中即可）
+    const int gx = cx - gw / 2;
     const int h = btn.bottom - btn.top;
-    const int y0 = btn.top + (h - kArrowH + 1) / 2;
+    // 垂直居中。**保留原来的 +1 取整**，否则 96 DPI 下会比改前低 1px
+    // （(17−6+1)/2 = 6 对 (17−6)/2 = 5），那会成为本轮不该有的像素回归。
+    const int y0 = btn.top + (h - gh + 1) / 2;
+    auto edgeW = [gw](int cell) { return MulDiv(cell, gw, kArrowHalfW * 2 + 1); };
+    auto edgeH = [gh](int cell) { return MulDiv(cell, gh, kArrowH); };
 
     // 【性能】走本文件的画刷缓存，和 FillSolidFast / FillPolygonFast 一致。
     // 此前这里是裸 CreateSolidBrush + DeleteObject，注释还写着「static 拿不到
@@ -2300,8 +2446,9 @@ void TmWindow::DrawHollowArrow(HDC hdc, const RECT& btn, bool up, COLORREF color
     HGDIOBJ oldBrush = SelectObject(hdc, b);
     for (int row = 0; row < kArrowH; ++row) {
         const unsigned bits = kArrowGlyphUp[up ? row : (kArrowH - 1 - row)];
-        const int y = y0 + row;
-        // 每行是一段或两段连续像素，用 FillRect 逐段填 1px 高的小条：
+        const int y1 = y0 + edgeH(row);
+        const int y2 = y0 + edgeH(row + 1);
+        // 每行是一段或两段连续像素，用 FillRect 逐段填一条小横条：
         // 比 Polygon / LineTo 更精确（不受「闭合路径最后一个像素」影响），
         // 也不会像 FillPolygonFast 那样把中间也涂满。
         int col = 0;
@@ -2312,8 +2459,7 @@ void TmWindow::DrawHollowArrow(HDC hdc, const RECT& btn, bool up, COLORREF color
                    (bits & (1u << (kArrowHalfW * 2 - col)))) {
                 ++col;
             }
-            RECT r{ cx - kArrowHalfW + start, y,
-                    cx - kArrowHalfW + col,     y + 1 };
+            RECT r{ gx + edgeW(start), y1, gx + edgeW(col), y2 };
             FillRect(hdc, &r, b);
         }
     }
@@ -2327,7 +2473,7 @@ int TmWindow::ContentHeight() const {
     // 滚到底的停位都会偏。
     int h = 0;
     for (const auto& r : rows_) {
-        h += RowHeightFor(r.kind == ViewRow::GroupHeaderRow, r.indentLevel);
+        h += theme::RowHeightForPx(r.kind == ViewRow::GroupHeaderRow, r.indentLevel);
     }
     return h;
 }
@@ -2340,7 +2486,11 @@ int TmWindow::ScrollBarLeft() const {
     // 与 ScrollThumbRect / PaintScrollBar 同一套几何：列表右界内缩 3px，
     // 再往左 SM_CXVSCROLL(17)。三处必须一致，否则光标判定的边界
     // 会和看到的滚动条错开。
-    return rcList_.right - 3 - kScrollBarW;
+    //
+    // 【DPI】17（kScrollBarW）与右侧 3px 留白都是 96 DPI 基准值，两个都要 Rpx。
+    // 这里与 ScrollThumbRect / PaintScrollBar 必须逐值同源（三处读同一个式子），
+    // 否则 ApplyHoverCursor 判定"鼠标在滚动条上"的边界会和看到的滚动条错开。
+    return rcList_.right - theme::Rpx(3) - theme::Rpx(kScrollBarW);
 }
 
 RECT TmWindow::ScrollThumbRect() const {
@@ -2351,18 +2501,21 @@ RECT TmWindow::ScrollThumbRect() const {
 
     // 【右侧 3px 留白：无依据，沿用旧值】轨道右界比列表右界内缩 3px，
     // 让滚动条与窗口边框之间留一条白。规范没有规定这个值。
-    // 【交接】tmwindow_events.cpp:383/390 的箭头命中区仍写死 `btnH = 16`，
-    // 与本文件的 kScrollBtnH=17 差 1px。那个文件不归本轮改动，见报告交接单。
-    const int trackRight = rcList_.right - 3;
-    const int trackX = trackRight - kScrollBarW;
+    // 【DPI】3 / kScrollBarW(17) / kScrollBtnH(17) / kThumbMinLen(11) 全是
+    // 96 DPI 基准值，逐项包 Rpx。滑块位置公式里的 `* sy / maxScroll` 是
+    // 比例运算，与几何单位无关，**不要**在里面塞 Rpx。
+    // 【交接】tmwindow_events.cpp 的箭头/拖拽命中已改为 theme::Rpx(17)（见
+    // docs/audit/E03_process_dpi.md），但那边还有几处未缩放的行高，需主线程同步。
+    const int trackRight = rcList_.right - theme::Rpx(3);
+    const int trackX = trackRight - theme::Rpx(kScrollBarW);
     // 滑块只在两端箭头之间滑动
-    const int trackTop = rcList_.top + kScrollBtnH;
-    const int trackH = view - kScrollBtnH * 2;
+    const int trackTop = rcList_.top + theme::Rpx(kScrollBtnH);
+    const int trackH = view - theme::Rpx(kScrollBtnH) * 2;
     if (trackH <= 0) return none;
 
     int thumbH = trackH * view / total;
     // 滑块最小长 11（主题 SBP_THUMBBTNVERT TS_TRUE.cy，系统API实测）
-    if (thumbH < kThumbMinLen) thumbH = kThumbMinLen;
+    if (thumbH < theme::Rpx(kThumbMinLen)) thumbH = theme::Rpx(kThumbMinLen);
     if (thumbH > trackH) thumbH = trackH;
 
     const int maxScroll = total - view;
@@ -2376,7 +2529,12 @@ RECT TmWindow::ScrollThumbRect() const {
     if (maxScroll > 0) {
         thumbY = trackTop + (trackH - thumbH) * sy / maxScroll;
     }
-    return RECT{ trackX + 1, thumbY, trackX + kScrollBarW - 1, thumbY + thumbH };
+    // 【1px 内缩**不**缩放】滑块左右各内缩 1px 让出轨道边，这是"1px 线宽"语义
+    // （任务书里明确列为不该缩放的一类）：高 DPI 下轨道本身已变宽，1px 内缩
+    // 在视觉上仍是"贴边留一条缝"。若包 Rpx(1)，200% 下变成 2px，滑块看起来
+    // 比轨道"窄了一圈"，与系统滚动条在不同 DPI 下保持 1px 边距的行为不符。
+    return RECT{ trackX + 1, thumbY,
+                 trackX + theme::Rpx(kScrollBarW) - 1, thumbY + thumbH };
 }
 
 void TmWindow::PaintScrollBar(HDC hdc) {
@@ -2395,18 +2553,17 @@ void TmWindow::PaintScrollBar(HDC hdc) {
     // 出处 docs/specs/U_themecolors.md §4.6 / R_sysmetrics.md §4.2。
     // 【右侧 3px 留白：无依据，沿用旧值】轨道右界比列表右界内缩 3px，
     // 让滚动条与窗口边框之间留一条白。规范没有规定这个值。
-    // 【交接】tmwindow_events.cpp:383/390 的箭头命中区仍写死 `btnH = 16`，
-    // 与本文件的 kScrollBtnH=17 差 1px。那个文件不归本轮改动，见报告交接单。
-    const int trackRight = rcList_.right - 3;
-    const int trackX = trackRight - kScrollBarW;
+    // 【DPI】与 ScrollThumbRect / ScrollBarLeft 逐值同源（三处读同一个式子）。
+    const int trackRight = rcList_.right - theme::Rpx(3);
+    const int trackX = trackRight - theme::Rpx(kScrollBarW);
     RECT track{ trackX, rcList_.top, trackRight, rcList_.bottom };
 
     // 轨道：#F0F0F0（SCROLLBAR SBP_TRACK 渲染实测 = COLOR_BTNFACE）
     FillSolidFast(hdc, track, kSbTrack);
 
     // 两端箭头按钮（各 kScrollBtnH 高，底色同轨道）
-    RECT upBtn{ trackX, track.top, trackRight, track.top + kScrollBtnH };
-    RECT dnBtn{ trackX, track.bottom - kScrollBtnH, trackRight, track.bottom };
+    RECT upBtn{ trackX, track.top, trackRight, track.top + theme::Rpx(kScrollBtnH) };
+    RECT dnBtn{ trackX, track.bottom - theme::Rpx(kScrollBtnH), trackRight, track.bottom };
     FillSolidFast(hdc, upBtn, kSbTrack);
     FillSolidFast(hdc, dnBtn, kSbTrack);
 
