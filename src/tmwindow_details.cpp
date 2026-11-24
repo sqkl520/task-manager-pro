@@ -487,7 +487,7 @@ void TmWindow::PaintDetailsPage(HDC hdc) {
             }
             case DF_MEM: {
                 // WorkingSetPrivateSize 优先；取不到时退回工作集（否则这一格会全空）。
-                FmtMemD(pe->privateBytes ? pe->privateBytes : pe->workingSet, buf, 64);
+                FmtMemD(pe->privateBytes, buf, 64);
                 RECT rc{ cx + theme::Rpx(kCellPadLeft), y, x0 + DetColRight(i) - theme::Rpx(kCellPadRight),
                          y + rowH };
                 DrawTextClipped(hdc, buf, &rc, DT_SINGLELINE | DT_VCENTER | DT_RIGHT,

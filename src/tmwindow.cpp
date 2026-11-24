@@ -672,7 +672,7 @@ void TmWindow::RebuildAppAggregates() {
 
         auto& agg = appAgg_[root];
         agg.cpuPercent += e.cpuPercent;
-        agg.memBytes += (e.privateBytes ? e.privateBytes : e.workingSet);
+        agg.memBytes += e.privateBytes;
         ++agg.processCount;
         // 磁盘 / 网络：可叠加的物理量，直接相加
         agg.diskBytesPerSec += e.diskBytesPerSec;
@@ -789,7 +789,7 @@ void TmWindow::RebuildRows() {
             auto it = appAgg_.find(e->pid);
             if (it != appAgg_.end()) return it->second.memBytes;
         }
-        return e->privateBytes ? e->privateBytes : e->workingSet;
+        return e->privateBytes;
     };
     auto sortDisk = [this](const ProcessEntry* e) -> double {
         if (cls_.appRoots.count(e->pid)) {

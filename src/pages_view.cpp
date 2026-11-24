@@ -627,7 +627,7 @@ void PagesView::RefreshUsers() {
                     // 原来累加的是 workingSet（总工作集），共享 DLL 页会在
                     // 同一会话的多个进程间被重复计入，导致这一页的「内存」
                     // 比把进程页该会话各行相加高出约 40%（实测 1.40 倍）。
-                    u.workingSet += p.privateBytes ? p.privateBytes : p.workingSet;
+                    u.workingSet += p.privateBytes;
                     ++u.processCount;
                     break;
                 }

@@ -1844,7 +1844,7 @@ void TmWindow::CopySelectedRowToClipboard() {
         // 应用行还是整棵树的聚合值——复制出来和看到的对不上。
         RowDisplay dv;
         dv.cpuPercent = pe->cpuPercent;
-        dv.memBytes = pe->privateBytes ? pe->privateBytes : pe->workingSet;
+        dv.memBytes = pe->privateBytes;
         GetRowDisplay(selectedRow_, dv);
         wchar_t b[512];
         swprintf_s(b, L"%s\t%.1f%%\t%.1f MB",
@@ -1862,7 +1862,7 @@ void TmWindow::CopySelectedRowToClipboard() {
         if (!pe) return;
         // 【口径统一】详细信息页是扁平列表，没有应用聚合语义，
         // 但内存口径要和该页屏上显示一致：privateBytes 优先，取不到退回 workingSet。
-        const uint64_t memShown = pe->privateBytes ? pe->privateBytes : pe->workingSet;
+        const uint64_t memShown = pe->privateBytes;
         wchar_t b[1024];
         swprintf_s(b, L"%s\t%u\t%s\t%.1f%%\t%.1f MB",
                    pe->imageName.c_str(), pe->pid,

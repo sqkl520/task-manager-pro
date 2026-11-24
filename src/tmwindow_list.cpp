@@ -1523,7 +1523,7 @@ bool TmWindow::GetRowDisplay(int rowIndex, RowDisplay& out) const {
     const ProcessEntry* pe = itP->second;
 
     out.cpuPercent = pe->cpuPercent;
-    out.memBytes = pe->privateBytes ? pe->privateBytes : pe->workingSet;
+    out.memBytes = pe->privateBytes;
     out.diskBytesPerSec = pe->diskBytesPerSec;
     out.netBitsPerSec = pe->netBitsPerSec;
     out.gpuPercent = pe->gpuPercent;
@@ -1834,7 +1834,7 @@ void TmWindow::PaintRows(HDC hdc) {
             // 「复制出来的数字和屏上看的对不上」。
             RowDisplay dv;
             dv.cpuPercent = pe->cpuPercent;
-            dv.memBytes = pe->privateBytes ? pe->privateBytes : pe->workingSet;
+            dv.memBytes = pe->privateBytes;
             dv.diskBytesPerSec = pe->diskBytesPerSec;
             dv.netBitsPerSec = pe->netBitsPerSec;
             dv.gpuPercent = pe->gpuPercent;
