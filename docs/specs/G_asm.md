@@ -316,7 +316,7 @@ TmPrintOrFormatBuffer(...)  ← RVA 0x66584，负责 %.1f / %.2f / %s%% 等
 ## 2.1 MUI 字符串 ID 的正确偏移规则（已证实，重要的方法论订正）
 
 我一开始按 `strId = colId + 1` 去查 MUI，**48 列里只命中 35 列，13 列取到空串**。
-改成 **`strId = colId + 16`** 后 **48/48 全部命中，且语义全部正确**。
+【2026-11-24 订正：本条错误】正确规则是 **`strId = colId`**，基址 32003。实测 20/20 逐条命中（名称/PID/用户名/…）。原文的 `+16` 是把 "MUI STRINGTABLE 块起始" 与 "列 id 起始" 搞混了。详见 docs/audit/H00_plan.md §0.1 第 6 条。
 
 原因：exe 里的 `colId` 和 MUI 的 `strId` **不在同一个编号空间**：
 - exe 的 colId 从 32003 起（0x7D03），是**列 ID**
