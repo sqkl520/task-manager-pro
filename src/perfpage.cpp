@@ -53,12 +53,27 @@ void FmtUptime(uint64_t sec, wchar_t* out, size_t n) {
 //   判不了：唯一经得起验真的原版截图（scratch/scan/original_win10.png）里那条曲线
 //   的 uptime 是「开机时长」，与「曲线已经采了多少秒」无关，两者无法互推。
 //   本轮**只修「拉伸」这个确定的错误，方向维持现状**（0 = 最旧 = 最左边）。
-inline int HistoryX(int left, int spanPx, int i) {
+inline int HistoryX(int left, int spanPx, int i, int n) {
     constexpr int kCap = PerfHistory::kPoints;   // 60
     if (kCap <= 1 || spanPx <= 0) return left;
+    if (n < 1) n = 1;
+    if (n > kCap) n = kCap;
     if (i < 0) i = 0;
-    if (i > kCap - 1) i = kCap - 1;              // 越界钳制，绝不让点画到框外
-    return left + i * spanPx / (kCap - 1);
+    if (i >= n) i = n - 1;
+    // 【方向：贴右边缘生长 —— 逆向定论（见 docs/audit/H00_corrections.md §五）】
+    //
+    // 原版写入侧 `0x14002E200`（主线程逐指令复核）：
+    //   0x14002E233  sub  ecx,eax        ; ecx = n mod 60
+    //   0x14002E235  mov  eax,3Bh        ; 59
+    //   0x14002E23A  sub  eax,ecx        ; cursor = 59 - (n mod 60)
+    // 第 0 个样本落槽 59、第 1 个落槽 58。读取侧 `cat = 59 - i`，
+    // 而 CHARTV 的 `x = left + cat*fScale`（fScale>0）⇒ cat 越大越靠右。
+    // 合起来：**最新样本永久贴右边缘**，历史向左延伸，未填充的槽位在左边。
+    //
+    // 等价实现：时间下标 i（0=最旧，n-1=最新）占据槽位 `(kCap - n) + i`。
+    // n == kCap 时退化为 `left + i*span/(kCap-1)`，与原式逐像素相同。
+    const int slot = (kCap - n) + i;
+    return left + slot * spanPx / (kCap - 1);
 }
 
 // ---- 网络吞吐量的量程档位 ----
@@ -651,7 +666,7 @@ void PerfPage::PaintSidebarMiniChart(HDC hdc, const RECT& rc,
         // 【横轴失真修复】按固定容量 kPoints 算步长（不再是 n）：
         //   开屏前几秒的少量点只占左侧一小段，不再被拉伸成整格宽。
         //   见文件头部 HistoryX() 的说明。
-        int px = HistoryX(plot.left, pw - 1, i);
+        int px = HistoryX(plot.left, pw - 1, i, n);
         int py = plot.bottom - static_cast<int>(v / 100.0 * (ph - 1) + 0.5);
         if (py < plot.top) py = plot.top;
         pts.push_back(POINT{ px, py });
@@ -1015,7 +1030,7 @@ void PerfPage::PaintChart(HDC hdc, const RECT& rcIn, const double* data, int cou
             double v = src[idx];
             if (v > 100) v = 100;
             if (v < 0) v = 0;
-            int px = HistoryX(rc.left + 2, w - 1, i);
+            int px = HistoryX(rc.left + 2, w - 1, i, count);
             int py = rc.bottom - 2 - static_cast<int>(v / 100.0 * (h - 1));
             p.push_back(POINT{ px, py });
         }
@@ -1138,7 +1153,7 @@ void PerfPage::PaintHistCell(HDC hdc, const RECT& cell, const double* vals, int 
                 // 步长仍按固定容量 kPoints 算：开屏前几秒格子里的曲线只占左边
                 // 一小段，而不是两个点就拉满整格（20 核 × 拉伸 30 倍，整页
                 // 都在显示"剧烈震荡"，实际是刚开机没数据）。见 HistoryX()。
-                int px = HistoryX(plot.left, pw - 1, k);
+                int px = HistoryX(plot.left, pw - 1, k, n);
                 int py = plot.bottom - static_cast<int>(v / 100.0 * (ph - 1) + 0.5);
                 if (py < plot.top) py = plot.top;
                 pts.push_back(POINT{ px, py });
@@ -2774,7 +2789,7 @@ void PerfPage::PaintEngineChart(HDC hdc, const RECT& rc, int engineType,
                 if (t > 1) t = 1;
                 if (t < 0) t = 0;
                 // 【横轴失真修复】步长按固定容量算，见 HistoryX()。
-                int px = HistoryX(plot.left, pw - 1, i);
+                int px = HistoryX(plot.left, pw - 1, i, n);
                 int py = plot.bottom - static_cast<int>(t * (ph - 1));
                 if (py < plot.top) py = plot.top;
                 pts.push_back(POINT{ px, py });
